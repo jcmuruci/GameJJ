@@ -33,6 +33,29 @@ export function generateTrailTextures(scene: Phaser.Scene): void {
     [[5, 2], [3, 4], [7, 4], [4, 6], [6, 6]].forEach(([x, y]) => pg.ellipse(x, y, 1, 1, '#ff8fb1'));
     pg.px(5, 4, '#ffd25e');
   });
+  // arco de pedras do topo do Itacolomi (a cena do pedido)
+  canvas(scene, 'stone_arch', 64, 52, (pg) => {
+    const base = '#9a98a4', light = '#b8b6c2', dark = '#6e6c7a', moss = '#5f9a4a';
+    for (let y = 0; y < 52; y++) {
+      for (let x = 0; x < 64; x++) {
+        const ox = (x + 0.5 - 32) / 31, oy = (y + 0.5 - 40) / 38;
+        const ix = (x + 0.5 - 32) / 18, iy = (y + 0.5 - 40) / 26;
+        const outer = ox * ox + oy * oy <= 1 || (y >= 40 && Math.abs(x + 0.5 - 32) <= 31);
+        const inner = ix * ix + iy * iy <= 1 || (y >= 40 && Math.abs(x + 0.5 - 32) <= 18);
+        if (!outer || inner) continue;
+        // blocos de pedra: rejuntes escuros e brilho no topo de cada bloco
+        const row = Math.floor(y / 7);
+        const joint = y % 7 === 0 || (x + row * 5) % 11 === 0;
+        pg.px(x, y, joint ? dark : y % 7 === 1 ? light : base);
+      }
+    }
+    [[10, 12], [15, 6], [48, 9], [53, 15], [5, 30], [58, 26]].forEach(([x, y]) => { pg.px(x, y, moss); pg.px(x + 1, y, moss); });
+  });
+  canvas(scene, 'stone_seat', 14, 7, (pg) => {
+    pg.ellipse(7, 3, 6, 3, '#8e8c98');
+    pg.hline(3, 10, 1, '#b8b6c2');
+    pg.hline(2, 11, 5, '#6e6c7a');
+  });
   // folha do poema dobrada (com corações)
   canvas(scene, 'item_poem', 12, 13, (pg) => {
     pg.rect(1, 1, 10, 11, '#fff7e6');

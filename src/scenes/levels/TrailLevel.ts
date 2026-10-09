@@ -8,6 +8,7 @@ import { txt, fillNames } from '../../ui/text';
 import { Slime } from '../../entities/Enemy';
 import { Input, KEY_LABELS } from '../../systems/InputManager';
 import { Audio } from '../../systems/Audio';
+import { Save } from '../../systems/SaveManager';
 import { charFrame } from '../../art/CharacterArt';
 
 /** Trilhas da linha do tempo: escalada, cânion, Itacolomi, Topo do Mundo (exploração e enigmas). */
@@ -24,6 +25,8 @@ export class TrailLevel extends PuzzleLevel {
     this.resetPuzzle();
     this.cfg = TRAILS[this.info.id];
     this.cutscene = false;
+    this.seats = [];
+    this.seated = [];
     this.defaultFloor = this.cfg.floor;
     this.objectFloor = this.cfg.floor;
     this.signTexts = this.cfg.signs;
@@ -40,7 +43,36 @@ export class TrailLevel extends PuzzleLevel {
       for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) this.addSolid(tx + dx, ty + dy);
       return true;
     }
+    if (ch === '@') {
+      // arco de pedras no alto: a saída fica embaixo dele, com duas pedras para sentar
+      this.add.image(c.x, c.y + 8, 'stone_arch').setOrigin(0.5, 1).setDepth(c.y + 9);
+      this.seats = [c.x - 9, c.x + 9].map((x) => ({ x, y: c.y + 4 }));
+      this.seats.forEach((st) => this.add.image(st.x, st.y + 2, 'stone_seat').setDepth(c.y - 2));
+      const img = this.add.image(c.x, c.y - 4, 'exit').setDepth(-4).setAlpha(0.7);
+      this.tweens.add({ targets: img, scale: 1.15, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      this.exits.push({ x: c.x, y: c.y, img });
+      return true;
+    }
     return this.spawnPuzzle(ch, tx, ty);
+  }
+
+  /** Pedras do arco onde os dois se sentam no pedido. */
+  seats: { x: number; y: number }[] = [];
+  private seated: Phaser.GameObjects.Container[] = [];
+
+  /** Desenha um personagem sentado de lado na pedra (tronco do sprite + pernas dobradas). */
+  private sitDown(id: 0 | 1, x: number, y: number, faceRight: boolean): Phaser.GameObjects.Container {
+    const look = Save.data.looks[id];
+    const hex = (h: string) => Phaser.Display.Color.HexStringToColor(h).color;
+    const dir = faceRight ? 1 : -1;
+    const torso = this.add.image(0, -17, `char_${id}`, charFrame('side', 0)).setOrigin(0.5, 0).setCrop(0, 0, 16, 18).setFlipX(faceRight);
+    const legs = this.add.graphics();
+    // coxa na horizontal sobre a pedra, canela pendurada e o sapato
+    legs.fillStyle(hex(look.pants), 1).fillRect(dir > 0 ? -2 : -5, -2, 7, 3);
+    legs.fillStyle(hex(look.pants), 1).fillRect(dir > 0 ? 3 : -5, 0, 2, 4);
+    legs.fillStyle(hex(look.shoes), 1).fillRect(dir > 0 ? 3 : -6, 4, 3, 2);
+    legs.fillStyle(0x2a1d2e, 1).fillRect(dir > 0 ? -2 : -5, -3, 7, 1).setAlpha(0.25);
+    return this.add.container(x, y, [legs, torso]).setDepth(y + 1);
   }
 
   setup(): void {
@@ -149,10 +181,29 @@ export class TrailLevel extends PuzzleLevel {
     this.started = false;
     this.awaitingYes = false;
     const [joao, ju] = this.players;
+    // sentam lado a lado nas pedras, embaixo do arco
+    if (this.seats.length === 2) {
+      this.players.forEach((p, i) => {
+        p.teleport(this.seats[i].x, this.seats[i].y);
+        p.locked = true;
+        p.sprite.setVisible(false);
+        p.shadow.setVisible(false);
+        p.marker.setVisible(false);
+        if (p.held) { p.held.destroy(); p.held = null; }
+      });
+      this.seated = [this.sitDown(0, this.seats[0].x, this.seats[0].y, true), this.sitDown(1, this.seats[1].x, this.seats[1].y, false)];
+      this.cameras.main.flash(250, 255, 255, 255);
+    }
     joao.face = { x: Math.sign(ju.x - joao.x) || 1, y: 0 };
     ju.face = { x: -joao.face.x, y: 0 };
     Audio.music('ending');
-    this.cameras.main.zoomTo(2.6 * RES, 1200);
+    const cam = this.cameras.main;
+    if (this.seated.length) {
+      // câmera no arco: o casal no alto da tela, a folha do poema embaixo
+      cam.stopFollow();
+      cam.pan((this.seats[0].x + this.seats[1].x) / 2, this.seats[0].y + 24, 1200, 'Sine.easeInOut');
+      cam.zoomTo(3 * RES, 1200);
+    } else cam.zoomTo(2.6 * RES, 1200);
     const hud = this.hud;
     this.time.delayedCall(1200, () => {
       this.say(joao, 'Lembra do poema incompleto? Trouxe o resto.', 2400);
@@ -172,12 +223,15 @@ export class TrailLevel extends PuzzleLevel {
           }
           // o último verso: a pergunta
           paper.destroy();
-          joao.actTimer = 999; // ajoelhado
-          joao.sprite.setFrame(charFrame('side', 3));
+          if (this.seated.length) this.tweens.add({ targets: this.seated[0], x: this.seated[0].x + 2, duration: 300, ease: 'Sine.Out' });
+          else { joao.actTimer = 999; joao.sprite.setFrame(charFrame('side', 3)); }
           hud.tweens.add({ targets: card.question, alpha: 1, scale: { from: 1.3, to: 1 }, duration: 500, ease: 'Back.Out' });
           this.say(joao, `${this.names[1]}... quer namorar comigo?`, 60000);
           Audio.play('bell');
-          const prompt = txt(hud, GAME_W / 2, GAME_H - 90, `${this.names[1]}: aperte ${KEY_LABELS[1].action} para responder`, 20, { color: '#ffd6e4' });
+          const promptText = `${this.names[1]}: aperte ${KEY_LABELS[1].action} para responder`;
+          const prompt = this.seated.length
+            ? txt(hud, GAME_W / 2, GAME_H - 28 - 18, promptText, 15, { color: '#8a5a8a', stroke: '#fff7e6', strokeW: 0 })
+            : txt(hud, GAME_W / 2, GAME_H - 90, promptText, 20, { color: '#ffd6e4' });
           hud.tweens.add({ targets: prompt, alpha: 0.4, yoyo: true, repeat: -1, duration: 500 });
           this.awaitingYes = true;
           const ev = this.time.addEvent({
@@ -189,6 +243,8 @@ export class TrailLevel extends PuzzleLevel {
               hud.tweens.add({ targets: card.all, alpha: 0, duration: 400, onComplete: () => card.all.forEach((o) => o.destroy()) });
               joao.actTimer = 0;
               hud.clearBubbles();
+              // ela pula no abraço
+              if (this.seated.length) this.tweens.add({ targets: this.seated[1], y: this.seated[1].y - 4, duration: 160, yoyo: true, repeat: 1 });
               this.say(ju, 'SIM!!! ♥', 3000, '#ffd6e4');
               this.doHug(joao, ju);
               this.fireworks();
@@ -206,10 +262,10 @@ export class TrailLevel extends PuzzleLevel {
 
   /** Folha com o resto do poema, desenhada na interface. */
   private poemCard(hud: HUDScene): { all: Phaser.GameObjects.GameObject[]; verses: Phaser.GameObjects.Text[]; question: Phaser.GameObjects.Text } {
-    const w = 600;
-    const h = 64 + POEM_REST.length * 26 + 50;
+    const w = this.seated.length ? 520 : 600;
+    const h = 64 + POEM_REST.length * 26 + 50 + (this.seated.length ? 26 : 0);
     const x = GAME_W / 2 - w / 2;
-    const y = 24;
+    const y = this.seated.length ? GAME_H - h - 28 : 24;
     const g = hud.add.graphics();
     g.fillStyle(0x000000, 0.25).fillRoundedRect(x + 5, y + 6, w, h, 10);
     g.fillStyle(0xfff7e6, 1).fillRoundedRect(x, y, w, h, 10);
