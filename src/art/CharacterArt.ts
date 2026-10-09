@@ -75,7 +75,7 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
   const arm = (x: number, y0: number, sleeveC: string, tattooed: boolean) => {
     if (short) {
       pg.px(x, y0, sleeveC);
-      for (let k = 1; k <= 3; k++) pg.px(x, y0 + k, tattooed ? (k % 2 ? ink : mix(ink, skin, 0.45)) : skin);
+      for (let k = 1; k <= 3; k++) pg.px(x, y0 + k, tattooed ? (k === 2 ? mix(ink, skin, 0.6) : ink) : skin);
     } else {
       pg.rect(x, y0, 1, 4, sleeveC);
     }
@@ -133,7 +133,7 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
     if (act) {
       if (short) {
         pg.rect(4, 13, 2, 2, shirtL);
-        for (let x = 1; x <= 3; x++) { pg.px(x, 13, tatSide ? (x % 2 ? ink : mix(ink, skin, 0.45)) : skin); pg.px(x, 14, tatSide ? mix(ink, skin, 0.3) : skin); }
+        for (let x = 1; x <= 3; x++) { pg.px(x, 13, tatSide ? ((x + 1) % 2 ? ink : skin) : skin); pg.px(x, 14, tatSide ? (x % 2 ? ink : skin) : skin); }
       } else pg.rect(1, 13, 5, 2, shirtL);
       pg.px(0, 13, skin); pg.px(0, 14, skin);
     } else {
@@ -141,8 +141,10 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
       if (short) {
         pg.rect(7 + sw, 12, 2, 1, shirtL);
         for (let k = 13; k <= 15; k++) {
-          pg.px(7 + sw, k, tatSide ? (k % 2 ? ink : mix(ink, skin, 0.45)) : skin);
-          pg.px(8 + sw, k, tatSide ? (k % 2 ? mix(ink, skin, 0.45) : ink) : skin);
+          // padrão tribal: pontas pretas em diagonal
+          const tribal = [[1, 1], [0, 1], [1, 0]][k - 13];
+          pg.px(7 + sw, k, tatSide && tribal[0] ? ink : skin);
+          pg.px(8 + sw, k, tatSide && tribal[1] ? ink : skin);
         }
       } else pg.rect(7 + sw, 12, 2, 4, shirtL);
       pg.rect(7 + sw, 16, 2, 1, skin);
@@ -163,7 +165,7 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
       const up = (x: number, c: string, tattooed: boolean) => {
         pg.rect(x, 11, 2, 1, c);
         pg.rect(x, 12, 2, 2, short ? (tattooed ? ink : skin) : c);
-        if (short && tattooed) pg.px(x, 12, mix(ink, skin, 0.45));
+        if (short && tattooed) pg.px(x + 1, 12, skin);
       };
       up(aLx - 1, shirtL, tatScreenLeft);
       up(aRx, shirtD, tatScreenRight);

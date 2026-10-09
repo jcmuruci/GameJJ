@@ -31,7 +31,7 @@ export interface SaveData {
   looksRev: number;
 }
 
-export const LOOKS_REV = 4;
+export const LOOKS_REV = 5;
 /** Nomes provisórios antigos, trocados pelos nomes reais do casal. */
 const PLACEHOLDER_NAMES = ['Jota', 'Mel'];
 

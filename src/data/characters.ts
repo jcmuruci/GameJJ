@@ -44,7 +44,7 @@ export interface CharacterLook {
 /**
  * Jogador 1 — o Guardião (força, espada, empurra pedras, corta ingredientes).
  * Baseado na foto e na descrição: careca, barba loira, olhos azuis, corpo médio,
- * tatuagem fechando o braço direito inteiro, camiseta preta.
+ * tatuagem tribal (preta) fechando o braço direito inteiro, camiseta preta.
  */
 export const DEFAULT_P1: CharacterLook = {
   name: 'João',
@@ -62,7 +62,7 @@ export const DEFAULT_P1: CharacterLook = {
   build: 'medio',
   sleeves: 'curtas',
   tattoo: 'braco_direito',
-  tattooColor: '#2f3a5a',
+  tattooColor: '#18161e',
   glasses: false,
   accessory: 'nenhum',
   accessoryColor: '#ffd25e',
@@ -116,5 +116,5 @@ export const ACCESSORY_LABEL: Record<Accessory, string> = {
 export const BUILDS: CharacterLook['build'][] = ['magro', 'medio', 'forte'];
 export const BUILD_LABEL: Record<CharacterLook['build'], string> = { magro: 'Magro(a)', medio: 'Médio', forte: 'Forte' };
 export const TATTOOS: CharacterLook['tattoo'][] = ['nenhuma', 'braco_direito', 'braco_esquerdo', 'dois_bracos'];
-export const TATTOO_LABEL: Record<CharacterLook['tattoo'], string> = { nenhuma: 'Nenhuma', braco_direito: 'Braço direito', braco_esquerdo: 'Braço esquerdo', dois_bracos: 'Dois braços' };
-export const TATTOO_COLORS = ['#2f3a5a', '#1c1c24', '#3a5a3a', '#6a2a3a'];
+export const TATTOO_LABEL: Record<CharacterLook['tattoo'], string> = { nenhuma: 'Nenhuma', braco_direito: 'Tribal braço direito', braco_esquerdo: 'Tribal braço esquerdo', dois_bracos: 'Tribal dois braços' };
+export const TATTOO_COLORS = ['#18161e', '#2f3a5a', '#1c1c24', '#3a5a3a', '#6a2a3a'];
