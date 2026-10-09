@@ -2,7 +2,7 @@
 
 export type ItemKind =
   | 'apple' | 'apple_cut' | 'berry' | 'mushroom' | 'mushroom_cut' | 'flour'
-  | 'plate' | 'soup' | 'pie' | 'charcoal' | 'log' | 'firewood';
+  | 'plate' | 'soup' | 'pie' | 'charcoal' | 'log' | 'firewood' | 'baby';
 
 export type RecipeId = 'apple_slices' | 'fruit_salad' | 'soup' | 'pie';
 
@@ -25,7 +25,7 @@ export const RECIPES: Record<RecipeId, Recipe> = {
 
 export const ITEM_NAME: Record<ItemKind, string> = {
   apple: 'Maçã', apple_cut: 'Maçã cortada', berry: 'Amoras', mushroom: 'Cogumelo', mushroom_cut: 'Cogumelo picado',
-  flour: 'Farinha', plate: 'Prato', soup: 'Sopa', pie: 'Torta', charcoal: 'Carvão', log: 'Tronco', firewood: 'Lenha',
+  flour: 'Farinha', plate: 'Prato', soup: 'Sopa', pie: 'Torta', charcoal: 'Carvão', log: 'Tronco', firewood: 'Lenha', baby: 'Filhote de jacaré',
 };
 
 /** O que vira o quê na tábua de corte. */

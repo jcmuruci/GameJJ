@@ -13,11 +13,12 @@ export class Slime {
   private wander = { x: 0, y: 0 };
   private flash = 0;
 
-  constructor(public level: BaseLevel, x: number, y: number, public kind: 'slime' | 'slime_storm' = 'slime', hp = 2, public speed = 34, public aggro = 90) {
+  constructor(public level: BaseLevel, x: number, y: number, public kind: 'slime' | 'slime_storm' | 'mosquito' = 'slime', hp = 2, public speed = 34, public aggro = 90) {
     this.hp = hp;
     this.sprite = level.physics.add.sprite(x, y, kind, 0);
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-    body.setSize(10, 7).setOffset(3, 8);
+    if (kind === 'mosquito') body.setSize(8, 6).setOffset(2, 5);
+    else body.setSize(10, 7).setOffset(3, 8);
     body.setCollideWorldBounds(true);
     this.sprite.setDepth(y);
   }

@@ -25,6 +25,7 @@ export class StoryScene extends Phaser.Scene {
   private portraits: Phaser.GameObjects.Sprite[] = [];
   private nimbo!: Phaser.GameObjects.Image;
   private vovo!: Phaser.GameObjects.Container;
+  private mae!: Phaser.GameObjects.Image;
   private data_!: StoryData;
   private names!: [string, string];
   private done = false;
@@ -43,7 +44,7 @@ export class StoryScene extends Phaser.Scene {
   create(): void {
     this.names = [Save.data.looks[0].name, Save.data.looks[1].name];
     const night = this.data_.id === 'storm' || this.data_.id === 'ending';
-    cozyBackground(this, night ? 0x5a5a9a : 0xffffff);
+    cozyBackground(this, night ? 0x5a5a9a : this.data_.id.startsWith('amazon') ? 0x9ac890 : 0xffffff);
     const shade = this.add.graphics();
     shade.fillStyle(0x1b1424, night ? 0.45 : 0.25).fillRect(0, 0, GAME_W, GAME_H);
     if (night) {
@@ -54,9 +55,19 @@ export class StoryScene extends Phaser.Scene {
     }
     if (this.data_.id === 'ending') this.time.addEvent({ delay: 500, loop: true, callback: () => this.shootingStar() });
 
+    const id = this.data_.id;
+    if (id === 'moto') this.add.image(GAME_W / 2, 330, 'moto').setScale(4);
+    if (id === 'tutorial' || id === 'intro') this.add.image(GAME_W / 2, 150, 'big_rock').setScale(3);
+    if (id === 'picnic' || id === 'forest') this.add.sprite(GAME_W / 2, 220, 'waterfall', 0).setScale(3.5).play('waterfall-anim');
+    if (id === 'festival') this.add.image(GAME_W / 2, 300, 'table').setScale(5);
+    if (id.startsWith('amazon')) {
+      [[120, 180], [840, 170], [480, 120]].forEach(([x, y]) => this.add.image(x, y, 'tree_jungle').setScale(4));
+      this.add.sprite(GAME_W / 2, 330, 'gator', 0).setScale(5).play('gator-blink');
+    }
     this.portraits = [0, 1].map((i) => this.add.sprite(i === 0 ? 260 : 700, 270, `char_${i}`, charFrame('down', 0)).setScale(7));
     this.nimbo = this.add.image(GAME_W / 2, 120, 'boss', this.data_.id === 'ending' ? 2 : 0).setScale(3).setAlpha(0);
     this.vovo = this.makeVovo();
+    this.mae = this.add.image(GAME_W / 2, 230, 'nest').setScale(5).setAlpha(0);
 
     const g = this.add.graphics();
     g.fillStyle(0x000000, 0.3).fillRoundedRect(44, GAME_H - 166, GAME_W - 80, 146, 14);
@@ -67,7 +78,8 @@ export class StoryScene extends Phaser.Scene {
     const hint = txt(this, GAME_W - 70, GAME_H - 40, 'AÇÃO: continuar · Esc: pular', 12, { origin: [1, 0.5], color: '#d8c8e8', bold: false });
     this.tweens.add({ targets: hint, alpha: 0.4, duration: 700, yoyo: true, repeat: -1 });
 
-    Audio.music(night ? (this.data_.id === 'ending' ? 'ending' : 'boss') : 'map');
+    const id2 = this.data_.id;
+    Audio.music(night ? (id2 === 'ending' ? 'ending' : 'boss') : id2 === 'amazon_end' ? 'ending' : id2.startsWith('amazon') ? 'jungle' : id2 === 'moto' ? 'road' : 'map');
     this.cameras.main.fadeIn(300, 27, 20, 36);
     this.showLine();
   }
@@ -97,6 +109,7 @@ export class StoryScene extends Phaser.Scene {
     if (l.who === 0 || l.who === 1) return this.names[l.who];
     if (l.who === 'nimbo') return 'Nimbo';
     if (l.who === 'vovo') return 'Vovó Rosa';
+    if (l.who === 'mae') return 'Mamãe Jacaré';
     return '';
   }
 
@@ -116,6 +129,8 @@ export class StoryScene extends Phaser.Scene {
     });
     this.tweens.add({ targets: this.nimbo, alpha: l.who === 'nimbo' || (this.data_.id === 'ending' && this.idx < 5) ? 1 : 0, duration: 250 });
     this.tweens.add({ targets: this.vovo, alpha: l.who === 'vovo' ? 1 : 0, duration: 250 });
+    this.tweens.add({ targets: this.mae, alpha: l.who === 'mae' ? 1 : 0, duration: 250 });
+    if (l.who === 'mae') Audio.play('gator');
     if (l.who === 'nimbo') Audio.play('boss');
   }
 

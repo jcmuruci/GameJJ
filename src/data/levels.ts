@@ -4,8 +4,10 @@ export interface LevelInfo {
   id: string;
   name: string;
   subtitle: string;
-  scene: 'TutorialLevel' | 'KitchenLevel' | 'ForestLevel' | 'BossLevel';
+  scene: 'TutorialLevel' | 'KitchenLevel' | 'ForestLevel' | 'BossLevel' | 'MotoLevel' | 'AmazonLevel';
   story: string;
+  /** História exibida depois de vencer (final). */
+  endStory?: string;
   music: TrackName;
   map: { x: number; y: number };
   /** Moedas de recompensa por estrela. */
@@ -15,24 +17,32 @@ export interface LevelInfo {
 
 export const LEVELS: LevelInfo[] = [
   {
-    id: 'tutorial', name: 'Quintal de Casa', subtitle: 'Tutorial', scene: 'TutorialLevel', story: 'tutorial', music: 'map',
-    map: { x: 160, y: 330 }, coinsPerStar: 10, goal: 'Aprendam a jogar juntos.',
+    id: 'tutorial', name: 'Pedra Grande', subtitle: 'Tutorial · Onde tudo começou', scene: 'TutorialLevel', story: 'tutorial', music: 'map',
+    map: { x: 140, y: 330 }, coinsPerStar: 10, goal: 'Aprendam a jogar juntos e desçam de rapel.',
   },
   {
-    id: 'picnic', name: 'Piquenique no Bosque', subtitle: 'Fase 1 · Cozinha cooperativa', scene: 'KitchenLevel', story: 'picnic', music: 'kitchen',
-    map: { x: 320, y: 250 }, coinsPerStar: 15, goal: 'Preparem pedidos antes que o tempo acabe.',
+    id: 'moto', name: 'Moto Amarela', subtitle: 'Fase 1 · Passeio na estrada', scene: 'MotoLevel', story: 'moto', music: 'road',
+    map: { x: 245, y: 225 }, coinsPerStar: 15, goal: 'Pilotem até a cachoeira e tirem 3 fotos.',
   },
   {
-    id: 'forest', name: 'Floresta Sussurrante', subtitle: 'Fase 2 · Exploração e enigmas', scene: 'ForestLevel', story: 'forest', music: 'forest',
-    map: { x: 480, y: 330 }, coinsPerStar: 20, goal: 'Atravessem a floresta e achem os 3 cristais.',
+    id: 'picnic', name: 'Piquenique na Cachoeira', subtitle: 'Fase 2 · Cozinhando juntos', scene: 'KitchenLevel', story: 'picnic', music: 'kitchen',
+    map: { x: 370, y: 310 }, coinsPerStar: 15, goal: 'Preparem os pedidos antes que o tempo acabe.',
   },
   {
-    id: 'festival', name: 'Festival da Vila', subtitle: 'Fase 3 · Cozinha caótica', scene: 'KitchenLevel', story: 'festival', music: 'festival',
-    map: { x: 640, y: 240 }, coinsPerStar: 25, goal: 'Salvem o banquete do festival!',
+    id: 'forest', name: 'Trilha da Cachoeira', subtitle: 'Fase 3 · Exploração e enigmas', scene: 'ForestLevel', story: 'forest', music: 'forest',
+    map: { x: 495, y: 215 }, coinsPerStar: 20, goal: 'Atravessem a trilha e achem os 3 cristais.',
   },
   {
-    id: 'storm', name: 'Torre da Tempestade', subtitle: 'Fase final · Chefe', scene: 'BossLevel', story: 'storm', music: 'boss',
-    map: { x: 820, y: 150 }, coinsPerStar: 40, goal: 'Derrotem o Nimbo e salvem a noite!',
+    id: 'festival', name: 'Restaurante da Vila', subtitle: 'Fase 4 · Cozinha caótica', scene: 'KitchenLevel', story: 'festival', music: 'festival',
+    map: { x: 620, y: 310 }, coinsPerStar: 25, goal: 'Salvem o jantar do restaurante!',
+  },
+  {
+    id: 'storm', name: 'Torre da Tempestade', subtitle: 'Fase 5 · Chefe', scene: 'BossLevel', story: 'storm', endStory: 'ending', music: 'boss',
+    map: { x: 800, y: 150 }, coinsPerStar: 40, goal: 'Derrotem o Nimbo e salvem a noite!',
+  },
+  {
+    id: 'amazon', name: 'Amazônia', subtitle: 'Epílogo · Um ano depois', scene: 'AmazonLevel', story: 'amazon', endStory: 'amazon_end', music: 'jungle',
+    map: { x: 875, y: 330 }, coinsPerStar: 40, goal: 'Levem os 3 filhotes de jacaré até a mamãe.',
   },
 ];
 

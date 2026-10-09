@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { PG, PAL, rng, shade, OUTLINE } from './pixel';
+import { generateExtraTextures } from './TexturesExtra';
 
 /**
  * Toda a arte do jogo é gerada aqui, por código, no carregamento.
@@ -613,4 +614,5 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   drawWorld(scene);
   drawCreatures(scene);
   drawFx(scene);
+  generateExtraTextures(scene);
 }

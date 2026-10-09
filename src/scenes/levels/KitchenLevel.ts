@@ -470,6 +470,8 @@ export class KitchenLevel extends BaseLevel {
       case 'Y': this.add.image(c.x, c.y - 12, 'tree_pink').setDepth(c.y + 6); this.addSolid(tx, ty); return true;
       case 'B': this.add.image(c.x, c.y, 'bush').setDepth(c.y); this.addSolid(tx, ty); return true;
       case 'k': this.add.image(c.x, c.y, 'blanket').setDepth(-5).setScale(0.5); return true;
+      case 'W': this.spawnWaterfall(tx, ty); return true;
+      case 'E': this.add.image(c.x, c.y - 2, 'table').setDepth(c.y); this.addSolid(tx, ty); return true;
       case 'L': this.add.image(c.x, c.y - 4, 'lantern').setDepth(c.y); this.addSolid(tx, ty); return true;
       default: return false;
     }

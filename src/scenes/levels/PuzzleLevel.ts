@@ -5,6 +5,7 @@ import { Slime } from '../../entities/Enemy';
 import { Input } from '../../systems/InputManager';
 import { TILE } from '../../config';
 import { fillNames } from '../../ui/text';
+import { T } from '../../art/tiles';
 
 /** Gatilhos: caractere do mapa -> tipo e portão que controla. */
 export const TRIGGERS: Record<string, { type: 'plate' | 'rune'; gate: string }> = {
@@ -20,7 +21,7 @@ export class Boulder {
   moving = false;
   constructor(public L: PuzzleLevel, public tx: number, public ty: number) {
     const c = L.tileCenter(tx, ty);
-    this.img = L.add.image(c.x, c.y, 'boulder').setDepth(c.y);
+    this.img = L.add.image(c.x, c.y, L.boulderTex).setDepth(c.y);
     this.zone = L.addSolid(tx, ty, this);
   }
   get x(): number { return this.tx * TILE + 8; }
@@ -30,6 +31,26 @@ export class Boulder {
     if (this.moving) return false;
     const nx = this.tx + dx;
     const ny = this.ty + dy;
+    const tile = this.L.layer.getTileAt(nx, ny);
+    if (this.L.boulderFillsWater && tile?.index === T.WATER && !this.L.occupied.has(this.L.key(nx, ny))) {
+      // tronco cai na água e vira ponte
+      this.L.occupied.delete(this.L.key(this.tx, this.ty));
+      this.L.setSolidEnabled(this.zone, false);
+      this.L.boulders = this.L.boulders.filter((b) => b !== this);
+      const c = this.L.tileCenter(nx, ny);
+      this.L.tweens.add({
+        targets: this.img, x: c.x, y: c.y, duration: 220,
+        onComplete: () => {
+          this.img.destroy();
+          this.L.layer.putTileAt(T.BRIDGE, nx, ny);
+          this.L.burst(c.x, c.y, 'fx_pixel', 10, { speed: 50, tint: 0xbfe9ff });
+          this.L.sfx('drop');
+          this.L.hud?.floatText(c.x, c.y - 10, 'Ponte!', '#8be07a');
+        },
+      });
+      this.L.sfx('push');
+      return true;
+    }
     if (this.L.isBlocked(nx, ny)) return false;
     // não esmaga jogadores
     for (const p of this.L.players) {
@@ -107,6 +128,12 @@ export abstract class PuzzleLevel extends BaseLevel {
   private leverOpen = false;
   private exitHintCd = 0;
   protected gateSound = new Set<string>();
+  anchors: { x: number; y: number }[] = [];
+  rappels = 0;
+  boulderTex = 'boulder';
+  boulderFillsWater = false;
+  private belayCd = 0;
+  private rope: Phaser.GameObjects.Graphics | null = null;
 
   resetPuzzle(): void {
     this.boulders = [];
@@ -121,6 +148,10 @@ export abstract class PuzzleLevel extends BaseLevel {
     this.leverOpen = false;
     this.exitHintCd = 0;
     this.gateSound = new Set();
+    this.anchors = [];
+    this.rappels = 0;
+    this.belayCd = 0;
+    this.rope = null;
   }
 
   /** Objetos comuns de enigma. Subclasses chamam isto no seu spawn(). */
@@ -149,6 +180,13 @@ export abstract class PuzzleLevel extends BaseLevel {
         this.enemies.push(e);
         return true;
       }
+      case 'S': this.add.image(c.x, c.y, 'anchor').setDepth(-4); this.anchors.push({ x: c.x, y: c.y }); return true;
+      case 'R':
+        this.layer.putTileAt(T.CLIFF, tx, ty);
+        this.add.image(c.x, c.y, 'rope_top').setDepth(c.y + 1);
+        this.interactables.push({ x: c.x, y: c.y, priority: 3, reach: 2, interact: (p) => this.tryRappel(p, tx, ty) });
+        return true;
+      case 'W': this.spawnWaterfall(tx, ty); return true;
       case 'Z': this.add.image(c.x, c.y - 12, 'tree_big').setDepth(c.y + 6); this.addSolid(tx, ty); return true;
       case 'Y': this.add.image(c.x, c.y - 12, 'tree_pink').setDepth(c.y + 6); this.addSolid(tx, ty); return true;
       case 'b': this.add.image(c.x, c.y, 'bush').setDepth(c.y); this.addSolid(tx, ty); return true;
@@ -265,6 +303,58 @@ export abstract class PuzzleLevel extends BaseLevel {
     });
   }
 
+  /** O parceiro está dando segurança (segurando AÇÃO numa ancoragem)? */
+  belaying(o: Player): boolean {
+    return !o.fainted && !o.locked && Input.players[o.id].action && this.anchors.some((a) => this.dist(o, a) < 16);
+  }
+
+  /** Rapel: só desce se o parceiro estiver na segurança. */
+  tryRappel(p: Player, tx: number, ty: number): boolean {
+    const top = ty * TILE;
+    if (p.held) { this.say(p, 'Mãos livres pra descer!', 1400); return true; }
+    if (p.y > top + 8) { this.say(p, 'Corda é pra descer, não pra subir!', 1400); return true; }
+    const o = this.other(p);
+    if (!this.belaying(o)) {
+      if (this.belayCd <= 0) {
+        this.belayCd = 2;
+        this.say(p, `${this.names[o.id]}, me dá segurança? (segure AÇÃO na ancoragem)`, 2200);
+      }
+      this.sfx('wrong');
+      return true;
+    }
+    const x = tx * TILE + 8;
+    const y0 = top - 6;
+    const y1 = (ty + 1) * TILE + 9;
+    p.locked = true;
+    p.face = { x: 0, y: 1 };
+    p.body.checkCollision.none = true;
+    p.teleport(x, y0);
+    this.say(o, 'Segurança! Pode descer!', 1400);
+    this.sfx('lever');
+    if (!this.rope) this.rope = this.add.graphics().setDepth(9000);
+    const t = { v: 0 };
+    this.tweens.add({
+      targets: t, v: 1, duration: 1500, ease: 'Sine.InOut',
+      onUpdate: () => {
+        const yy = y0 + (y1 - y0) * t.v;
+        const sway = Math.sin(t.v * Math.PI * 4) * 2;
+        p.teleport(x + sway, yy);
+        this.rope!.clear().lineStyle(1, 0xe8424a, 1).lineBetween(x, top + 2, x + sway, yy - 18);
+        if (Math.random() < 0.15) this.sfx('step');
+      },
+      onComplete: () => {
+        this.rope?.clear();
+        p.locked = false;
+        p.body.checkCollision.none = false;
+        this.rappels++;
+        this.sfx('revive');
+        this.floatHeart(p.x, p.y - 26);
+        this.say(p, Phaser.Utils.Array.GetRandom(['Uhuul!', 'Igualzinho ao dia em que a gente se conheceu!', 'Que vista!', 'Adrenalina!']), 2000);
+      },
+    });
+    return true;
+  }
+
   openGates(letter: string): void {
     this.gates.filter((g) => g.letter === letter).forEach((g) => { g.forced = true; });
   }
@@ -274,6 +364,7 @@ export abstract class PuzzleLevel extends BaseLevel {
     this.heavyCd = Math.max(0, this.heavyCd - dt);
     this.runeHintCd = Math.max(0, this.runeHintCd - dt);
     this.exitHintCd = Math.max(0, this.exitHintCd - dt);
+    this.belayCd = Math.max(0, this.belayCd - dt);
     for (const p of this.players) this.updatePush(p, dt);
 
     // gatilhos

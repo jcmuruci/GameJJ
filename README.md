@@ -18,17 +18,19 @@ sem instalar nada para jogar.
 
 **Cada um é indispensável:**
 - **Guardião:** só ele corta ingredientes na tábua, empurra pedras grandes, quebra pedras rachadas e racha os cristais do chefe.
-- **Maga:** só ela acende fogueiras/fornos, queima espinhos, ativa runas mágicas e estilhaça cristais.
+- **Maga:** só ela acende fogueiras/fornos, queima espinhos, ativa runas mágicas, estilhaça cristais e chama os jacarés.
 - **Juntos:** placas de pressão, alavancas gêmeas (puxem ao mesmo tempo!), saída só com os dois.
 - **Abraço:** juntinhos e de mãos vazias, apertem AÇÃO quase ao mesmo tempo → +1 coração.
 - **Desmaio:** se alguém cair, o outro fica perto e **segura AÇÃO** para reviver. Se os dois caírem, perdem a fase.
 
-### Fases
-0. **Quintal de Casa** — tutorial interativo.
-1. **Piquenique no Bosque** — cozinha cooperativa com tempo (vento apaga o fogo, corvos roubam comida).
-2. **Floresta Sussurrante** — exploração, enigmas, gelecas e 3 cristais escondidos.
-3. **Festival da Vila** — cozinha dividida por um rio, chuva e carroças atravessando.
-4. **Torre da Tempestade** — chefe final: o Nimbo, a nuvem rabugenta.
+### Fases (inspiradas na história do casal)
+0. **Pedra Grande** — tutorial onde tudo começou: inclui **rapel em dupla** (um segura AÇÃO na ancoragem dando segurança, o outro desce pela corda).
+1. **Moto Amarela** — passeio na estrada: ele pilota (desvia, acelera, pula buracos), ela vai na garupa (magia nas pedras, buzina para capivaras e tira as fotos do passeio).
+2. **Piquenique na Cachoeira** — cozinha cooperativa com tempo (vento apaga o fogo, corvos roubam comida).
+3. **Trilha da Cachoeira** — exploração, enigmas, gelecas, 3 cristais e uma cachoeira secreta.
+4. **Restaurante da Vila** — cozinha dividida por um riacho, chuva e carroças atravessando.
+5. **Torre da Tempestade** — chefe final: o Nimbo, a nuvem rabugenta.
+6. **Amazônia (epílogo, um ano depois)** — os jacarés só aparecem para ela e viram ponte; ele corta cipós e empurra troncos no rio; juntos levam 3 filhotes até a mamãe jacaré.
 
 Estrelas e moedas ficam salvas no navegador (localStorage); moedas compram melhorias na
 **Loja da Vovó Rosa** (no mapa, aperte `G`/`L`).

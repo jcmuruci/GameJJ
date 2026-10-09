@@ -137,6 +137,28 @@ try {
   check('Abraço com AÇÃO simultânea', hugs >= 1, `abraços=${hugs}`);
   await shot('07-tutorial-hug');
 
+  // rapel: J2 dá segurança na ancoragem de cima, J1 desce pela corda
+  await place(1, 36, 7, 0, 1, 'TutorialLevel');
+  await place(0, 38, 8, 0, 1, 'TutorialLevel');
+  await wait(150);
+  await page.keyboard.down('KeyK');
+  await wait(100);
+  await press('KeyF');
+  await wait(400);
+  await shot('07b-rapel');
+  await wait(1500);
+  await page.keyboard.up('KeyK');
+  const y1 = await evalG(() => window.__game.scene.getScene('TutorialLevel').players[0].y);
+  check('Rapel: desce com o parceiro na segurança', y1 > 10 * 16, `y=${y1.toFixed(0)}`);
+  // sem segurança não desce
+  await place(1, 38, 8, 0, 1, 'TutorialLevel');
+  await place(0, 30, 12, 0, 1, 'TutorialLevel');
+  await wait(100);
+  await press('KeyK');
+  await wait(1700);
+  const y2 = await evalG(() => window.__game.scene.getScene('TutorialLevel').players[1].y);
+  check('Rapel: sem segurança não desce', y2 < 9 * 16, `y=${y2.toFixed(0)}`);
+
   // pausa
   await press('Escape');
   await wait(400);
@@ -282,6 +304,84 @@ try {
   await page.keyboard.up('KeyF');
   const fainted = await evalG(() => window.__game.scene.getScene('ForestLevel').players[1].fainted);
   check('Reviver o parceiro segurando AÇÃO', fainted === false);
+
+  // ---------------------------------------------------------------- MOTO
+  await startScene('MotoLevel', { levelId: 'moto' });
+  await shot('20-moto-intro');
+  await press('KeyF');
+  await press('KeyK');
+  await wait(300);
+  await page.keyboard.down('KeyD');
+  await page.keyboard.down('KeyW');
+  await wait(1500);
+  await page.keyboard.up('KeyW');
+  await press('KeyL');
+  await press('KeyG');
+  await wait(1500);
+  await page.keyboard.up('KeyD');
+  const mdist = await evalG(() => window.__game.scene.getScene('MotoLevel').dist);
+  check('Moto anda pela estrada', mdist > 300, `dist=${mdist.toFixed(0)}`);
+  await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = 15000 * 0.22; s.invuln = 99; });
+  await page.waitForFunction(() => { const s = window.__game.scene.getScene('MotoLevel'); const o = s.objs.find((x) => x.kind === 'spot'); return o && o.x < s.mx + 160; }, null, { timeout: 5000 });
+  await shot('21-moto');
+  await press('KeyK');
+  await wait(200);
+  const photos = await evalG(() => window.__game.scene.getScene('MotoLevel').photos);
+  check('Garupa tira foto na placa', photos === 1, `fotos=${photos}`);
+  await wait(300);
+  await shot('22-moto-photo');
+  await evalG(() => { window.__game.scene.getScene('MotoLevel').dist = 15000; });
+  await wait(3200);
+  check('Chegar na cachoeira leva ao resultado', (await activeScenes()).includes('Result'));
+
+  // ---------------------------------------------------------------- AMAZÔNIA
+  await startScene('AmazonLevel', { levelId: 'amazon' });
+  await wait(500);
+  await shot('23-amazon');
+  await place(1, 23, 4, 1, 0, 'AmazonLevel');
+  await place(0, 22, 5, 1, 0, 'AmazonLevel');
+  await wait(100);
+  await press('KeyL');
+  await wait(400);
+  const up = await evalG(() => window.__game.scene.getScene('AmazonLevel').gators.find((g) => g.tx === 24 && g.ty === 4).up);
+  check('Magia chama o jacaré (vira ponte)', up === true);
+  await shot('24-amazon-gator');
+  await page.keyboard.down('ArrowRight');
+  await wait(700);
+  await page.keyboard.up('ArrowRight');
+  const ax = await evalG(() => window.__game.scene.getScene('AmazonLevel').players[1].x);
+  check('Atravessar o rio pelo jacaré', ax > 24 * 16 + 8, `x=${ax.toFixed(0)}`);
+  // cipó: só a espada corta
+  await place(0, 14, 6, 1, 0, 'AmazonLevel');
+  await place(1, 13, 7, 1, 0, 'AmazonLevel');
+  await wait(100);
+  await press('KeyG');
+  await wait(400);
+  const vine = await evalG(() => window.__game.scene.getScene('AmazonLevel').occupied.has('15,6'));
+  check('Espada corta o cipó', vine === false);
+  // tronco no rio vira ponte
+  await place(0, 20, 9, 1, 0, 'AmazonLevel');
+  await place(1, 19, 10, 1, 0, 'AmazonLevel');
+  await wait(100);
+  await page.keyboard.down('KeyD');
+  await wait(2400);
+  await page.keyboard.up('KeyD');
+  const bridge = await evalG(() => window.__game.scene.getScene('AmazonLevel').layer.getTileAt(24, 9).index);
+  check('Tronco empurrado no rio vira ponte', bridge === 11, `tile=${bridge}`);
+  // entregar filhote à mamãe jacaré
+  await evalG(() => { const s = window.__game.scene.getScene('AmazonLevel'); s.give(s.players[0], 'baby'); });
+  await place(0, 22, 21, 0, -1, 'AmazonLevel');
+  await place(1, 25, 21, 0, -1, 'AmazonLevel');
+  await wait(100);
+  await press('KeyF');
+  await wait(300);
+  const deliv = await evalG(() => window.__game.scene.getScene('AmazonLevel').delivered);
+  check('Entregar filhote à mamãe jacaré', deliv === 1, `entregues=${deliv}`);
+  await shot('25-amazon-nest');
+  await evalG(() => { const s = window.__game.scene.getScene('AmazonLevel'); s.delivered = 3; s.onExit(); });
+  await wait(3500);
+  check('Amazônia concluída leva ao resultado', (await activeScenes()).includes('Result'));
+  await shot('26-amazon-result');
 
   // ---------------------------------------------------------------- CHEFE
   await startScene('BossLevel', { levelId: 'storm' });

@@ -49,6 +49,8 @@ export class Player {
   private knock = { x: 0, y: 0, t: 0 };
   private stepT = 0;
   moving = false;
+  /** Travado por animação (ex.: descendo de rapel). */
+  locked = false;
 
   constructor(
     public scene: Phaser.Scene,
@@ -95,7 +97,7 @@ export class Player {
 
     let vx = 0;
     let vy = 0;
-    if (!this.fainted) {
+    if (!this.fainted && !this.locked) {
       vx = inp.x;
       vy = inp.y;
       if (vx !== 0 || vy !== 0) {

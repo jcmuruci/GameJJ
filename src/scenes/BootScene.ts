@@ -14,6 +14,15 @@ export class BootScene extends Phaser.Scene {
     const tiles = this.textures.get('tiles');
     for (let i = 0; i < TILE_COUNT; i++) tiles.add(i, 0, i * 16, 0, 16, 16);
     refreshCharacters(this);
+    const anim = (key: string, tex: string, rate: number) => {
+      if (!this.anims.exists(key)) this.anims.create({ key, frames: this.anims.generateFrameNumbers(tex, { start: 0, end: 1 }), frameRate: rate, repeat: -1 });
+    };
+    anim('fire-anim', 'fire', 8);
+    anim('crow-fly', 'crow', 8);
+    anim('waterfall-anim', 'waterfall', 6);
+    anim('capy-walk', 'capybara', 6);
+    anim('mosquito-fly', 'mosquito', 14);
+    anim('gator-blink', 'gator', 1);
     this.scene.start('Menu');
   }
 }

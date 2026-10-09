@@ -32,9 +32,9 @@ export const KITCHENS: Record<string, KitchenConfig> = {
     map: [
       '##############################',
       '#............................#',
-      '#..........T.........Y.......#',
-      '#..A..R..M...................#',
-      '#............................#',
+      '#..........T.........Y...W...#',
+      '#..A..R..M.............~~~~~.#',
+      '#.......................~~~..#',
       '#............................#',
       '#.......................kk...#',
       '#........................D...#',
@@ -63,7 +63,7 @@ export const KITCHENS: Record<string, KitchenConfig> = {
     tips: [
       '{p1} corta na tábua (segure AÇÃO).',
       '{p2} acende a fogueira com MAGIA.',
-      'Monte o prato e leve à toalha vermelha!',
+      'Monte o prato e leve à toalha xadrez, perto da cachoeira!',
     ],
   },
   festival: {
@@ -78,7 +78,7 @@ export const KITCHENS: Record<string, KitchenConfig> = {
       '#.............~...........D..#',
       '#.............c...cpcc.t..D..#',
       '#.............~..............#',
-      '#..t..........~..............#',
+      '#..t..........~...E......E...#',
       '#......P......c.......Q......#',
       '#.............~..............#',
       '#,,,,,,,,,,,,,=,,,,,,,,,,,,,,#',
@@ -100,8 +100,8 @@ export const KITCHENS: Record<string, KitchenConfig> = {
     floor: T.GRASS,
     objectFloor: T.GRASS,
     tips: [
-      'O rio separa vocês: passem os itens pelas bancadas do meio!',
-      'A ponte fica na estrada... cuidado com as carroças!',
+      'O riacho corta a cozinha: passem os itens pelas bancadas do meio!',
+      'A ponte fica na rua... cuidado com as carroças! Mesas lotadas!',
       'Torta: farinha + amoras no forno aceso.',
     ],
   },

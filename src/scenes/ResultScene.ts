@@ -72,10 +72,10 @@ export class ResultScene extends Phaser.Scene {
     lines.forEach((l, i) => txt(this, GAME_W / 2, 268 + i * 26, l, 16, { bold: false, color: i === lines.length - 1 && d.win ? '#ffd25e' : '#fff4e0' }));
 
     const idx = levelIndex(d.levelId);
-    const isLast = idx === LEVELS.length - 1;
+    const next = LEVELS[idx + 1]?.id ?? d.levelId;
     const items = [];
-    if (d.win && isLast) items.push({ label: 'Ver o final ♥', onSelect: () => this.go('Story', { id: 'ending', next: 'Map', nextData: { select: d.levelId } }) });
-    else if (d.win) items.push({ label: 'Continuar', onSelect: () => this.go('Map', { select: LEVELS[idx + 1].id }) });
+    if (d.win && info.endStory) items.push({ label: 'Ver o final ♥', onSelect: () => this.go('Story', { id: info.endStory, next: 'Map', nextData: { select: next } }) });
+    else if (d.win) items.push({ label: 'Continuar', onSelect: () => this.go('Map', { select: next }) });
     items.push({ label: d.win ? 'Jogar de novo' : 'Tentar de novo', onSelect: () => this.go(info.scene, { levelId: d.levelId }) });
     items.push({ label: 'Voltar ao mapa', onSelect: () => this.go('Map', { select: d.levelId }) });
     this.list = new MenuList(this, GAME_W / 2, 400, items, 34, 20);

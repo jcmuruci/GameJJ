@@ -249,6 +249,18 @@ export abstract class BaseLevel extends Phaser.Scene {
     return Math.hypot(a.x - b.x, a.y - b.y);
   }
 
+  /** Cachoeira decorativa (2x3 tiles) com respingos. Base na linha ty, centrada entre tx-1 e tx. */
+  spawnWaterfall(tx: number, ty: number): void {
+    const x = tx * TILE;
+    const y = (ty + 1) * TILE;
+    this.add.sprite(x, y, 'waterfall', 0).setOrigin(0.5, 1).setDepth(y - 30).play('waterfall-anim');
+    for (let dy = -2; dy <= 0; dy++) for (const dx of [-1, 0]) if (!this.isBlocked(tx + dx, ty + dy)) this.addSolid(tx + dx, ty + dy);
+    this.add.particles(x, y - 4, 'fx_pixel', {
+      x: { min: -12, max: 12 }, speedY: { min: -30, max: -10 }, speedX: { min: -20, max: 20 }, gravityY: 60,
+      lifespan: 500, frequency: 60, scale: { start: 1, end: 0 }, tint: 0xe0f6ff,
+    }).setDepth(y);
+  }
+
   // ------------------------------------------------------------------ efeitos
   burst(x: number, y: number, tex: string, count: number, o: { speed?: number; lifespan?: number; gravity?: number; scale?: number; tint?: number; depth?: number } = {}): void {
     const em = this.add.particles(x, y, tex, {
@@ -563,7 +575,7 @@ export abstract class BaseLevel extends Phaser.Scene {
 
   private handleActions(p: Player, inp: typeof Input.players[0], dt: number): void {
     p.working = false;
-    if (p.fainted) { p.target = null; return; }
+    if (p.fainted || p.locked) { p.target = null; return; }
     const o = this.other(p);
     // reviver o parceiro
     if (o.fainted && this.dist(p, o) < 26) {

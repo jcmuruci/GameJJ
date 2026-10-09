@@ -11,7 +11,7 @@ import { charFrame } from '../art/CharacterArt';
 /** Mapa-mundi: escolha de fases e loja de melhorias. */
 export class MapScene extends Phaser.Scene {
   private sel = 0;
-  private couple: Phaser.GameObjects.Sprite[] = [];
+  private moto!: Phaser.GameObjects.Container;
   private infoTexts: Phaser.GameObjects.Text[] = [];
   private starImgs: Phaser.GameObjects.Image[] = [];
   private shop: MenuList | null = null;
@@ -70,7 +70,8 @@ export class MapScene extends Phaser.Scene {
       }
     });
 
-    this.couple = [0, 1].map((i) => this.add.sprite(0, 0, `char_${i}`, charFrame('down', 0)).setScale(3).setDepth(10));
+    const riders = [1, 0].map((i) => this.add.sprite(i === 0 ? 5 : -5, i === 0 ? -11 : -13, `char_${i}`, charFrame('side', 0)).setFlipX(true));
+    this.moto = this.add.container(0, 0, [...riders, this.add.image(0, 0, 'moto')]).setScale(1.8).setDepth(10);
     this.placeCouple(false);
 
     // HUD superior
@@ -116,25 +117,31 @@ export class MapScene extends Phaser.Scene {
       const x = r.between(110, 880);
       const y = r.between(110, 520);
       if (LEVELS.some((l) => Math.abs(x - l.map.x) < 80 && y - l.map.y > -60 && y - l.map.y < 90)) continue;
-      if (y > 400 || (x < 140 && y > 240 && y < 340) || (x > 680 && x < 780 && y > 260 && y < 340)) continue;
+      if (y > 400 || x > 800 || (x < 120 && y > 240 && y < 340)) continue;
       this.add.image(x, y, r.pick(['tree_big', 'tree_big', 'tree_pink', 'bush'])).setScale(1.6);
     }
-    this.add.image(80, 290, 'house').setScale(1.3);
-    this.add.image(730, 300, 'stall').setScale(1.4);
-    this.add.image(880, 170, 'pillar').setScale(2.4);
+    // Amazônia: ilha de floresta densa com rio e jacaré
+    g.fillStyle(0x2f7a3a, 1).fillEllipse(880, 345, 150, 120);
+    g.fillStyle(0x4aa8e8, 1).fillRect(812, 380, 136, 8);
+    for (const [x, y] of [[830, 300], [925, 310], [845, 360], [915, 365]]) this.add.image(x, y, 'tree_jungle').setScale(1.3);
+    this.add.image(880, 384, 'gator', 0).setScale(1.6);
+    this.add.image(60, 300, 'big_rock').setScale(1.1);
+    this.add.image(430, 240, 'waterfall', 0).setScale(1.1);
+    this.add.image(560, 270, 'waterfall', 0).setScale(0.9);
+    this.add.image(690, 350, 'table').setScale(1.8);
+    this.add.image(890, 170, 'pillar').setScale(2.4);
   }
 
   private placeCouple(animate: boolean): void {
     const m = LEVELS[this.sel].map;
-    const targets = [{ x: m.x - 14, y: m.y - 4 }, { x: m.x + 14, y: m.y - 4 }];
-    this.couple.forEach((c, i) => {
-      if (!animate) { c.setPosition(targets[i].x, targets[i].y); return; }
-      this.moving = true;
-      c.setFlipX(targets[i].x > c.x);
-      this.tweens.add({
-        targets: c, x: targets[i].x, y: targets[i].y, duration: 380, ease: 'Sine.InOut',
-        onComplete: () => { this.moving = false; c.setFrame(charFrame('down', 0)).setFlipX(false); },
-      });
+    const tx = m.x;
+    const ty = m.y - 8;
+    if (!animate) { this.moto.setPosition(tx, ty); return; }
+    this.moving = true;
+    this.moto.scaleX = tx < this.moto.x ? -1.8 : 1.8;
+    this.tweens.add({
+      targets: this.moto, x: tx, y: ty, duration: 520, ease: 'Sine.InOut',
+      onComplete: () => { this.moving = false; this.moto.setAngle(0); },
     });
   }
 
@@ -202,8 +209,11 @@ export class MapScene extends Phaser.Scene {
   update(time: number): void {
     if (this.leaving) return;
     if (this.moving) {
-      const col = [1, 0, 2, 0][Math.floor(time / 110) % 4];
-      this.couple.forEach((c) => c.setFrame(charFrame('side', col)));
+      this.moto.setAngle(Math.sin(time / 50) * 2);
+      if (Math.random() < 0.3) {
+        const d = this.add.image(this.moto.x - this.moto.scaleX * 18, this.moto.y + 18, 'fx_dust').setScale(2).setDepth(9);
+        this.tweens.add({ targets: d, alpha: 0, scale: 4, duration: 400, onComplete: () => d.destroy() });
+      }
     }
     if (this.shop) {
       const before = this.shop.index;
@@ -226,7 +236,8 @@ export class MapScene extends Phaser.Scene {
       const l = LEVELS[this.sel];
       Audio.play('confirm');
       this.leaving = true;
-      this.couple.forEach((c) => this.tweens.add({ targets: c, y: c.y - 10, yoyo: true, duration: 150 }));
+      Audio.play('horn');
+      this.tweens.add({ targets: this.moto, y: this.moto.y - 10, yoyo: true, duration: 150 });
       this.cameras.main.fadeOut(350, 27, 20, 36);
       this.time.delayedCall(370, () => this.scene.start('Story', { id: l.story, next: l.scene, nextData: { levelId: l.id } }));
     }

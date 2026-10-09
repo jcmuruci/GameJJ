@@ -7,9 +7,9 @@ export type Sfx =
   | 'blip' | 'select' | 'confirm' | 'back' | 'pick' | 'drop' | 'chop' | 'sizzle' | 'fire' | 'magic'
   | 'slash' | 'hit' | 'hurt' | 'faint' | 'revive' | 'coin' | 'deliver' | 'wrong' | 'expire' | 'push'
   | 'plate' | 'gate' | 'rune' | 'crystal' | 'hug' | 'thunder' | 'boss' | 'win' | 'lose' | 'step'
-  | 'crow' | 'wind' | 'bell' | 'heart' | 'lever' | 'burn';
+  | 'crow' | 'wind' | 'bell' | 'heart' | 'lever' | 'burn' | 'horn' | 'camera' | 'jump' | 'splash' | 'gator';
 
-type TrackName = 'menu' | 'kitchen' | 'forest' | 'festival' | 'boss' | 'ending' | 'map';
+type TrackName = 'menu' | 'kitchen' | 'forest' | 'festival' | 'boss' | 'ending' | 'map' | 'road' | 'jungle';
 
 interface Track {
   bpm: number;
@@ -68,6 +68,18 @@ const TRACKS: Record<TrackName, Track> = {
     lead: seq('A4 - A4 C5 E5 - D5 C5 B4 - B4 D5 E5 - - - A4 - A4 C5 F5 - E5 D5 E5 - G#4 - A4 - - - C5 - C5 E5 A5 - G5 F5 E5 - E5 F5 G5 - - - F5 - E5 D5 C5 - B4 C5 B4 - G#4 - A4 - - -'),
     bass: seq('A2 A2 A3 A2 A2 A2 A3 A2 G2 G2 G3 G2 G2 G2 G3 G2 F2 F2 F3 F2 F2 F2 F3 F2 E2 E2 E3 E2 E2 E2 E3 E2 A2 A2 A3 A2 A2 A2 A3 A2 G2 G2 G3 G2 G2 G2 G3 G2 F2 F2 F3 F2 E2 E2 E3 E2'),
     drums: 'k.hsk.hsk.hsk.ss',
+  },
+  road: {
+    bpm: 144, leadWave: 'square', bassWave: 'triangle', leadVol: 0.3,
+    lead: seq('E5 - E5 G5 A5 - G5 E5 D5 - D5 E5 G5 - - - C5 - C5 E5 G5 - A5 G5 E5 - D5 - E5 - - - E5 - E5 G5 A5 - C6 A5 G5 - A5 - B5 - - - C6 - B5 A5 G5 - E5 D5 E5 - G5 - E5 - - -'),
+    bass: seq('A2 E3 A2 E3 A2 E3 A2 E3 G2 D3 G2 D3 G2 D3 G2 D3 F2 C3 F2 C3 F2 C3 F2 C3 G2 D3 G2 D3 E2 B2 E2 B2 A2 E3 A2 E3 A2 E3 A2 E3 F2 C3 F2 C3 G2 D3 G2 D3 C3 G3 C3 G3 G2 D3 G2 D3 A2 E3 A2 -'),
+    drums: 'k.h.s.hkk.h.s.hh',
+  },
+  jungle: {
+    bpm: 104, leadWave: 'triangle', bassWave: 'triangle', leadVol: 0.45,
+    lead: seq('D5 - F5 - A5 - G5 F5 E5 - D5 - C5 - - - D5 - F5 - A5 - C6 A5 G5 - - - - - - - F5 - A5 - D6 - C6 A5 G5 - F5 - E5 - - - D5 - E5 F5 E5 - C5 - D5 - - - - - - -'),
+    bass: seq('D3 - A2 - D3 - A2 - C3 - G2 - C3 - G2 - Bb2 - F2 - Bb2 - F2 - A2 - E2 - A2 - E2 - D3 - A2 - D3 - A2 - G2 - D3 - G2 - D3 - A2 - E3 - A2 - E3 - D3 - A2 - D3 - - -'),
+    drums: 'k..hk.s.k..hk.sh',
   },
   ending: {
     bpm: 76, leadWave: 'triangle', bassWave: 'sine', leadVol: 0.5,
@@ -209,6 +221,11 @@ class AudioImpl {
       case 'crow': this.tone({ type: 'sawtooth', f: 700, f2: 500, dur: 0.12, vol: 0.18 }); this.tone({ type: 'sawtooth', f: 650, f2: 420, dur: 0.15, vol: 0.18, delay: 0.16 }); break;
       case 'wind': this.noise({ dur: 1.2, vol: 0.25, filter: 300, f2: 1500, type: 'bandpass' }); break;
       case 'bell': this.tone({ type: 'sine', f: 1568, dur: 0.6, vol: 0.2 }); this.tone({ type: 'sine', f: 2093, dur: 0.4, vol: 0.1 }); break;
+      case 'horn': this.tone({ type: 'square', f: 440, dur: 0.16, vol: 0.2 }); this.tone({ type: 'square', f: 554, dur: 0.16, vol: 0.2 }); this.tone({ type: 'square', f: 440, dur: 0.2, vol: 0.2, delay: 0.2 }); this.tone({ type: 'square', f: 554, dur: 0.2, vol: 0.2, delay: 0.2 }); break;
+      case 'camera': this.noise({ dur: 0.05, vol: 0.35, filter: 5000, type: 'highpass' }); this.tone({ type: 'sine', f: 1800, dur: 0.08, vol: 0.12, delay: 0.05 }); break;
+      case 'jump': this.tone({ type: 'square', f: 300, f2: 700, dur: 0.15, vol: 0.18 }); break;
+      case 'splash': this.noise({ dur: 0.35, vol: 0.3, filter: 2500, f2: 400 }); break;
+      case 'gator': this.tone({ type: 'sawtooth', f: 90, f2: 70, dur: 0.35, vol: 0.25 }); this.tone({ type: 'triangle', f: 600, f2: 900, dur: 0.12, vol: 0.12, delay: 0.3 }); break;
       case 'lever': this.tone({ f: 300, dur: 0.05, vol: 0.2 }); this.noise({ dur: 0.06, vol: 0.2, filter: 2000, delay: 0.03 }); break;
     }
   }
