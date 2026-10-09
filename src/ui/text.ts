@@ -48,3 +48,30 @@ export function panel(scene: Phaser.Scene, x: number, y: number, w: number, h: n
 export function fillNames(s: string, names: [string, string]): string {
   return s.replace(/\{p1\}/g, names[0]).replace(/\{p2\}/g, names[1]);
 }
+
+/** Botão clicável/tocável em estilo pixel. */
+export function uiButton(
+  scene: Phaser.Scene, x: number, y: number, label: string, onClick: () => void,
+  o: { size?: number; color?: number; textColor?: string; minW?: number } = {},
+): Phaser.GameObjects.Container {
+  const t = txt(scene, 0, 0, label, o.size ?? 16, { color: o.textColor ?? '#fff4e0' });
+  const w = Math.max(o.minW ?? 0, t.width + 28);
+  const h = t.height + 12;
+  const g = scene.add.graphics();
+  const draw = (hover: boolean) => {
+    g.clear();
+    g.fillStyle(0x000000, 0.3).fillRoundedRect(-w / 2 + 2, -h / 2 + 4, w, h, 9);
+    g.fillStyle(hover ? 0x4a3360 : 0x2a1d3a, 0.95).fillRoundedRect(-w / 2, -h / 2, w, h, 9);
+    g.lineStyle(2, o.color ?? 0xffd6e4, 1).strokeRoundedRect(-w / 2, -h / 2, w, h, 9);
+  };
+  draw(false);
+  const c = scene.add.container(x, y, [g, t]).setSize(w, h).setDepth(80);
+  c.setInteractive({ useHandCursor: true });
+  c.on('pointerover', () => draw(true));
+  c.on('pointerout', () => draw(false));
+  c.on('pointerdown', () => {
+    scene.tweens.add({ targets: c, scale: 0.92, yoyo: true, duration: 70 });
+    onClick();
+  });
+  return c;
+}

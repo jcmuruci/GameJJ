@@ -66,6 +66,19 @@ try {
   check('Pular história leva ao mapa', (await activeScenes()).includes('Map'));
   await shot('03-map');
 
+  // botões clicáveis do mapa: "Menu principal" volta ao menu; tocar na fase seleciona
+  const clickGame = async (gx, gy) => {
+    const r = await page.evaluate(() => { const c = document.querySelector('canvas').getBoundingClientRect(); return { x: c.x, y: c.y, w: c.width, h: c.height }; });
+    await page.mouse.click(r.x + (gx / 960) * r.w, r.y + (gy / 540) * r.h);
+  };
+  await wait(400);
+  await clickGame(770, 540 - 40);
+  await page.waitForFunction(() => window.__game.scene.isActive('Menu'), null, { timeout: 4000 }).catch(() => undefined);
+  check('Mapa: botão "Menu principal" volta ao menu', (await activeScenes()).includes('Menu'));
+  await evalG(() => { const g = window.__game; g.scene.stop('Menu'); g.scene.start('Map'); });
+  await wait(900);
+  await shot('03b-map-buttons');
+
   // loja no mapa
   await press('KeyG');
   await wait(400);
@@ -168,6 +181,22 @@ try {
   await press('Escape');
   await wait(400);
   check('Pausa fecha', !(await activeScenes()).includes('Pause'));
+  // "Menu principal" na pausa
+  await press('Escape');
+  await wait(300);
+  for (let i = 0; i < 4; i++) await press('ArrowDown');
+  await press('Enter');
+  await page.waitForFunction(() => window.__game.scene.isActive('Menu'), null, { timeout: 4000 }).catch(() => undefined);
+  const sc0 = await activeScenes();
+  check('Pausa: "Menu principal" volta ao menu', sc0.includes('Menu') && !sc0.includes('TutorialLevel') && !sc0.includes('HUD'), sc0.join(','));
+  await startScene('TutorialLevel', { levelId: 'tutorial' });
+  // pausa pelo botão clicável e "Menu principal"
+  await clickGame(480, 540 - 20);
+  await wait(400);
+  check('Botão de pausa clicável na fase', (await activeScenes()).includes('Pause'));
+  await press('Escape');
+  await wait(300);
+
   // reiniciar pela pausa
   await press('Escape');
   await wait(300);
@@ -255,6 +284,11 @@ try {
   await wait(3600);
   check('Fim de tempo leva à tela de resultado', (await activeScenes()).includes('Result'));
   await shot('11-result');
+  await wait(800);
+  await press('ArrowUp'); // última opção
+  await press('Enter');
+  await page.waitForFunction(() => window.__game.scene.isActive('Menu'), null, { timeout: 4000 }).catch(() => undefined);
+  check('Resultado: "Menu principal" volta ao menu', (await activeScenes()).includes('Menu'));
 
   // ---------------------------------------------------------------- FESTIVAL
   await startScene('KitchenLevel', { levelId: 'festival' });

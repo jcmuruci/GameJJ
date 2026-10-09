@@ -85,6 +85,7 @@ export class MenuScene extends Phaser.Scene {
   private showControls(): void {
     this.list.setVisible(false);
     this.overlay = controlsPanel(this);
+    this.time.delayedCall(250, () => this.input.once('pointerdown', () => { if (this.overlay && !this.sub) this.closeOverlay(); }));
   }
 
   private showOptions(): void {

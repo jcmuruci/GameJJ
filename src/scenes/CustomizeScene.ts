@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_W, GAME_H, PLAYER_COLORS } from '../config';
-import { txt, panel } from '../ui/text';
+import { txt, panel, uiButton } from '../ui/text';
 import { Input, PlayerId, KEY_LABELS } from '../systems/InputManager';
 import { Audio } from '../systems/Audio';
 import { Save } from '../systems/SaveManager';
@@ -103,6 +103,7 @@ export class CustomizeScene extends Phaser.Scene {
         this.swatches[i].push(sw);
       });
     }
+    uiButton(this, 80, 30, '< Voltar', () => { if (this.editing === null) { Audio.play('back'); this.leave(); } }, { size: 15 });
     this.refresh();
     Audio.music('menu');
     this.cameras.main.fadeIn(300, 27, 20, 36);

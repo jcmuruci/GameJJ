@@ -4,7 +4,7 @@ import { LEVELS, UPGRADES, LevelInfo } from '../data/levels';
 import { Save } from '../systems/SaveManager';
 import { Input, KEY_LABELS } from '../systems/InputManager';
 import { Audio } from '../systems/Audio';
-import { txt, panel, fillNames } from '../ui/text';
+import { txt, panel, fillNames, uiButton } from '../ui/text';
 import { MenuList } from '../ui/MenuList';
 import { charFrame } from '../art/CharacterArt';
 
@@ -93,9 +93,22 @@ export class MapScene extends Phaser.Scene {
     ];
     panel(this, 600, GAME_H - 132, 340, 116);
     const k = KEY_LABELS;
-    txt(this, 770, GAME_H - 104, `${k[0].action} / ${k[1].action}: jogar fase`, 15);
-    txt(this, 770, GAME_H - 74, `${k[0].ability} / ${k[1].ability}: loja de melhorias`, 15);
-    txt(this, 770, GAME_H - 44, 'Esc: menu principal', 15);
+    uiButton(this, 770, GAME_H - 104, `Jogar fase (${k[0].action}/${k[1].action})`, () => this.playSelected(), { minW: 300, color: 0xffd25e });
+    uiButton(this, 770, GAME_H - 72, `Loja (${k[0].ability}/${k[1].ability})`, () => { if (!this.shop) { Audio.play('confirm'); this.openShop(); } }, { minW: 300 });
+    uiButton(this, 770, GAME_H - 40, 'Menu principal (Esc)', () => this.toMenu(), { minW: 300 });
+    // tocar/clicar numa fase: seleciona; tocar de novo: joga
+    LEVELS.forEach((l, i) => {
+      const hit = this.add.zone(l.map.x, l.map.y, 70, 70).setInteractive({ useHandCursor: true });
+      hit.on('pointerdown', () => {
+        if (this.shop || this.moving || this.leaving) return;
+        if (i >= this.unlockedCount()) { Audio.play('wrong'); return; }
+        if (i === this.sel) { this.playSelected(); return; }
+        this.sel = i;
+        Audio.play('select');
+        this.placeCouple(true);
+        this.refreshInfo();
+      });
+    });
     this.refreshInfo();
     Audio.music('map');
     this.cameras.main.fadeIn(300, 27, 20, 36);
@@ -230,15 +243,25 @@ export class MapScene extends Phaser.Scene {
       }
     }
     if (Input.players.some((p) => p.abilityPressed)) { Audio.play('confirm'); this.openShop(); return; }
-    if (Input.backPressed()) { Audio.play('back'); this.scene.start('Menu'); return; }
-    if (Input.confirmPressed() && !this.moving) {
-      const l = LEVELS[this.sel];
-      Audio.play('confirm');
-      this.leaving = true;
-      Audio.play('horn');
-      this.tweens.add({ targets: this.moto, y: this.moto.y - 10, yoyo: true, duration: 150 });
-      this.cameras.main.fadeOut(350, 27, 20, 36);
-      this.time.delayedCall(370, () => this.scene.start('Story', { id: l.story, next: l.scene, nextData: { levelId: l.id } }));
-    }
+    if (Input.backPressed()) { this.toMenu(); return; }
+    if (Input.confirmPressed()) this.playSelected();
+  }
+
+  private toMenu(): void {
+    if (this.leaving || this.shop) return;
+    this.leaving = true;
+    Audio.play('back');
+    this.scene.start('Menu');
+  }
+
+  private playSelected(): void {
+    if (this.moving || this.leaving || this.shop) return;
+    const l = LEVELS[this.sel];
+    Audio.play('confirm');
+    this.leaving = true;
+    Audio.play('horn');
+    this.tweens.add({ targets: this.moto, y: this.moto.y - 10, yoyo: true, duration: 150 });
+    this.cameras.main.fadeOut(350, 27, 20, 36);
+    this.time.delayedCall(370, () => this.scene.start('Story', { id: l.story, next: l.scene, nextData: { levelId: l.id } }));
   }
 }

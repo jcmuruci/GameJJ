@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_W, GAME_H } from '../config';
 import { STORY, Line } from '../data/story';
-import { txt, fillNames } from '../ui/text';
+import { txt, fillNames, uiButton } from '../ui/text';
 import { Input } from '../systems/InputManager';
 import { Audio } from '../systems/Audio';
 import { Save } from '../systems/SaveManager';
@@ -75,7 +75,9 @@ export class StoryScene extends Phaser.Scene {
     g.lineStyle(3, 0xffd6e4, 1).strokeRoundedRect(40, GAME_H - 170, GAME_W - 80, 146, 14);
     this.nameT = txt(this, 70, GAME_H - 170, '', 20, { origin: [0, 0.5], color: '#ffd25e' });
     this.body = txt(this, 70, GAME_H - 140, '', 20, { origin: [0, 0], wrap: GAME_W - 150, bold: false, lineSpacing: 6 });
-    const hint = txt(this, GAME_W - 70, GAME_H - 40, 'AÇÃO: continuar · Esc: pular', 12, { origin: [1, 0.5], color: '#d8c8e8', bold: false });
+    uiButton(this, GAME_W - 70, 30, 'Pular >', () => this.finish(), { size: 15 });
+    this.input.on('pointerdown', (_p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => { if (!over.length) this.advance(); });
+    const hint = txt(this, GAME_W - 70, GAME_H - 40, 'Toque ou AÇÃO: continuar · Esc: pular', 12, { origin: [1, 0.5], color: '#d8c8e8', bold: false });
     this.tweens.add({ targets: hint, alpha: 0.4, duration: 700, yoyo: true, repeat: -1 });
 
     const id2 = this.data_.id;
@@ -150,9 +152,12 @@ export class StoryScene extends Phaser.Scene {
       if (Math.floor(this.shown) !== prev && Math.floor(this.shown) % 3 === 0) Audio.play('blip');
       this.body.setText(this.full.slice(0, Math.floor(this.shown)));
     }
-    if (Input.confirmPressed()) {
-      if (this.shown < this.full.length) { this.shown = this.full.length; this.body.setText(this.full); }
-      else { this.idx++; this.showLine(); }
-    }
+    if (Input.confirmPressed()) this.advance();
+  }
+
+  private advance(): void {
+    if (this.done) return;
+    if (this.shown < this.full.length) { this.shown = this.full.length; this.body.setText(this.full); }
+    else { this.idx++; this.showLine(); }
   }
 }

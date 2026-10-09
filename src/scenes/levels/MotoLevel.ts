@@ -5,7 +5,8 @@ import { Save } from '../../systems/SaveManager';
 import { Input, KEY_LABELS } from '../../systems/InputManager';
 import { Audio } from '../../systems/Audio';
 import { charFrame } from '../../art/CharacterArt';
-import { txt, panel } from '../../ui/text';
+import { txt, panel, uiButton } from '../../ui/text';
+import { isTouchDevice } from '../../systems/TouchControls';
 
 /**
  * Passeio de Moto Amarela — fase de estrada.
@@ -176,6 +177,7 @@ export class MotoLevel extends Phaser.Scene {
       `${this.names[1]}: ${KEY_LABELS[1].ability}: magia nas pedras · ${KEY_LABELS[1].action}: buzina / foto`,
     ];
     help.forEach((h, i) => add(txt(this, i === 0 ? 20 : GAME_W - 20, GAME_H - 18, h, 13, { origin: [i === 0 ? 0 : 1, 0.5], color: i === 0 ? '#bfe6ff' : '#ffd6e4', bold: false })));
+    if (!isTouchDevice()) add(uiButton(this, GAME_W / 2, GAME_H - 20, 'Pausa (Esc)', () => this.openPause(), { size: 13 }));
     this.refreshUi();
   }
 
@@ -288,12 +290,7 @@ export class MotoLevel extends Phaser.Scene {
   // ------------------------------------------------------------------ laço
   update(_t: number, delta: number): void {
     const dt = Math.min(delta / 1000, 0.05);
-    if (Input.pausePressed && !this.ended) {
-      Audio.play('select');
-      this.scene.launch('Pause', { levelKey: this.scene.key, levelId: this.info.id });
-      this.scene.pause();
-      return;
-    }
+    if (Input.pausePressed && !this.ended) { this.openPause(); return; }
     const time = this.time.now;
     const col = [1, 0, 2, 0][Math.floor(time / 90) % 4];
     this.riders.forEach((r, i) => r.setFrame(charFrame('side', i === 0 && this.boltCd > 0.3 ? 3 : 0)).setY((i === 0 ? -13 : -11) + (col === 1 ? -0.5 : 0)));
@@ -356,6 +353,13 @@ export class MotoLevel extends Phaser.Scene {
     this.updateBolts(dt);
 
     if (this.dist >= TOTAL) this.arrive();
+  }
+
+  private openPause(): void {
+    if (this.ended || !this.scene.isActive()) return;
+    Audio.play('select');
+    this.scene.launch('Pause', { levelKey: this.scene.key, levelId: this.info.id });
+    this.scene.pause();
   }
 
   private spawnSpot(s: { label: string; decor: string }): void {

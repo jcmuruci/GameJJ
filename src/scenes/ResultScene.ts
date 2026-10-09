@@ -78,7 +78,8 @@ export class ResultScene extends Phaser.Scene {
     else if (d.win) items.push({ label: 'Continuar', onSelect: () => this.go('Map', { select: next }) });
     items.push({ label: d.win ? 'Jogar de novo' : 'Tentar de novo', onSelect: () => this.go(info.scene, { levelId: d.levelId }) });
     items.push({ label: 'Voltar ao mapa', onSelect: () => this.go('Map', { select: d.levelId }) });
-    this.list = new MenuList(this, GAME_W / 2, 400, items, 34, 20);
+    items.push({ label: 'Menu principal', onSelect: () => this.go('Menu', {}) });
+    this.list = new MenuList(this, GAME_W / 2, 380, items, 30, 19);
     this.list.setVisible(false);
     this.time.delayedCall(900, () => { this.list.setVisible(true); this.ready = true; });
     Audio.music(d.win ? 'map' : null);

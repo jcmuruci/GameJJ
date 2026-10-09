@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_W, GAME_H, PLAYER_COLORS } from '../config';
-import { txt } from '../ui/text';
+import { txt, uiButton } from '../ui/text';
+import { isTouchDevice } from '../systems/TouchControls';
 import type { BaseLevel } from './levels/BaseLevel';
 import { KEY_LABELS } from '../systems/InputManager';
 
@@ -63,6 +64,8 @@ export class HUDScene extends Phaser.Scene {
     }
     this.info = txt(this, GAME_W / 2, 24, '', 22, { color: '#fff4e0' });
     this.toastText = txt(this, GAME_W / 2, 92, '', 18, { color: '#fff4e0', wrap: 700 }).setAlpha(0).setDepth(50);
+    // botão de pausa clicável (no celular a pausa fica nos controles de toque)
+    if (!isTouchDevice()) uiButton(this, GAME_W / 2, GAME_H - 20, 'Pausa (Esc)', () => { if (!this.level.ended) this.level.openPause(); }, { size: 13 });
     this.ready = true;
     this.level.onHudReady(this);
   }
