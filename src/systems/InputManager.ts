@@ -95,7 +95,10 @@ class InputManagerImpl {
       this.down.delete(e.code);
     });
     target.addEventListener('blur', () => this.down.clear());
-    target.addEventListener('pointerdown', () => this.onFirstGesture?.());
+    // o áudio só pode ligar dentro de um gesto; no iPhone vale o FIM do toque (touchend/pointerup/click)
+    for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click', 'mousedown']) {
+      target.addEventListener(ev, () => this.onFirstGesture?.(), { capture: true, passive: true });
+    }
   }
 
   /** Captura texto bruto (para digitar nomes). Retorna função para encerrar. */
