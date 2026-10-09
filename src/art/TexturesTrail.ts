@@ -34,27 +34,66 @@ export function generateTrailTextures(scene: Phaser.Scene): void {
     pg.px(5, 4, '#ffd25e');
   });
   // arco de pedras do topo do Itacolomi (a cena do pedido)
-  canvas(scene, 'stone_arch', 64, 52, (pg) => {
-    const base = '#9a98a4', light = '#b8b6c2', dark = '#6e6c7a', moss = '#5f9a4a';
-    for (let y = 0; y < 52; y++) {
+  canvas(scene, 'stone_arch', 64, 56, (pg) => {
+    // arco de pedra natural: contorno irregular, face interna sombreada, rachaduras e musgo
+    const cx = 32, cy = 46;
+    const hash = (x: number, y: number) => ((x * 73856093) ^ (y * 19349663)) >>> 0;
+    const shape = (x: number, y: number): number => {
+      // devolve a posição dentro da faixa de pedra: 0 = borda de dentro, 1 = borda de fora; -1 = fora da pedra
+      const yy = Math.min(y, cy);
+      const flare = Math.max(0, y - cy) * 0.7; // a base alarga como pedras assentadas
+      const th = Math.atan2(cy - yy, x - cx);
+      const ro = 1 + 0.05 * Math.sin(3 * th + 0.7) + 0.035 * Math.sin(7 * th + 2.1) + 0.02 * Math.sin(13 * th);
+      const ri = 1 + 0.07 * Math.sin(4 * th + 1.3) + 0.03 * Math.sin(9 * th + 0.4);
+      const dx = Math.abs(x + 0.5 - cx);
+      const oa = 31 * ro + flare, ob = 42 * ro, ia = 17 * ri - flare * 0.3, ib = 25 * ri;
+      const on = Math.sqrt((dx / oa) ** 2 + ((cy - yy) / ob) ** 2);
+      const inn = Math.sqrt((dx / ia) ** 2 + ((cy - yy) / ib) ** 2);
+      if (on > 1 || inn < 1) return -1;
+      return Math.min(1, Math.max(0, (inn - 1) / (inn - 1 + 1 - on + 1e-6)));
+    };
+    for (let y = 2; y < 56; y++) {
       for (let x = 0; x < 64; x++) {
-        const ox = (x + 0.5 - 32) / 31, oy = (y + 0.5 - 40) / 38;
-        const ix = (x + 0.5 - 32) / 18, iy = (y + 0.5 - 40) / 26;
-        const outer = ox * ox + oy * oy <= 1 || (y >= 40 && Math.abs(x + 0.5 - 32) <= 31);
-        const inner = ix * ix + iy * iy <= 1 || (y >= 40 && Math.abs(x + 0.5 - 32) <= 18);
-        if (!outer || inner) continue;
-        // blocos de pedra: rejuntes escuros e brilho no topo de cada bloco
-        const row = Math.floor(y / 7);
-        const joint = y % 7 === 0 || (x + row * 5) % 11 === 0;
-        pg.px(x, y, joint ? dark : y % 7 === 1 ? light : base);
+        const f = shape(x, y);
+        if (f < 0) continue;
+        const h = hash(x, y);
+        const lit = (x < cx - 6 && y < 42) || y < 12;
+        let c = x > cx + 10 ? '#8a8894' : '#9c9aa6';
+        if (f < 0.2) c = '#5e5c6a'; // face interna, na sombra
+        else if (f < 0.33) c = '#7a7886';
+        else if (f > 0.86 && lit) c = '#c2c0ca'; // borda iluminada
+        else if (f > 0.72 && lit) c = '#b0aeb8';
+        else if (h % 11 === 0) c = '#84828e';
+        else if (h % 17 === 0) c = '#b0aeb8';
+        if (y > 51 && f >= 0.2 && h % 3 !== 0) c = '#84828e'; // base mais escura, encostada no chão
+        pg.px(x, y, c);
       }
     }
-    [[10, 12], [15, 6], [48, 9], [53, 15], [5, 30], [58, 26]].forEach(([x, y]) => { pg.px(x, y, moss); pg.px(x + 1, y, moss); });
+    // rachaduras naturais
+    const crack = (pts: [number, number][]) => pts.forEach(([x, y]) => { if (shape(x, y) > 0.25) pg.px(x, y, '#5e5c6a'); });
+    crack([[9, 18], [10, 19], [10, 20], [11, 21], [11, 22], [12, 23]]);
+    crack([[50, 14], [51, 15], [51, 16], [52, 17], [53, 18]]);
+    crack([[4, 38], [5, 39], [6, 39], [7, 40]]);
+    crack([[56, 34], [57, 35], [57, 36], [58, 37], [58, 38]]);
+    crack([[30, 6], [31, 7], [31, 8]]);
+    // musgo e capim no alto e nas fendas
+    for (let x = 0; x < 64; x++) {
+      for (let y = 2; y < 56; y++) {
+        if (shape(x, y) < 0) continue;
+        if (y < 34 && hash(x, 7) % 3 !== 0) {
+          pg.px(x, y, hash(x, 3) % 2 ? '#5f9a4a' : '#78b858');
+          if (hash(x, 5) % 2 === 0 && shape(x, y + 1) > 0.5) pg.px(x, y + 1, '#5f9a4a');
+          if (hash(x, 9) % 4 === 0) pg.px(x, y - 1, '#78b858');
+        }
+        break;
+      }
+    }
+    [[7, 33], [8, 33], [55, 29], [56, 30], [20, 44], [44, 47]].forEach(([x, y]) => { if (shape(x, y) > 0.3) pg.px(x, y, '#6aa850'); });
   });
   canvas(scene, 'stone_seat', 14, 7, (pg) => {
     pg.ellipse(7, 3, 6, 3, '#8e8c98');
-    pg.hline(3, 10, 1, '#b8b6c2');
-    pg.hline(2, 11, 5, '#6e6c7a');
+    pg.hline(4, 9, 1, '#b8b6c2'); pg.px(3, 2, '#b0aeb8');
+    pg.hline(2, 11, 5, '#6e6c7a'); pg.px(10, 3, '#7a7886');
   });
   // folha do poema dobrada (com corações)
   canvas(scene, 'item_poem', 12, 13, (pg) => {
