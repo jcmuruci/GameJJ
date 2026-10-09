@@ -262,6 +262,34 @@ try {
   await evalG(() => { const s = window.__game.scene.getScene('KitchenLevel'); s.cartT = 0.1; });
   await wait(900);
   await shot('10-kitchen-play');
+  // alianças: aparecem na mesa, o João pega e entrega com um abraço
+  await evalG(() => { const s = window.__game.scene.getScene('KitchenLevel'); s.timeLeft = s.cfg.duration - 71; });
+  await wait(300);
+  check('Alianças aparecem na mesa', (await evalG(() => window.__game.scene.getScene('KitchenLevel').rings.state)) === 'table');
+  await evalG(() => {
+    const s = window.__game.scene.getScene('KitchenLevel');
+    const t = s.tables[0];
+    s.players.forEach((p) => { if (p.held) { p.held.destroy(); p.held = null; } });
+    s.players[0].teleport(t.x, t.y + 16);
+    s.players[0].face = { x: 0, y: -1 };
+    s.players[1].teleport(t.x + 60, t.y + 60);
+  });
+  await wait(100);
+  await press('KeyF');
+  check('João pega a caixinha das alianças', (await evalG(() => window.__game.scene.getScene('KitchenLevel').rings.state)) === 'carried');
+  await evalG(() => {
+    const s = window.__game.scene.getScene('KitchenLevel');
+    const t = s.tables[0];
+    s.players[0].teleport(t.x - 8, t.y + 40); s.players[0].face = { x: 1, y: 0 };
+    s.players[1].teleport(t.x + 8, t.y + 40); s.players[1].face = { x: -1, y: 0 };
+  });
+  await wait(100);
+  await page.keyboard.down('KeyF'); await page.keyboard.down('KeyK');
+  await wait(80);
+  await page.keyboard.up('KeyF'); await page.keyboard.up('KeyK');
+  await wait(400);
+  await shot('10b-aliancas');
+  check('Abraço entrega as alianças', (await evalG(() => window.__game.scene.getScene('KitchenLevel').rings.state)) === 'done');
   // simula o fim do tempo
   await evalG(() => { window.__game.scene.getScene('KitchenLevel').timeLeft = 0.05; });
   await wait(3600);
@@ -291,6 +319,15 @@ try {
   await wait(1200);
   await shot('12-junina');
   check('Festa junina roda sem erros', (await activeScenes()).includes('KitchenLevel'));
+  // quadrilha: no "Anarriê!", os dois usam a HABILIDADE juntos
+  await evalG(() => { window.__game.scene.getScene('KitchenLevel').dance.next = 0; });
+  await wait(500);
+  await shot('12a-quadrilha');
+  await page.keyboard.down('KeyG'); await page.keyboard.down('KeyL');
+  await wait(80);
+  await page.keyboard.up('KeyG'); await page.keyboard.up('KeyL');
+  await wait(300);
+  check('Quadrilha: dançam juntos', (await evalG(() => window.__game.scene.getScene('KitchenLevel').dances)) === 1);
 
   // ---------------------------------------------------------------- ROÇA
   await startScene(K, { levelId: 'roca' });
@@ -348,13 +385,33 @@ try {
   await wait(400);
   await shot('15-climb');
   check('Escalada abre sem erros', (await activeScenes()).includes('TrailLevel'));
+  check('Escalada tem tarefas do capítulo', (await evalG(() => window.__game.scene.getScene('TrailLevel').tasks?.total)) === 4);
+  await evalG(() => window.__game.scene.getScene('TrailLevel').rockfall());
+  await wait(500);
+  await shot('15b-pedra-solta');
+  await wait(900);
+  const rock = await evalG(() => { const s = window.__game.scene.getScene('TrailLevel'); return { d: s.dodges, hp: s.players.map((p) => p.hp).join(',') }; });
+  check('Pedra solta cai perto do casal', rock.d === 1 || rock.hp !== '3,3', JSON.stringify(rock));
   await startScene(TL, { levelId: 'topo' });
   await wait(400);
   await shot('16-topo');
   check('Topo do Mundo abre sem erros', (await activeScenes()).includes('TrailLevel'));
+  await evalG(() => window.__game.scene.getScene('TrailLevel').spawnPhotoTarget());
+  await wait(1600);
+  await shot('16b-parapente');
+  await press('KeyL');
+  await wait(200);
+  check('Juliana fotografa o parapente', (await evalG(() => window.__game.scene.getScene('TrailLevel').photos)) === 1);
   await startScene(TL, { levelId: 'itacolomi' });
   await wait(400);
   await shot('17-itacolomi');
+  await evalG(() => window.__game.scene.getScene('TrailLevel').startGust());
+  await page.keyboard.down('KeyF'); await page.keyboard.down('KeyK');
+  await wait(2500);
+  await shot('17b-rajada');
+  await wait(2000);
+  await page.keyboard.up('KeyF'); await page.keyboard.up('KeyK');
+  check('Seguram firme na rajada de vento', (await evalG(() => window.__game.scene.getScene('TrailLevel').gustsOk)) === 1);
   await evalG(() => { const s = window.__game.scene.getScene('TrailLevel'); s.players[1].teleport(s.players[0].x + 20, s.players[0].y); s.onExit(); });
   await wait(4200);
   await shot('18-poem');
@@ -392,6 +449,9 @@ try {
   await wait(200);
   const photos = await evalG(() => window.__game.scene.getScene('MotoLevel').photos);
   check('Garupa tira foto na placa', photos === 1, `fotos=${photos}`);
+  await evalG(() => { window.__game.scene.getScene('MotoLevel').catchT = 1.2; });
+  await press('KeyK');
+  check('Juliana segura o pão que pulou', (await evalG(() => window.__game.scene.getScene('MotoLevel').catches)) === 1);
   await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = s.cfg.total; });
   await wait(3200);
   check('Entregar o pão leva ao resultado', (await activeScenes()).includes('Result'));

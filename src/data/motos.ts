@@ -1,3 +1,5 @@
+import type { ChapterTask } from '../ui/TaskList';
+
 export interface MotoConfig {
   title: string;
   subtitle: string;
@@ -15,6 +17,17 @@ export interface MotoConfig {
   flatTireAt?: number;
   /** Lembrete na tela de resultado. */
   memory: string;
+  /** Bicho que senta na estrada (buzina para sair). */
+  animal: 'capy' | 'cow';
+  /** Leva o pão quentinho: esfria com o tempo e pula da garupa nos saltos. */
+  bread?: boolean;
+  /** Poças de lama que atrasam a moto (pulo passa por cima). */
+  mud?: boolean;
+  /**
+   * Tarefas do capítulo. Ids: photos, warm (pão quentinho na entrega), catch (pegar o pão no pulo),
+   * repair (pneu), honk (bichos que saíram com a buzina), arrive.
+   */
+  tasks: ChapterTask[];
 }
 
 export const MOTOS: Record<string, MotoConfig> = {
@@ -32,6 +45,14 @@ export const MOTOS: Record<string, MotoConfig> = {
     finishTitle: 'O pão chegou quentinho!',
     dirt: false,
     memory: 'Depois de 40 dias, um pão quentinho de moto.',
+    animal: 'capy',
+    bread: true,
+    tasks: [
+      { id: 'photos', text: 'Fotos no caminho', goal: 3 },
+      { id: 'catch', text: 'Segurar o pão nos pulos', goal: 2 },
+      { id: 'warm', text: 'Pão ainda quentinho (50%+)' },
+      { id: 'arrive', text: 'Entregar no condomínio dela' },
+    ],
   },
   tire: {
     title: 'Estrada de Terra',
@@ -48,5 +69,13 @@ export const MOTOS: Record<string, MotoConfig> = {
     dirt: true,
     flatTireAt: 0.42,
     memory: 'O pneu furou, mas a dupla consertou junta.',
+    animal: 'cow',
+    mud: true,
+    tasks: [
+      { id: 'photos', text: 'Fotos da estrada de terra', goal: 3 },
+      { id: 'honk', text: 'Buzinar pras vacas saírem', goal: 3 },
+      { id: 'repair', text: 'Consertar o pneu juntos' },
+      { id: 'arrive', text: 'Chegar em São José da Serra' },
+    ],
   },
 };

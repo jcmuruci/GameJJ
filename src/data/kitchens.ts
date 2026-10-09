@@ -1,5 +1,6 @@
 import { RecipeId, ItemKind } from './recipes';
 import { T } from '../art/tiles';
+import type { ChapterTask } from '../ui/TaskList';
 
 export interface KitchenConfig {
   map: string[];
@@ -25,6 +26,15 @@ export interface KitchenConfig {
   floor: number;
   objectFloor: number;
   tips: string[];
+  /**
+   * Tarefas do capítulo. Ids: orders (pedidos servidos), recipe:<id> (servir esse prato),
+   * fish (peixes pescados), scare (bichos espantados), rings (alianças), dance (quadrilha).
+   */
+  tasks: ChapterTask[];
+  /** Momento especial do capítulo: alianças no Italiano, quadrilha na festa junina. */
+  special?: 'rings' | 'quadrilha';
+  /** Convidados que assistem e comentam (ex.: os pais do João). */
+  guests?: { npc: string; tx: number; ty: number; lines: string[] }[];
 }
 
 /**
@@ -71,8 +81,14 @@ export const KITCHENS: Record<string, KitchenConfig> = {
     tips: [
       'Cozinha à esquerda, salão à direita: passem os pratos pelo balcão da parede!',
       'Pizza: massa + tomate picado + queijo ralado no forno aceso.',
-      'Cuidado com o garçom apressado no corredor do salão!',
+      'Cuidado com o garçom apressado! E no meio do jantar... hora das alianças ♥',
     ],
+    tasks: [
+      { id: 'orders', text: 'Servir pedidos', goal: 6 },
+      { id: 'recipe:pizza', text: 'Assar uma pizza' },
+      { id: 'rings', text: 'Entregar as alianças (abraço!)' },
+    ],
+    special: 'rings',
   },
   junina: {
     map: [
@@ -112,7 +128,17 @@ export const KITCHENS: Record<string, KitchenConfig> = {
     tips: [
       'Só a {p2} pesca: no pier, AÇÃO para jogar a linha e de novo quando aparecer o "!"',
       '{p1} limpa o peixe na tábua; a brasa precisa de fogo mágico.',
-      'Canjica: leite na panela primeiro, depois o milho!',
+      'Canjica: leite e depois milho. Quando gritarem ANARRIÊ, os dois: HABILIDADE juntos!',
+    ],
+    tasks: [
+      { id: 'fish', text: 'Pescar peixes (só {p2})', goal: 3 },
+      { id: 'orders', text: 'Servir pedidos', goal: 5 },
+      { id: 'dance', text: 'Dançar a quadrilha', goal: 2 },
+    ],
+    special: 'quadrilha',
+    guests: [
+      { npc: 'pai', tx: 22, ty: 3, lines: ['Esse peixe tá no ponto, filho!', 'Aprendeu a pescar rapidinho, hein, {p2}!', 'Capricha na canjica!'] },
+      { npc: 'mae', tx: 24, ty: 3, lines: ['Que moça boa de cozinha!', 'Canjica igual à da vó!', 'Vocês dois juntos dão gosto de ver.'] },
     ],
   },
   roca: {
@@ -145,13 +171,19 @@ export const KITCHENS: Record<string, KitchenConfig> = {
     fireTime: 40,
     cookers: 'roca',
     sources: { '1': 'beans', '2': 'flour', '3': 'lettuce', '4': 'tomato' },
-    crows: { first: 50, every: 36, tex: 'chicken', name: 'A galinha' },
+    crows: { first: 35, every: 24, tex: 'chicken', name: 'A galinha' },
     floor: T.GRASS,
     objectFloor: T.GRASS,
     tips: [
       'Tilápia: a {p2} pesca na lagoa, o {p1} limpa, e vai pra panela.',
       'Tropeiro: feijão + farinha na panela do fogão a lenha.',
       'As galinhas da roça roubam comida da bancada: xô!',
+    ],
+    tasks: [
+      { id: 'fish', text: 'Pescar tilápias (só {p2})', goal: 3 },
+      { id: 'scare', text: 'Espantar galinhas ladras', goal: 3 },
+      { id: 'recipe:tropeiro', text: 'Fazer um tropeiro' },
+      { id: 'orders', text: 'Servir pedidos', goal: 5 },
     ],
   },
 };

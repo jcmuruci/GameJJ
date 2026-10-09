@@ -6,6 +6,7 @@ import { Player, Interactable } from '../../entities/Player';
 import type { HUDScene } from '../HUDScene';
 import { GAME_W, TILE, ZOOM, RES } from '../../config';
 import { txt } from '../../ui/text';
+import { TaskList } from '../../ui/TaskList';
 import { Input, KEY_LABELS } from '../../systems/InputManager';
 import { Audio } from '../../systems/Audio';
 
@@ -90,6 +91,7 @@ class Ostrich implements Interactable {
     if (this.state === 'scared') return false;
     this.state = 'scared';
     this.t = 2;
+    this.L.onOstrichScared();
     this.L.sfx('crow');
     this.L.say({ x: this.x, y: this.y - 22 }, 'QUÉÉÉ?!', 1000, '#fff4e0');
     const p = this.L.players.reduce((a, b) => (this.L.dist(a, this) < this.L.dist(b, this) ? a : b));
@@ -279,6 +281,13 @@ export class FarmLevel extends PuzzleLevel {
     this.hudText = txt(hud, GAME_W / 2, 28, '', 18, { color: '#ffd6e4' });
     this.refreshHud();
     hud.toast('Setembro de 2026: Hotel Fazenda! Carinho nos bichos e... cuidado com a avestruz.', '#fff4e0', 3600);
+    this.ostrichScares = 0;
+    this.tasks = new TaskList(hud, 12, 12, [
+      { id: 'pet', text: 'Carinho nos bichos', goal: this.animals.length },
+      { id: 'ostrich', text: 'Espantar a avestruz brava', goal: 2 },
+      { id: 'buoys', text: 'Pedalinho: passar nas boias', goal: 5 },
+      { id: 'dock', text: 'Voltar ao pier pedalando juntos' },
+    ]);
   }
 
   private refreshHud(): void {
@@ -289,6 +298,7 @@ export class FarmLevel extends PuzzleLevel {
 
   onPet(p: Player, name: string): void {
     this.refreshHud();
+    this.tasks?.progress('pet', this.animals.filter((a) => a.petted).length);
     this.hud?.floatText(p.x, p.y - 30, `${name}: carinho!`, '#ff9cc2');
   }
 
@@ -360,6 +370,7 @@ export class FarmLevel extends PuzzleLevel {
     if (Math.hypot(target.x - b.x, target.y - b.y) < 18) {
       if (this.buoyIdx < this.buoys.length) {
         this.buoyIdx++;
+        this.tasks?.progress('buoys', this.buoyIdx);
         Audio.play('coin');
         this.hud?.floatText(b.x, b.y - 24, this.buoyIdx < this.buoys.length ? `Boia ${this.buoyIdx}!` : 'Agora, de volta ao pier!', '#ffd25e');
       } else {
@@ -370,6 +381,7 @@ export class FarmLevel extends PuzzleLevel {
   }
 
   private finishFarm(): void {
+    this.tasks?.done('dock');
     const pets = this.animals.filter((a) => a.petted).length;
     const fast = this.boatTime < 75;
     const stars = 1 + (pets >= this.animals.length ? 1 : 0) + (fast ? 1 : 0);
@@ -380,8 +392,16 @@ export class FarmLevel extends PuzzleLevel {
         `Carinhos: ${pets}/${this.animals.length} ${pets >= this.animals.length ? '(estrela!)' : ''}`,
         `Pedalinho: ${this.boatTime.toFixed(0)}s ${fast ? '(estrela!)' : '(meta: 75s)'}`,
         `Sustos com a avestruz: ${this.stats.faints + this.hits}`,
-      ],
+        this.tasks ? this.tasks.summary() : '',
+      ].filter(Boolean),
     });
+  }
+
+  tasks: TaskList | null = null;
+  ostrichScares = 0;
+  onOstrichScared(): void {
+    this.ostrichScares++;
+    this.tasks?.progress('ostrich', this.ostrichScares);
   }
 
   hits = 0;

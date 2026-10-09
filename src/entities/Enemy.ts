@@ -3,7 +3,7 @@ import type { BaseLevel } from '../scenes/levels/BaseLevel';
 import type { Player } from './Player';
 import { Audio } from '../systems/Audio';
 
-/** Geleca saltitante: persegue o jogador mais próximo e causa dano ao encostar. */
+/** Bicho que persegue o jogador mais próximo e causa dano ao encostar (geleca, borrachudo, gralha, quero-quero...). */
 export class Slime {
   sprite: Phaser.Physics.Arcade.Sprite;
   hp: number;
@@ -13,12 +13,12 @@ export class Slime {
   private wander = { x: 0, y: 0 };
   private flash = 0;
 
-  constructor(public level: BaseLevel, x: number, y: number, public kind: 'slime' | 'slime_storm' | 'mosquito' = 'slime', hp = 2, public speed = 34, public aggro = 90) {
+  constructor(public level: BaseLevel, x: number, y: number, public kind: string = 'slime', hp = 2, public speed = 34, public aggro = 90) {
     this.hp = hp;
     this.sprite = level.physics.add.sprite(x, y, kind, 0);
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-    if (kind === 'mosquito') body.setSize(8, 6).setOffset(2, 5);
-    else body.setSize(10, 7).setOffset(3, 8);
+    if (kind === 'slime' || kind === 'slime_storm') body.setSize(10, 7).setOffset(3, 8);
+    else body.setSize(8, 6).setOffset((this.sprite.width - 8) / 2, (this.sprite.height - 6) / 2);
     body.setCollideWorldBounds(true);
     this.sprite.setDepth(y);
   }
@@ -51,6 +51,7 @@ export class Slime {
       const a = Math.atan2(target.y - this.y, target.x - this.x);
       const s = hopping ? this.speed : this.speed * 0.3;
       body.setVelocity(Math.cos(a) * s, Math.sin(a) * s);
+      if (this.kind !== 'slime' && this.kind !== 'slime_storm') this.sprite.setFlipX(Math.cos(a) > 0);
     } else {
       if (Math.random() < dt * 0.6) {
         const a = Math.random() * Math.PI * 2;

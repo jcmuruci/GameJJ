@@ -29,21 +29,21 @@ esquerda e Juliana à direita, cada um com joystick + botões **Ação** e **Esp
 - **Desmaio:** se alguém cair, o outro fica perto e **segura AÇÃO** para reviver. Se os dois caírem, perdem a fase.
 
 ### Capítulos — a nossa linha do tempo
-O mapa é uma linha do tempo, mês a mês. Cada capítulo abre com uma cena de história em estilo anime.
+O mapa é uma linha do tempo, mês a mês. Cada capítulo abre com uma cena de história em estilo anime e tem um painel de **tarefas do capítulo** (canto da tela) ligado ao que aconteceu naquele mês.
 
 | Mês | Capítulo | Jogo |
 |---|---|---|
 | Jul 2025 | **O Rapel** | tutorial; rapel em dupla (um dá segurança na ancoragem, o outro desce) |
-| Jan 2026 | **Escalada e Mirante** | escalar com o parceiro dando segurança; mosquetões; foto no mirante |
-| Fev 2026 | **Cânion e Lavras Novas** | pedras, água corrente, cachoeiras, enigmas e as casinhas coloridas |
-| Mar 2026 | **O Pão de Moto** | moto até o condomínio dela; ganha a **medalha de São Bento** (protege o João do 1º golpe) |
-| Abr 2026 | **Pico do Itacolomi** | trilha a pé… sentados nas pedras sob o arco de pedras do topo, ele entrega o resto do poema e faz o **pedido de namoro** (ela aperta AÇÃO para dizer SIM); os versos ficam em `src/data/poem.ts` |
-| Mai 2026 | **O Italiano** | cozinha: bruschetta, sugo e pizza; garçom apressado; ganham as **alianças** (abraço cura mais) |
-| Jun 2026 | **Juiz de Fora e Festa Junina** | os pais dele; **só ela pesca** no pier; milho, canjica, peixe na brasa; quadrilha passando |
-| Jul 2026 | **Pneu Furado** | estrada de terra; pneu fura: ele segura a moto, ela aperta para consertar |
-| Jul 2026 | **Restaurante da Roça** | lagoa com peixes, tilápia, tropeiro e galinhas ladras |
-| Ago 2026 | **Topo do Mundo e Lapinha** | parapentes decolando, rapel e a cachoeira da Lapinha |
-| Set 2026 | **Hotel Fazenda** | carinho nos bichos, fujam da **avestruz** e pedalinho (pedalem juntos!) |
+| Jan 2026 | **Escalada e Mirante** | escalar com segurança, mosquetões dourados e **pedras soltas** caindo (fujam da sombra!); foto no mirante |
+| Fev 2026 | **Cânion e Lavras Novas** | fotos das quedas d'água, **nuvens de borrachudos** (a magia dela é o repelente) e as casinhas coloridas |
+| Mar 2026 | **O Pão de Moto** | o **pão esfria** e pula da sacola nos saltos (ela segura!); ganha a **medalha de São Bento** |
+| Abr 2026 | **Pico do Itacolomi** | flores do campo, gralhas e **rajadas de vento** (segurem AÇÃO); sob o arco de pedra, o resto do poema e o **pedido de namoro** (versos em `src/data/poem.ts`) |
+| Mai 2026 | **O Italiano** | bruschetta, sugo e pizza; garçom apressado; no meio do jantar, **ele entrega as alianças com um abraço** |
+| Jun 2026 | **Juiz de Fora e Festa Junina** | os pais dele comentam tudo; **só ela pesca**; no "Anarriê!" os dois **dançam a quadrilha** juntos |
+| Jul 2026 | **Pneu Furado** | estrada de terra com **vacas** (buzina!) e **lama**; pneu fura: ele segura a moto e ela conserta |
+| Jul 2026 | **Restaurante da Roça** | tilápia pescada na lagoa, tropeiro e **galinhas ladras** |
+| Ago 2026 | **Topo do Mundo e Lapinha** | ela **fotografa os parapentes** (HABILIDADE), fujam dos **quero-queros**, rapel e cachoeira |
+| Set 2026 | **Hotel Fazenda** | carinho nos bichos, espantem a **avestruz** e pedalinho (pedalem juntos!) |
 | em breve | próximos capítulos | bloqueados por enquanto |
 
 Estrelas e moedas ficam salvas no navegador (localStorage); moedas compram melhorias na

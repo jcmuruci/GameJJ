@@ -19,6 +19,45 @@ function sheet(scene: Phaser.Scene, key: string, fw: number, fh: number, frames:
 }
 
 export function generateFarmTextures(scene: Phaser.Scene): void {
+  // quero-quero (olhando para a esquerda): asas abertas / fechadas, peito preto, olho vermelho
+  const quero = (up: boolean): Draw => (pg) => {
+    const grey = '#9a9488', dark = '#2a2630', white = '#f4f0e8';
+    pg.vline(8, 11, 13, '#c8a050'); pg.vline(10, 11, 13, '#c8a050');
+    pg.ellipse(9, 8, 4, 3, grey);
+    pg.rect(6, 8, 6, 2, white);
+    pg.rect(5, 6, 3, 2, dark);
+    pg.ellipse(5, 4, 2, 2, grey); pg.px(4, 3, '#e8424a'); pg.hline(2, 3, 4, '#c8a050');
+    pg.hline(5, 7, 1, dark); pg.px(8, 0, dark); // topete
+    if (up) { pg.rect(9, 1, 5, 4, grey); pg.hline(10, 14, 1, dark); }
+    else { pg.rect(10, 7, 5, 2, '#7a7468'); pg.px(15, 8, dark); }
+  };
+  sheet(scene, 'quero', 16, 14, [quero(true), quero(false)]);
+
+  // vaca malhada (olhando para a esquerda), andando
+  const cow = (step: boolean): Draw => (pg) => {
+    const w = '#f4f0e8', b = '#2a2630';
+    pg.rect(5, 5, 14, 7, w);
+    pg.rect(8, 5, 4, 3, b); pg.rect(14, 8, 3, 3, b); pg.rect(17, 5, 2, 2, b);
+    pg.rect(1, 4, 5, 5, w); pg.rect(1, 7, 4, 2, '#f0b0b8'); pg.px(2, 5, b); pg.px(0, 3, '#d8c8a0'); pg.px(5, 3, '#d8c8a0');
+    pg.px(19, 6, b); pg.vline(20, 6, 9, b);
+    const legs = step ? [6, 9, 15, 18] : [7, 8, 16, 17];
+    legs.forEach((x) => pg.vline(x, 12, 15, w));
+    legs.forEach((x) => pg.px(x, 15, b));
+  };
+  sheet(scene, 'cow', 22, 16, [cow(true), cow(false)]);
+
+  // poça de lama da estrada de terra
+  sheet(scene, 'mud', 24, 9, [(pg) => { pg.ellipse(12, 4, 11, 4, '#6a4426'); pg.ellipse(10, 4, 7, 2, '#7e5432'); pg.hline(6, 9, 2, '#9a6a42'); }]);
+
+  // pedra solta que cai na escalada
+  sheet(scene, 'rock_fall', 10, 9, [(pg) => { pg.ellipse(5, 4, 4, 3, '#8a8894'); pg.px(3, 2, '#b8b6c2'); pg.px(4, 2, '#b8b6c2'); pg.hline(3, 7, 7, '#5e5c6a'); }]);
+
+  // caixinha com as alianças
+  sheet(scene, 'item_rings', 12, 10, [(pg) => {
+    pg.rect(1, 4, 10, 5, '#c94a7a'); pg.rect(1, 2, 10, 3, '#e8608a');
+    pg.ellipse(4, 3, 2, 2, '#ffd25e'); pg.ellipse(8, 3, 2, 2, '#ffd25e'); pg.px(4, 3, '#e8608a'); pg.px(8, 3, '#e8608a');
+  }]);
+
   // avestruz (olhando para a esquerda): 0 parada, 1 correndo, 2 tonta
   const ostrich = (run: boolean, dizzy = false): Draw => (pg) => {
     const leg = '#e8a0a8';

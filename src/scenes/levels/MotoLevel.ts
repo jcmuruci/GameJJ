@@ -8,6 +8,7 @@ import { Audio } from '../../systems/Audio';
 import { charFrame } from '../../art/CharacterArt';
 import { txt, panel, uiButton } from '../../ui/text';
 import { isTouchDevice } from '../../systems/TouchControls';
+import { TaskList } from '../../ui/TaskList';
 
 /**
  * Passeio de Moto Amarela — fase de estrada.
@@ -15,7 +16,7 @@ import { isTouchDevice } from '../../systems/TouchControls';
  * explode pedras com magia, buzina para as capivaras e tira fotos dos lugares lindos.
  */
 
-type Kind = 'pothole' | 'rock' | 'cone' | 'capy' | 'coin' | 'heart' | 'spot';
+type Kind = 'pothole' | 'rock' | 'cone' | 'capy' | 'coin' | 'heart' | 'spot' | 'mud';
 
 interface Obj {
   kind: Kind;
@@ -83,6 +84,15 @@ export class MotoLevel extends Phaser.Scene {
   private toastT!: Phaser.GameObjects.Text;
   private flash!: Phaser.GameObjects.Rectangle;
   private cdBars!: Phaser.GameObjects.Graphics;
+  // tarefas do capítulo e o pão quentinho
+  tasks: TaskList | null = null;
+  warmth = 100;
+  catchT = 0;
+  catches = 0;
+  honked = 0;
+  private wasAir = false;
+  private flyingBread: Phaser.GameObjects.Image | null = null;
+  private warmBar: Phaser.GameObjects.Graphics | null = null;
 
   constructor() {
     super('MotoLevel');
@@ -123,6 +133,14 @@ export class MotoLevel extends Phaser.Scene {
     this.flatDone = false;
     this.repairUi = [];
     this.repairBar = null;
+    this.tasks = null;
+    this.warmth = 100;
+    this.catchT = 0;
+    this.catches = 0;
+    this.honked = 0;
+    this.wasAir = false;
+    this.flyingBread = null;
+    this.warmBar = null;
 
     this.world = this.add.layer();
     this.ui = this.add.layer();
@@ -184,6 +202,10 @@ export class MotoLevel extends Phaser.Scene {
     add(txt(this, GAME_W / 2, 24, this.info.name, 18, { color: '#fff4e0' }));
     this.toastT = add(txt(this, GAME_W / 2, 110, '', 20, { color: '#fff4e0' }).setAlpha(0));
     this.cdBars = add(this.add.graphics());
+    if (this.cfg.bread) {
+      add(this.add.image(GAME_W - 200, 66, 'item_bread').setScale(2));
+      this.warmBar = add(this.add.graphics());
+    }
     const help = [
       `${this.names[0]}: ${KEY_LABELS[0].move} pilota · ${KEY_LABELS[0].ability}: pula buracos`,
       `${this.names[1]}: ${KEY_LABELS[1].ability}: magia nas pedras · ${KEY_LABELS[1].action}: buzina / foto`,
@@ -196,6 +218,11 @@ export class MotoLevel extends Phaser.Scene {
   private refreshUi(): void {
     this.hearts.forEach((h, i) => h.setTexture(i < this.hp ? 'ui_heart' : 'ui_heart_empty'));
     this.photoText.setText(`Fotos: ${this.photos}/3`);
+    if (this.warmBar) {
+      const w = this.warmth / 100;
+      this.warmBar.clear().fillStyle(0x1b1424, 0.75).fillRoundedRect(GAME_W - 186, 60, 164, 14, 6)
+        .fillStyle(w >= 0.5 ? 0xffa64a : 0x9ab0d8, 1).fillRect(GAME_W - 182, 64, 156 * w, 6);
+    }
     const x0 = GAME_W / 2 - 200;
     const w = 400;
     const t = Math.min(1, this.dist / this.cfg.total);
@@ -228,7 +255,7 @@ export class MotoLevel extends Phaser.Scene {
     add(txt(this, GAME_W / 2, y0 + 66, this.cfg.subtitle, 14, { bold: false, wrap: 600 }));
     const lines: [string, string][] = [
       [`${this.names[0]} pilota`, `${KEY_LABELS[0].move}: desvia, acelera e freia · ${KEY_LABELS[0].ability}: pula buracos e cones`],
-      [`${this.names[1]} na garupa`, `${KEY_LABELS[1].ability}: magia explode pedras · ${KEY_LABELS[1].action}: buzina p/ capivaras`],
+      [`${this.names[1]} na garupa`, `${KEY_LABELS[1].ability}: magia explode pedras · ${KEY_LABELS[1].action}: buzina p/ ${this.cfg.animal === 'cow' ? 'vacas' : 'capivaras'}${this.cfg.bread ? ' e segura o pão' : ''}`],
       ['Fotos do casal', `Quando passar uma placa de câmera, ${this.names[1]} aperta ${KEY_LABELS[1].action}!`],
     ];
     lines.forEach(([a, b], i) => {
@@ -248,6 +275,8 @@ export class MotoLevel extends Phaser.Scene {
           Audio.play('horn');
           this.toast('Vrummm! Partiu!', '#ffd23a');
           this.started = true;
+          this.tasks = new TaskList(this, 12, 64, this.cfg.tasks);
+          this.ui.add(this.tasks.container);
         }
       },
     });
@@ -265,7 +294,7 @@ export class MotoLevel extends Phaser.Scene {
   }
 
   private add_(kind: Kind, x: number, y: number, key: string, w: number, h: number, vy = 0): Obj {
-    const img = kind === 'capy' ? this.add.sprite(x, y, key, 0).play('capy-walk') : this.add.image(x, y, key);
+    const img = kind === 'capy' ? this.add.sprite(x, y, key, 0).play(this.animalAnim) : this.add.image(x, y, key);
     img.setDepth(y);
     this.world.add(img);
     const o: Obj = { kind, img, x, y, w, h, vy, dead: false };
@@ -273,12 +302,17 @@ export class MotoLevel extends Phaser.Scene {
     return o;
   }
 
+  private get animalAnim(): string { return this.cfg.animal === 'cow' ? 'cow-walk' : 'capy-walk'; }
+
   private spawnWave(): void {
     const t = this.dist / this.cfg.total;
     const r = Math.random();
     const lane = Phaser.Utils.Array.GetRandom(LANES);
     const X = W + 30;
-    if (r < 0.28) this.add_('pothole', X, lane, 'pothole', 18, 7);
+    if (r < 0.28) {
+      if (this.cfg.mud && Math.random() < 0.55) this.add_('mud', X, lane, 'mud', 22, 8);
+      else this.add_('pothole', X, lane, 'pothole', 18, 7);
+    }
     else if (r < 0.48) this.add_('rock', X, lane, 'boulder', 14, 12);
     else if (r < 0.58) {
       // barreira: pedras em duas faixas e buraco na terceira — precisa da magia ou do pulo
@@ -291,7 +325,8 @@ export class MotoLevel extends Phaser.Scene {
       for (let i = 0; i < 3; i++) this.add_('cone', X + i * 14, lane, 'cone', 8, 8);
     } else if (r < 0.8 && t > 0.08) {
       const fromTop = Math.random() < 0.5;
-      const o = this.add_('capy', X + 40, fromTop ? ROAD_TOP - 6 : ROAD_BOT + 4, 'capybara', 18, 10, fromTop ? 22 : -22);
+      const cow = this.cfg.animal === 'cow';
+      const o = this.add_('capy', X + 40, fromTop ? ROAD_TOP - 6 : ROAD_BOT + 4, cow ? 'cow' : 'capybara', cow ? 20 : 18, 10, fromTop ? 22 : -22);
       o.ty = Phaser.Utils.Array.GetRandom(LANES);
     } else {
       const n = Math.random() < 0.15 ? 1 : 4;
@@ -336,8 +371,10 @@ export class MotoLevel extends Phaser.Scene {
     // garupa
     if (p2.abilityPressed && this.boltCd <= 0) this.castBolt();
     if (p2.actionPressed) {
-      if (!this.tryPhoto() && this.hornCd <= 0) this.honk();
+      if (this.catchT > 0) this.catchBread(true);
+      else if (!this.tryPhoto() && this.hornCd <= 0) this.honk();
     }
+    this.updateBread(dt);
 
     this.air = Math.max(0, this.air - dt);
     const hop = this.air > 0 ? Math.sin((1 - this.air / 0.6) * Math.PI) * 14 : 0;
@@ -407,6 +444,7 @@ export class MotoLevel extends Phaser.Scene {
       this.repairUi = [];
       Audio.play('revive');
       this.toast('Consertado! Dupla imbatível ♥', '#8be07a');
+      this.tasks?.done('repair');
       this.burst(this.mx, this.my - 10, 'fx_heart', 12);
       this.spawnT = 1.5;
     }
@@ -443,6 +481,7 @@ export class MotoLevel extends Phaser.Scene {
     this.tweens.add({ targets: this.flash, alpha: 0, duration: 350 });
     this.riders.forEach((r) => this.tweens.add({ targets: r, y: r.y - 3, yoyo: true, duration: 120 }));
     this.toast(`Foto: ${spot.label}! (${this.photos}/3) ♥`, '#ffd6e4');
+    this.tasks?.progress('photos', this.photos);
     this.polaroid(spot.label ?? '', spot.decor ?? 'tree_ipe');
     return true;
   }
@@ -466,6 +505,46 @@ export class MotoLevel extends Phaser.Scene {
     this.tweens.add({ targets: c, alpha: 0, y: c.y + 40, delay: 1800, duration: 400, onComplete: () => c.destroy() });
   }
 
+  /** Pão quentinho: esfria aos poucos; depois de um pulo, pode escapar da sacola. */
+  private updateBread(dt: number): void {
+    if (!this.cfg.bread) return;
+    this.warmth = Math.max(0, this.warmth - 0.55 * dt);
+    const inAir = this.air > 0;
+    if (this.wasAir && !inAir && this.catchT <= 0 && Math.random() < 0.55) {
+      this.catchT = 1.4;
+      this.toast(`O pão pulou da sacola! ${this.names[1]}, SEGURA (${KEY_LABELS[1].action})!`, '#ffd23a');
+      Audio.play('jump');
+      const b = this.add.image(this.mx - 6, this.my - 24, 'item_bread').setDepth(9600);
+      this.world.add(b);
+      this.flyingBread = b;
+      this.tweens.add({ targets: b, y: this.my - 52, angle: 200, duration: 700, yoyo: true, ease: 'Sine.Out' });
+    }
+    this.wasAir = inAir;
+    if (this.flyingBread) this.flyingBread.x = this.mx - 6;
+    if (this.catchT > 0) {
+      this.catchT -= dt;
+      if (this.catchT <= 0) this.catchBread(false);
+    }
+  }
+
+  private catchBread(ok: boolean): void {
+    this.catchT = 0;
+    this.flyingBread?.destroy();
+    this.flyingBread = null;
+    if (ok) {
+      this.catches++;
+      this.tasks?.progress('catch', this.catches);
+      this.warmth = Math.min(100, this.warmth + 3);
+      Audio.play('pick');
+      this.toast('Peguei! Ainda quentinho ♥', '#ffd6e4');
+      this.riders.forEach((r) => this.tweens.add({ targets: r, y: r.y - 3, yoyo: true, duration: 120 }));
+    } else {
+      this.warmth = Math.max(0, this.warmth - 15);
+      Audio.play('wrong');
+      this.toast('Ih... o pão caiu e amassou um pouco.', '#d8c8e8');
+    }
+  }
+
   private honk(): void {
     this.hornCd = 0.5;
     Audio.play('horn');
@@ -474,11 +553,13 @@ export class MotoLevel extends Phaser.Scene {
       if (o.kind === 'capy' && !o.scared && !o.dead && o.x > this.mx - 10 && o.x < this.mx + 200) {
         o.scared = true;
         o.vy = o.y < (ROAD_TOP + ROAD_BOT) / 2 ? -90 : 90;
-        (o.img as Phaser.GameObjects.Sprite).play('capy-walk');
+        (o.img as Phaser.GameObjects.Sprite).play(this.animalAnim);
         scared = true;
+        this.honked++;
+        this.tasks?.progress('honk', this.honked);
       }
     }
-    if (scared) this.toast('Licença, capivara!', '#fff4e0');
+    if (scared) this.toast(this.cfg.animal === 'cow' ? 'Licença, vaquinha! Muuu!' : 'Licença, capivara!', '#fff4e0');
   }
 
   private castBolt(): void {
@@ -538,7 +619,17 @@ export class MotoLevel extends Phaser.Scene {
       if (!hitX || !hitY) continue;
       if (o.kind === 'coin') { o.dead = true; this.coins++; Audio.play('coin'); continue; }
       if (o.kind === 'heart') { o.dead = true; this.hp = Math.min(this.maxHp, this.hp + 1); Audio.play('heart'); continue; }
-      if (this.air > 0 && (o.kind === 'pothole' || o.kind === 'cone')) continue;
+      if (this.air > 0 && (o.kind === 'pothole' || o.kind === 'cone' || o.kind === 'mud')) continue;
+      if (o.kind === 'mud') {
+        if (!o.shot) {
+          o.shot = true;
+          this.speed *= 0.5;
+          this.burst(this.mx - 6, this.my + 6, 'fx_dust', 10);
+          Audio.play('splash');
+          this.toast(Phaser.Utils.Array.GetRandom(['Lama! Segura!', 'Atolou um pouquinho!', 'Respingou tudo!']), '#d8b07a');
+        }
+        continue;
+      }
       if (this.invuln > 0) continue;
       if (o.kind === 'cone') { o.dead = true; this.burst(o.x, o.y, 'fx_pixel', 6); }
       this.crash(o);
@@ -560,14 +651,17 @@ export class MotoLevel extends Phaser.Scene {
       pothole: ['Ai, buraco!', 'Segura firme, amor!'],
       rock: ['Pedra! Cadê a magia?', 'Ops, a pedra!'],
       cone: ['Desculpa, cone!'],
-      capy: ['Desculpa, capivara!', 'Buzina, amor, buzina!'],
+      capy: this.cfg.animal === 'cow' ? ['Desculpa, vaquinha!', 'Buzina, amor, buzina!'] : ['Desculpa, capivara!', 'Buzina, amor, buzina!'],
     };
     this.toast(Phaser.Utils.Array.GetRandom(lines[o.kind] ?? ['Ops!']), '#ff9c9c');
+    if (this.cfg.bread) this.warmth = Math.max(0, this.warmth - 8);
     if (this.hp <= 0) this.finish(false);
   }
 
   private arrive(): void {
     if (this.ended) return;
+    this.tasks?.done('arrive');
+    if (this.cfg.bread && this.warmth >= 50) this.tasks?.done('warm');
     this.toast(this.cfg.arriveText, '#ffd23a');
     this.finish(true);
   }
@@ -587,8 +681,9 @@ export class MotoLevel extends Phaser.Scene {
         lines: [
           `Fotos do casal: ${this.photos}/3 ${this.photos >= 3 ? '(estrela!)' : ''}`,
           `Batidas: ${this.hits} ${this.hits <= 1 ? '(estrela!)' : '(meta: no máximo 1)'}`,
-          win ? this.cfg.memory : `Moedas na estrada: ${this.coins}`,
-        ],
+          this.cfg.bread ? `Pão: ${Math.round(this.warmth)}% quentinho` : win ? this.cfg.memory : `Moedas na estrada: ${this.coins}`,
+          this.tasks ? this.tasks.summary() : '',
+        ].filter(Boolean),
         stats: { hugs: 0, faints: 0, revives: 0, crystals: 0, coins: this.coins * 2 },
       }));
     });
