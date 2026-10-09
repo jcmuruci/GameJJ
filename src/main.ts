@@ -3,8 +3,9 @@ import '@fontsource/pixelify-sans/400.css';
 import '@fontsource/pixelify-sans/700.css';
 import { GAME_W, GAME_H } from './config';
 import { Save } from './systems/SaveManager';
-import { Input } from './systems/InputManager';
+import { Input, KEY_LABELS } from './systems/InputManager';
 import { Audio } from './systems/Audio';
+import { TouchControls, isTouchDevice } from './systems/TouchControls';
 import { BootScene } from './scenes/BootScene';
 import { MenuScene } from './scenes/MenuScene';
 import { MapScene } from './scenes/MapScene';
@@ -36,6 +37,12 @@ async function boot(): Promise<void> {
   Input.padSwap = Save.data.settings.padSwap;
   Audio.setVolumes(Save.data.settings.music, Save.data.settings.sfx);
   Input.onFirstGesture = () => Audio.unlock();
+  if (isTouchDevice()) {
+    new TouchControls().mount();
+    // textos de ajuda passam a citar os botões da tela
+    Object.assign(KEY_LABELS[0], { move: 'joystick', action: 'Ação', ability: 'Espada' });
+    Object.assign(KEY_LABELS[1], { move: 'joystick', action: 'Ação', ability: 'Magia' });
+  }
 
   const game = new Phaser.Game({
     type: Phaser.AUTO,

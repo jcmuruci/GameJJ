@@ -51,7 +51,8 @@ export class HUDScene extends Phaser.Scene {
       const portrait = this.add.image(left ? px + 26 : px + w - 26, y - 26, `char_${i}`, 0).setScale(2);
       this.portraits.push(portrait);
       txt(this, left ? px + 50 : px + w - 50, y - 44, this.level.names[i], 15, { color: PLAYER_COLORS[i], origin: [left ? 0 : 1, 0.5] });
-      const ability = i === 0 ? `${KEY_LABELS[0].ability}: Espada` : `${KEY_LABELS[1].ability}: Magia`;
+      const abName = i === 0 ? 'Espada' : 'Magia';
+      const ability = KEY_LABELS[i].ability === abName ? abName : `${KEY_LABELS[i].ability}: ${abName}`;
       txt(this, left ? px + 50 : px + w - 50, y - 10, ability, 11, { color: '#d8c8e8', origin: [left ? 0 : 1, 0.5], bold: false });
       const p = this.level.players[i];
       for (let h = 0; h < p.maxHp; h++) {

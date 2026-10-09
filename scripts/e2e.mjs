@@ -420,6 +420,43 @@ try {
   await wait(1500);
   await shot('18-ending');
   check('Final da história', (await activeScenes()).includes('Story'));
+
+  // ---------------------------------------------------------------- CELULAR (toque)
+  const mob = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  const mp = await mob.newPage();
+  mp.on('pageerror', (e) => errors.push(`mobile pageerror: ${e.message}`));
+  await mp.goto(url);
+  await mp.waitForFunction(() => window.__game && window.__game.scene.isActive('Menu'), null, { timeout: 20000 });
+  check('Celular: controles de toque aparecem', await mp.evaluate(() => !!document.querySelector('#touch .stick.p0') && !!document.querySelector('#touch .btns.p1')));
+  const tap = (sel) => mp.evaluate((s) => {
+    const el = document.querySelector(s); const r = el.getBoundingClientRect();
+    const o = { pointerId: 7, pointerType: 'touch', clientX: r.x + r.width / 2, clientY: r.y + r.height / 2, bubbles: true, cancelable: true };
+    el.dispatchEvent(new PointerEvent('pointerdown', o));
+    setTimeout(() => el.dispatchEvent(new PointerEvent('pointerup', o)), 80);
+  }, sel);
+  await mp.evaluate(() => { const g = window.__game; g.scene.stop('Menu'); g.scene.start('TutorialLevel', { levelId: 'tutorial' }); });
+  await mp.waitForTimeout(900);
+  const bx = await mp.evaluate(() => window.__game.scene.getScene('TutorialLevel').players[0].x);
+  await mp.evaluate(() => {
+    const z = document.querySelector('#touch .stick.p0'); const r = z.getBoundingClientRect();
+    const o = (x) => ({ pointerId: 3, pointerType: 'touch', clientX: x, clientY: r.y + r.height / 2, bubbles: true, cancelable: true });
+    z.dispatchEvent(new PointerEvent('pointerdown', o(r.x + 40)));
+    z.dispatchEvent(new PointerEvent('pointermove', o(r.x + 120)));
+    setTimeout(() => z.dispatchEvent(new PointerEvent('pointerup', o(r.x + 120))), 600);
+  });
+  await mp.waitForTimeout(800);
+  const ax2 = await mp.evaluate(() => window.__game.scene.getScene('TutorialLevel').players[0].x);
+  check('Celular: joystick move o João', ax2 > bx + 10, `${bx.toFixed(0)} -> ${ax2.toFixed(0)}`);
+  await mp.evaluate(() => { const s = window.__game.scene.getScene('TutorialLevel'); const p = s.players[1]; p.teleport(8 * 16 + 8, 10 * 16 + 8); p.face = { x: 0, y: 1 }; s.fuel = true; });
+  await mp.waitForTimeout(100);
+  await tap('#touch .btns.p1 .btn:not(.big)');
+  await mp.waitForTimeout(400);
+  check('Celular: botão Magia da Juliana funciona', await mp.evaluate(() => window.__game.scene.getScene('TutorialLevel').lit === true));
+  await mp.screenshot({ path: `${OUT}/27-mobile.png` });
+  await tap('#touch .top .small');
+  await mp.waitForTimeout(400);
+  check('Celular: botão de pausa', await mp.evaluate(() => window.__game.scene.isActive('Pause')));
+  await mob.close();
 } catch (e) {
   failures++;
   console.error('Erro no teste:', e);

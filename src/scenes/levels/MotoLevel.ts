@@ -172,8 +172,8 @@ export class MotoLevel extends Phaser.Scene {
     this.toastT = add(txt(this, GAME_W / 2, 110, '', 20, { color: '#fff4e0' }).setAlpha(0));
     this.cdBars = add(this.add.graphics());
     const help = [
-      `${this.names[0]}: ${KEY_LABELS[0].move} pilota · ${KEY_LABELS[0].ability} pula buracos`,
-      `${this.names[1]}: ${KEY_LABELS[1].ability} magia nas pedras · ${KEY_LABELS[1].action} buzina / foto`,
+      `${this.names[0]}: ${KEY_LABELS[0].move} pilota · ${KEY_LABELS[0].ability}: pula buracos`,
+      `${this.names[1]}: ${KEY_LABELS[1].ability}: magia nas pedras · ${KEY_LABELS[1].action}: buzina / foto`,
     ];
     help.forEach((h, i) => add(txt(this, i === 0 ? 20 : GAME_W - 20, GAME_H - 18, h, 13, { origin: [i === 0 ? 0 : 1, 0.5], color: i === 0 ? '#bfe6ff' : '#ffd6e4', bold: false })));
     this.refreshUi();

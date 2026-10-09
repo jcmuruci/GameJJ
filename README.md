@@ -13,6 +13,11 @@ sem instalar nada para jogar.
 | Habilidade | `G` — Espada | `L` — Magia |
 | Pausa | `Esc` ou `P` | `Esc` ou `P` |
 
+**Celular / tablet:** abram o link com o aparelho na horizontal. A tela se divide ao meio: João à
+esquerda e Juliana à direita, cada um com joystick + botões **Ação** e **Espada/Magia**. Há botões de
+**Pausa** e **Tela cheia** no canto. Tablet é o mais confortável; no celular, joguem lado a lado.
+(Para testar os controles de toque no computador, abra o link com `?toque` no final.)
+
 **Controles físicos (opcional):** conecte 1 ou 2 controles. `A` = ação, `B`/`X` = habilidade,
 `Start` = pausa. Com um único controle, escolha em *Opções* qual jogador o usa.
 
