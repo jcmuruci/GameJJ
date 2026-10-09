@@ -29,7 +29,7 @@ esquerda e Juliana à direita, cada um com joystick + botões **Ação** e **Esp
 - **Desmaio:** se alguém cair, o outro fica perto e **segura AÇÃO** para reviver. Se os dois caírem, perdem a fase.
 
 ### Capítulos — a nossa linha do tempo
-O mapa é uma linha do tempo, mês a mês. Cada capítulo abre com uma cena de história.
+O mapa é uma linha do tempo, mês a mês. Cada capítulo abre com uma cena de história em estilo anime.
 
 | Mês | Capítulo | Jogo |
 |---|---|---|
@@ -98,7 +98,7 @@ src/
   config.ts               resolução, cores, constantes
   data/                   personagens, receitas, cozinhas, mapas, fases, história (lógica pura)
   systems/                entrada (teclado + controles), áudio sintetizado, save
-  art/                    geração da pixel art (tiles, itens, personagens)
+  art/                    geração da pixel art (tiles, itens, personagens, retratos anime)
   entities/               jogador, itens, inimigos
   scenes/                 boot, menu, mapa, história, personalização, HUD, pausa, resultado
   scenes/levels/          BaseLevel (núcleo), Kitchen, Puzzle, Trail, Moto, Farm, Tutorial, Chefe, Amazônia

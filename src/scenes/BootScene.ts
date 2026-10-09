@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { generateAllTextures, TILE_COUNT } from '../art/Textures';
 import { generateCharacterTexture, CHAR_W, CHAR_H } from '../art/CharacterArt';
 import { NPCS } from '../data/npcs';
+import { generatePortrait } from '../art/Portrait';
 import { Save } from '../systems/SaveManager';
 
 /** Gera toda a arte procedural e segue para o menu. */
@@ -17,6 +18,7 @@ export class BootScene extends Phaser.Scene {
     refreshCharacters(this);
     for (const [k, look] of Object.entries(NPCS)) {
       generateCharacterTexture(this, `npc_${k}`, look, 0);
+      generatePortrait(this, `portrait_${k}`, look);
     }
     composeNpcProps(this);
     const anim = (key: string, tex: string, rate: number) => {
@@ -40,6 +42,8 @@ export class BootScene extends Phaser.Scene {
 export function refreshCharacters(scene: Phaser.Scene): void {
   generateCharacterTexture(scene, 'char_0', Save.data.looks[0], 0);
   generateCharacterTexture(scene, 'char_1', Save.data.looks[1], 1);
+  generatePortrait(scene, 'portrait_0', Save.data.looks[0]);
+  generatePortrait(scene, 'portrait_1', Save.data.looks[1]);
 }
 
 /** Monta sprites compostos a partir dos NPCs (garçom com bandeja, par da quadrilha). */
