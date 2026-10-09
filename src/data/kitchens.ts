@@ -1,4 +1,4 @@
-import { RecipeId } from './recipes';
+import { RecipeId, ItemKind } from './recipes';
 import { T } from '../art/tiles';
 
 export interface KitchenConfig {
@@ -11,10 +11,17 @@ export interface KitchenConfig {
   maxOrders: number;
   stars: [number, number, number];
   fireTime: number;
+  /** Conjunto de receitas de panela/forno (ver COOKERS em recipes.ts). */
+  cookers: string;
+  /** Caracteres do mapa que viram cestas de ingredientes. */
+  sources: Record<string, ItemKind>;
+  /** Textura do forno ('st_oven' ou 'st_grill'). */
+  ovenTex?: string;
   wind?: { first: number; every: number };
-  crows?: { first: number; every: number };
+  crows?: { first: number; every: number; tex?: string; name?: string };
   rain?: { first: number; every: number; length: number };
-  cart?: { row: number; first: number; every: number };
+  /** Algo atravessa uma linha do mapa e derruba quem estiver no caminho. */
+  cart?: { row: number; first: number; every: number; tex?: string; warn?: string; lines?: string[]; fromX?: number };
   floor: number;
   objectFloor: number;
   tips: string[];
@@ -22,87 +29,129 @@ export interface KitchenConfig {
 
 /**
  * Legenda dos mapas de cozinha:
- *  c bancada  b tábua de corte  f fogueira+panela  o forno  p pratos  t lixeira  D entrega
- *  A maçãs  R amoras  M cogumelos  F farinha   P/Q início dos jogadores
- *  T árvore  Y cerejeira  B arbusto  k toalha (decoração)  L lanterna  S barraca
- *  # árvores (parede) ~ água = ponte , caminho . chão
+ *  c bancada  b tábua de corte  f fogão+panela  o forno/brasa  p pratos  t lixeira  D entrega
+ *  1-9 cestas de ingredientes (ver `sources`)  G pier de pesca (só a Juliana pesca)
+ *  T árvore  Y cerejeira  B arbusto  E mesa  I bandeira da Itália  U bandeirinhas  J fogueira  W cachoeira
+ *  P/Q início dos jogadores · # árvores  w parede  ~ água  : piso de madeira  . chão
  */
 export const KITCHENS: Record<string, KitchenConfig> = {
-  picnic: {
+  italiano: {
     map: [
-      '##############################',
-      '#............................#',
-      '#..........T.........Y...W...#',
-      '#..A..R..M.............~~~~~.#',
-      '#.......................~~~..#',
-      '#............................#',
-      '#.......................kk...#',
-      '#........................D...#',
-      '#........cbbcfcfcpct.....D...#',
-      '#........................D...#',
-      '#.......................kk...#',
-      '#...........P....Q...........#',
-      '#............................#',
-      '#.~~~...B.............T......#',
-      '#.~~~........................#',
-      '#............................#',
-      '##############################',
+      'wwwwwwwwwwwwwwwwwwwwwwwwwwwwww',
+      'w:::::::::::::::w::::::::::::w',
+      'w:1:2:3:4:5::I::w::::::::::::w',
+      'w:::::::::::::::w::E::::E::::w',
+      'w:::::::::::::::c::::::::::::w',
+      'w:::::::::::::::w::::::::::::w',
+      'w:::::::::::::::w::::::::::::w',
+      'w::cbbcffcootc::w::::::::::D:w',
+      'w:::::::::::::::c::::::::::D:w',
+      'w:::::::::::::::w::::::::::D:w',
+      'w:::::::::::::p::::::::::::::w',
+      'w:::::::::::::::w::::::::::::w',
+      'w:::::P::Q::::::c::::::::::::w',
+      'w:::::::::::::::w::E::::E::::w',
+      'w:::::::::::::::w::::::::::::w',
+      'w:::::::::::::::w::::::::::::w',
+      'wwwwwwwwwwwwwwwwwwwwwwwwwwwwww',
     ],
-    duration: 180,
-    recipes: ['apple_slices', 'fruit_salad'],
-    unlocks: [{ at: 40, recipe: 'soup' }],
-    orderEvery: [14, 20],
-    orderTime: 70,
-    maxOrders: 4,
-    stars: [60, 170, 290],
-    fireTime: 40,
-    wind: { first: 75, every: 55 },
-    crows: { first: 55, every: 38 },
-    floor: T.GRASS,
-    objectFloor: T.GRASS,
-    tips: [
-      '{p1} corta na tábua (segure AÇÃO).',
-      '{p2} acende a fogueira com MAGIA.',
-      'Monte o prato e leve à toalha xadrez, perto da cachoeira!',
-    ],
-  },
-  festival: {
-    map: [
-      '##############################',
-      '#.............~..............#',
-      '#.............~..............#',
-      '#.A..R..M..F..~...f.f..o.....#',
-      '#.............c..............#',
-      '#.............~..............#',
-      '#..cbcbc......~...........D..#',
-      '#.............~...........D..#',
-      '#.............c...cpcc.t..D..#',
-      '#.............~..............#',
-      '#..t..........~...E......E...#',
-      '#......P......c.......Q......#',
-      '#.............~..............#',
-      '#,,,,,,,,,,,,,=,,,,,,,,,,,,,,#',
-      '#.............~..............#',
-      '#.............~..............#',
-      '##############################',
-    ],
-    duration: 210,
-    recipes: ['fruit_salad', 'soup'],
-    unlocks: [{ at: 30, recipe: 'pie' }],
-    orderEvery: [12, 17],
+    duration: 200,
+    recipes: ['bruschetta', 'sugo'],
+    unlocks: [{ at: 35, recipe: 'pizza' }],
+    orderEvery: [13, 18],
     orderTime: 75,
     maxOrders: 4,
-    stars: [90, 230, 380],
-    fireTime: 35,
-    crows: { first: 45, every: 32 },
-    rain: { first: 70, every: 70, length: 20 },
-    cart: { row: 13, first: 25, every: 19 },
+    stars: [80, 210, 350],
+    fireTime: 40,
+    cookers: 'italiano',
+    sources: { '1': 'tomato', '2': 'pasta', '3': 'cheese', '4': 'bread', '5': 'dough' },
+    cart: { row: 10, first: 30, every: 22, tex: 'waiter_run', warn: 'GARÇOM!', fromX: 17, lines: ['Licença, licença!', 'Olha a bandeja!', 'Quase!'] },
+    floor: T.WOOD_FLOOR,
+    objectFloor: T.WOOD_FLOOR,
+    tips: [
+      'Cozinha à esquerda, salão à direita: passem os pratos pelo balcão da parede!',
+      'Pizza: massa + tomate picado + queijo ralado no forno aceso.',
+      'Cuidado com o garçom apressado no corredor do salão!',
+    ],
+  },
+  junina: {
+    map: [
+      '##############################',
+      '#..U......U......U......U....#',
+      '#............................#',
+      '#..1..2......................#',
+      '#............................#',
+      '#............................#',
+      '#..........................D.#',
+      '#........cbbcffcotpc.......D.#',
+      '#..........................D.#',
+      '#............................#',
+      '#..........P......Q..........#',
+      '#~~G~~G~.....................#',
+      '#~~~~~~~.......J.............#',
+      '#~~~~~~~.....................#',
+      '#~~~~~~~.....................#',
+      '#~~~~~~~.....................#',
+      '##############################',
+    ],
+    duration: 200,
+    recipes: ['milho', 'peixe_brasa'],
+    unlocks: [{ at: 40, recipe: 'canjica' }],
+    orderEvery: [13, 18],
+    orderTime: 80,
+    maxOrders: 4,
+    stars: [80, 200, 330],
+    fireTime: 38,
+    cookers: 'junina',
+    ovenTex: 'st_grill',
+    sources: { '1': 'corn', '2': 'milk' },
+    wind: { first: 70, every: 60 },
+    cart: { row: 9, first: 40, every: 26, tex: 'quadrilha', warn: 'OLHA A QUADRILHA!', lines: ['Anarriê!', 'Olha a cobra!', 'É mentira!', 'Balancê!'] },
     floor: T.GRASS,
     objectFloor: T.GRASS,
     tips: [
-      'O riacho corta a cozinha: passem os itens pelas bancadas do meio!',
-      'A ponte fica na rua... cuidado com as carroças! Mesas lotadas!',
-      'Torta: farinha + amoras no forno aceso.',
+      'Só a {p2} pesca: no pier, AÇÃO para jogar a linha e de novo quando aparecer o "!"',
+      '{p1} limpa o peixe na tábua; a brasa precisa de fogo mágico.',
+      'Canjica: leite na panela primeiro, depois o milho!',
+    ],
+  },
+  roca: {
+    map: [
+      '##############################',
+      '#................~~~~~~~~~~~~#',
+      '#................~~~~~~~~~~~~#',
+      '#.1..2..3..4.....~~~~~~~~~~~~#',
+      '#................~~~G~~~~G~~~#',
+      '#............................#',
+      '#............................#',
+      '#............................#',
+      '#.....cbbcffcpctc............#',
+      '#............................#',
+      '#....................E....D..#',
+      '#........P....Q...........D..#',
+      '#.........................D..#',
+      '#............B.......E.......#',
+      '#..T.........................#',
+      '#............................#',
+      '##############################',
+    ],
+    duration: 200,
+    recipes: ['salada_roca', 'tilapia'],
+    unlocks: [{ at: 40, recipe: 'tropeiro' }],
+    orderEvery: [13, 18],
+    orderTime: 80,
+    maxOrders: 4,
+    stars: [80, 200, 330],
+    fireTime: 40,
+    cookers: 'roca',
+    sources: { '1': 'beans', '2': 'flour', '3': 'lettuce', '4': 'tomato' },
+    crows: { first: 50, every: 36, tex: 'chicken', name: 'A galinha' },
+    floor: T.GRASS,
+    objectFloor: T.GRASS,
+    tips: [
+      'Tilápia: a {p2} pesca na lagoa, o {p1} limpa, e vai pra panela.',
+      'Tropeiro: feijão + farinha na panela do fogão a lenha.',
+      'As galinhas da roça roubam comida da bancada: xô!',
     ],
   },
 };

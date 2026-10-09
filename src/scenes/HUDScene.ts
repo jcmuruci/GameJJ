@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, PLAYER_COLORS } from '../config';
-import { txt } from '../ui/text';
+import { GAME_W, GAME_H, PLAYER_COLORS, RES } from '../config';
+import { txt, uiButton } from '../ui/text';
+import { isTouchDevice } from '../systems/TouchControls';
 import type { BaseLevel } from './levels/BaseLevel';
 import { KEY_LABELS } from '../systems/InputManager';
 
@@ -51,7 +52,8 @@ export class HUDScene extends Phaser.Scene {
       const portrait = this.add.image(left ? px + 26 : px + w - 26, y - 26, `char_${i}`, 0).setScale(2);
       this.portraits.push(portrait);
       txt(this, left ? px + 50 : px + w - 50, y - 44, this.level.names[i], 15, { color: PLAYER_COLORS[i], origin: [left ? 0 : 1, 0.5] });
-      const ability = i === 0 ? `${KEY_LABELS[0].ability}: Espada` : `${KEY_LABELS[1].ability}: Magia`;
+      const abName = i === 0 ? 'Espada' : 'Magia';
+      const ability = KEY_LABELS[i].ability === abName ? abName : `${KEY_LABELS[i].ability}: ${abName}`;
       txt(this, left ? px + 50 : px + w - 50, y - 10, ability, 11, { color: '#d8c8e8', origin: [left ? 0 : 1, 0.5], bold: false });
       const p = this.level.players[i];
       for (let h = 0; h < p.maxHp; h++) {
@@ -62,13 +64,16 @@ export class HUDScene extends Phaser.Scene {
     }
     this.info = txt(this, GAME_W / 2, 24, '', 22, { color: '#fff4e0' });
     this.toastText = txt(this, GAME_W / 2, 92, '', 18, { color: '#fff4e0', wrap: 700 }).setAlpha(0).setDepth(50);
+    // botão de pausa clicável (no celular a pausa fica nos controles de toque)
+    if (!isTouchDevice()) uiButton(this, GAME_W / 2, GAME_H - 20, 'Pausa (Esc)', () => { if (!this.level.ended) this.level.openPause(); }, { size: 13 });
     this.ready = true;
     this.level.onHudReady(this);
   }
 
   worldToScreen(x: number, y: number): { x: number; y: number } {
     const cam = this.level.cameras.main;
-    return { x: (x - cam.worldView.x) * cam.zoom, y: (y - cam.worldView.y) * cam.zoom };
+    const k = cam.zoom / RES;
+    return { x: (x - cam.worldView.x) * k, y: (y - cam.worldView.y) * k };
   }
 
   update(time: number): void {
@@ -124,6 +129,11 @@ export class HUDScene extends Phaser.Scene {
     c.setScale(0.6);
     this.tweens.add({ targets: c, scale: 1, duration: 160, ease: 'Back.Out' });
     this.bubbles.push({ c, target, until: this.time.now + ms });
+  }
+
+  clearBubbles(): void {
+    this.bubbles.forEach((b) => b.c.destroy());
+    this.bubbles = [];
   }
 
   floatText(wx: number, wy: number, text: string, color = '#ffd25e'): void {

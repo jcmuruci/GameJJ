@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, ZOOM } from '../../config';
+import { GAME_W, GAME_H, ZOOM, RES } from '../../config';
 import { LevelInfo, levelById } from '../../data/levels';
+import { MOTOS, MotoConfig } from '../../data/motos';
 import { Save } from '../../systems/SaveManager';
 import { Input, KEY_LABELS } from '../../systems/InputManager';
 import { Audio } from '../../systems/Audio';
 import { charFrame } from '../../art/CharacterArt';
-import { txt, panel } from '../../ui/text';
+import { txt, panel, uiButton } from '../../ui/text';
+import { isTouchDevice } from '../../systems/TouchControls';
 
 /**
  * Passeio de Moto Amarela — fase de estrada.
@@ -37,15 +39,14 @@ const H = GAME_H / ZOOM; // 270
 const ROAD_TOP = 92;
 const ROAD_BOT = 212;
 const LANES = [112, 152, 192];
-const TOTAL = 15000; // distância da viagem (px)
-const SPOTS: { at: number; label: string; decor: string }[] = [
-  { at: 0.22, label: 'Ipê amarelo', decor: 'tree_ipe' },
-  { at: 0.52, label: 'Mirante da Pedra', decor: 'big_rock' },
-  { at: 0.82, label: 'Cachoeira!', decor: 'waterfall' },
-];
 
 export class MotoLevel extends Phaser.Scene {
   info!: LevelInfo;
+  cfg!: MotoConfig;
+  private repair = -1; // -1 = sem conserto; 0..1 = progresso do conserto
+  private flatDone = false;
+  private repairUi: Phaser.GameObjects.GameObject[] = [];
+  private repairBar: Phaser.GameObjects.Graphics | null = null;
   names!: [string, string];
   private world!: Phaser.GameObjects.Layer;
   private ui!: Phaser.GameObjects.Layer;
@@ -89,6 +90,7 @@ export class MotoLevel extends Phaser.Scene {
 
   init(d: { levelId: string }): void {
     this.info = levelById(d.levelId);
+    this.cfg = MOTOS[d.levelId] ?? MOTOS.bread;
   }
 
   create(): void {
@@ -117,24 +119,35 @@ export class MotoLevel extends Phaser.Scene {
     this.started = false;
     this.ended = false;
     this.hornCd = 0;
+    this.repair = -1;
+    this.flatDone = false;
+    this.repairUi = [];
+    this.repairBar = null;
 
     this.world = this.add.layer();
     this.ui = this.add.layer();
     const cam = this.cameras.main;
-    cam.setZoom(ZOOM).centerOn(W / 2, H / 2).setBackgroundColor('#7ccf5a');
+    cam.setZoom(ZOOM * RES).centerOn(W / 2, H / 2).setBackgroundColor('#7ccf5a');
     cam.ignore(this.ui);
-    this.uiCam = this.cameras.add(0, 0, GAME_W, GAME_H);
+    this.uiCam = this.cameras.add(0, 0, GAME_W * RES, GAME_H * RES).setZoom(RES).centerOn(GAME_W / 2, GAME_H / 2);
     this.uiCam.ignore(this.world);
 
     // cenário
     this.grass = this.add.tileSprite(W / 2, H / 2, W, H, 'tiles', 0);
     const road = this.add.graphics();
-    road.fillStyle(0xd8b07a, 1).fillRect(0, ROAD_TOP - 6, W, 6).fillRect(0, ROAD_BOT, W, 6);
-    road.fillStyle(0x5a5a6a, 1).fillRect(0, ROAD_TOP, W, ROAD_BOT - ROAD_TOP);
-    road.fillStyle(0x4a4a58, 1).fillRect(0, ROAD_TOP + 2, W, 2).fillRect(0, ROAD_BOT - 4, W, 2);
-    road.fillStyle(0xffd25e, 1).fillRect(0, ROAD_TOP + 5, W, 1).fillRect(0, ROAD_BOT - 6, W, 1);
+    const dirt = this.cfg.dirt;
+    road.fillStyle(dirt ? 0x8a5a34 : 0xd8b07a, 1).fillRect(0, ROAD_TOP - 6, W, 6).fillRect(0, ROAD_BOT, W, 6);
+    road.fillStyle(dirt ? 0xb8844e : 0x5a5a6a, 1).fillRect(0, ROAD_TOP, W, ROAD_BOT - ROAD_TOP);
+    road.fillStyle(dirt ? 0xa8743e : 0x4a4a58, 1).fillRect(0, ROAD_TOP + 2, W, 2).fillRect(0, ROAD_BOT - 4, W, 2);
+    if (!dirt) road.fillStyle(0xffd25e, 1).fillRect(0, ROAD_TOP + 5, W, 1).fillRect(0, ROAD_BOT - 6, W, 1);
     this.world.add([this.grass, road]);
-    for (const y of [132, 172]) {
+    if (dirt) {
+      // marcas de pneu na terra (rolam junto)
+      const ruts = this.add.tileSprite(W / 2, 152, W, 80, 'fx_dust').setAlpha(0.18).setTint(0x6a4a2a);
+      this.dashes.push(ruts);
+      this.world.add(ruts);
+    }
+    for (const y of dirt ? [] : [132, 172]) {
       const d = this.add.tileSprite(W / 2, y, W, 4, 'road_dash');
       this.dashes.push(d);
       this.world.add(d);
@@ -167,15 +180,16 @@ export class MotoLevel extends Phaser.Scene {
     add(this.add.image(GAME_W - 200, 32, 'photo_spot').setScale(1.6));
     this.progress = add(this.add.graphics());
     this.progressMoto = add(this.add.image(0, 0, 'moto_map').setScale(2));
-    add(this.add.image(GAME_W / 2 + 200, 60, 'waterfall', 0).setScale(0.6));
+    add(this.add.image(GAME_W / 2 + 214, 58, this.cfg.goalIcon, 0).setScale(0.5));
     add(txt(this, GAME_W / 2, 24, this.info.name, 18, { color: '#fff4e0' }));
     this.toastT = add(txt(this, GAME_W / 2, 110, '', 20, { color: '#fff4e0' }).setAlpha(0));
     this.cdBars = add(this.add.graphics());
     const help = [
-      `${this.names[0]}: ${KEY_LABELS[0].move} pilota · ${KEY_LABELS[0].ability} pula buracos`,
-      `${this.names[1]}: ${KEY_LABELS[1].ability} magia nas pedras · ${KEY_LABELS[1].action} buzina / foto`,
+      `${this.names[0]}: ${KEY_LABELS[0].move} pilota · ${KEY_LABELS[0].ability}: pula buracos`,
+      `${this.names[1]}: ${KEY_LABELS[1].ability}: magia nas pedras · ${KEY_LABELS[1].action}: buzina / foto`,
     ];
     help.forEach((h, i) => add(txt(this, i === 0 ? 20 : GAME_W - 20, GAME_H - 18, h, 13, { origin: [i === 0 ? 0 : 1, 0.5], color: i === 0 ? '#bfe6ff' : '#ffd6e4', bold: false })));
+    if (!isTouchDevice()) add(uiButton(this, GAME_W / 2, GAME_H - 20, 'Pausa (Esc)', () => this.openPause(), { size: 13 }));
     this.refreshUi();
   }
 
@@ -184,10 +198,10 @@ export class MotoLevel extends Phaser.Scene {
     this.photoText.setText(`Fotos: ${this.photos}/3`);
     const x0 = GAME_W / 2 - 200;
     const w = 400;
-    const t = Math.min(1, this.dist / TOTAL);
+    const t = Math.min(1, this.dist / this.cfg.total);
     this.progress.clear().fillStyle(0x1b1424, 0.75).fillRoundedRect(x0 - 8, 48, w + 16, 22, 8)
       .fillStyle(0xd8b07a, 1).fillRect(x0, 57, w, 4).fillStyle(0xffd23a, 1).fillRect(x0, 57, w * t, 4);
-    for (const s of SPOTS) this.progress.fillStyle(0xff9cc2, 1).fillRect(x0 + w * s.at - 1, 53, 3, 12);
+    for (const s of this.cfg.spots) this.progress.fillStyle(0xff9cc2, 1).fillRect(x0 + w * s.at - 1, 53, 3, 12);
     this.progressMoto.setPosition(x0 + w * t, 52);
     const g = this.cdBars.clear();
     g.fillStyle(0x000000, 0.4).fillRect(20, GAME_H - 36, 120, 3).fillRect(GAME_W - 140, GAME_H - 36, 120, 3);
@@ -210,8 +224,8 @@ export class MotoLevel extends Phaser.Scene {
     const x0 = (GAME_W - w) / 2;
     const y0 = (GAME_H - h) / 2;
     add(panel(this, x0, y0, w, h));
-    add(txt(this, GAME_W / 2, y0 + 34, 'Passeio de Moto Amarela', 30, { color: '#ffd23a' }));
-    add(txt(this, GAME_W / 2, y0 + 66, 'Rumo à cachoeira! Cheguem inteiros e tirem as 3 fotos do passeio.', 15, { bold: false }));
+    add(txt(this, GAME_W / 2, y0 + 34, this.cfg.title, 30, { color: '#ffd23a' }));
+    add(txt(this, GAME_W / 2, y0 + 66, this.cfg.subtitle, 14, { bold: false, wrap: 600 }));
     const lines: [string, string][] = [
       [`${this.names[0]} pilota`, `${KEY_LABELS[0].move}: desvia, acelera e freia · ${KEY_LABELS[0].ability}: pula buracos e cones`],
       [`${this.names[1]} na garupa`, `${KEY_LABELS[1].ability}: magia explode pedras · ${KEY_LABELS[1].action}: buzina p/ capivaras`],
@@ -260,7 +274,7 @@ export class MotoLevel extends Phaser.Scene {
   }
 
   private spawnWave(): void {
-    const t = this.dist / TOTAL;
+    const t = this.dist / this.cfg.total;
     const r = Math.random();
     const lane = Phaser.Utils.Array.GetRandom(LANES);
     const X = W + 30;
@@ -288,12 +302,7 @@ export class MotoLevel extends Phaser.Scene {
   // ------------------------------------------------------------------ laço
   update(_t: number, delta: number): void {
     const dt = Math.min(delta / 1000, 0.05);
-    if (Input.pausePressed && !this.ended) {
-      Audio.play('select');
-      this.scene.launch('Pause', { levelKey: this.scene.key, levelId: this.info.id });
-      this.scene.pause();
-      return;
-    }
+    if (Input.pausePressed && !this.ended) { this.openPause(); return; }
     const time = this.time.now;
     const col = [1, 0, 2, 0][Math.floor(time / 90) % 4];
     this.riders.forEach((r, i) => r.setFrame(charFrame('side', i === 0 && this.boltCd > 0.3 ? 3 : 0)).setY((i === 0 ? -13 : -11) + (col === 1 ? -0.5 : 0)));
@@ -306,13 +315,15 @@ export class MotoLevel extends Phaser.Scene {
 
     const p1 = Input.players[0];
     const p2 = Input.players[1];
+    if (this.cfg.flatTireAt !== undefined && !this.flatDone && this.repair < 0 && this.dist / this.cfg.total >= this.cfg.flatTireAt) this.flatTire();
+    if (this.repair >= 0) { this.updateRepair(dt, time); return; }
     this.invuln = Math.max(0, this.invuln - dt);
     this.jumpCd = Math.max(0, this.jumpCd - dt);
     this.boltCd = Math.max(0, this.boltCd - dt);
     this.hornCd = Math.max(0, this.hornCd - dt);
 
     // piloto
-    const target = 170 + p1.x * 70 + (this.dist / TOTAL) * 40;
+    const target = 170 + p1.x * 70 + (this.dist / this.cfg.total) * 40;
     this.speed += (target - this.speed) * Math.min(1, dt * 3);
     this.my = Phaser.Math.Clamp(this.my + p1.y * 120 * dt, ROAD_TOP + 12, ROAD_BOT - 8);
     this.mx += ((95 + (this.speed - 100) * 0.4) - this.mx) * Math.min(1, dt * 2);
@@ -348,14 +359,64 @@ export class MotoLevel extends Phaser.Scene {
     this.dashes.forEach((d) => { d.tilePositionX += dx; });
     if (Math.random() < dt * 2.2) this.spawnDecor(W + 30);
     this.spawnT -= dt;
-    const gap = Phaser.Math.Linear(1.25, 0.75, this.dist / TOTAL);
-    if (this.spawnT <= 0 && this.dist < TOTAL - 900) { this.spawnT = gap * Phaser.Math.FloatBetween(0.8, 1.2); this.spawnWave(); }
-    if (this.spotIdx < SPOTS.length && this.dist / TOTAL >= SPOTS[this.spotIdx].at) this.spawnSpot(SPOTS[this.spotIdx++]);
+    const gap = Phaser.Math.Linear(1.25, 0.75, this.dist / this.cfg.total);
+    if (this.spawnT <= 0 && this.dist < this.cfg.total - 900) { this.spawnT = gap * Phaser.Math.FloatBetween(0.8, 1.2); this.spawnWave(); }
+    if (this.spotIdx < this.cfg.spots.length && this.dist / this.cfg.total >= this.cfg.spots[this.spotIdx].at) this.spawnSpot(this.cfg.spots[this.spotIdx++]);
 
     this.updateObjs(dt, dx);
     this.updateBolts(dt);
 
-    if (this.dist >= TOTAL) this.arrive();
+    if (this.dist >= this.cfg.total) this.arrive();
+  }
+
+  /** O pneu furou: os dois consertam juntos. */
+  private flatTire(): void {
+    this.repair = 0;
+    this.speed = 0;
+    Audio.play('wind');
+    Audio.play('hurt');
+    this.cameras.main.shake(250, 0.01);
+    this.toast('PSSSSS... o pneu furou!', '#ff9c9c');
+    for (const o of this.objs) if (o.label !== 'decor') o.dead = true;
+    const add = <T extends Phaser.GameObjects.GameObject>(o: T): T => { this.ui.add(o); this.repairUi.push(o); return o; };
+    add(panel(this, GAME_W / 2 - 280, 150, 560, 170));
+    add(txt(this, GAME_W / 2, 182, 'Consertem o pneu juntos!', 24, { color: '#ffd23a' }));
+    add(txt(this, GAME_W / 2, 216, `${this.names[0]}: SEGURE ${KEY_LABELS[0].action} (segura a moto)  ·  ${this.names[1]}: aperte ${KEY_LABELS[1].action} sem parar (bomba de ar)`, 14, { bold: false, wrap: 520 }));
+    this.repairBar = add(this.add.graphics());
+  }
+
+  private updateRepair(_dt: number, time: number): void {
+    const holding = Input.players[0].action;
+    if (Input.players[1].actionPressed) {
+      if (holding) {
+        this.repair = Math.min(1, this.repair + 0.08);
+        Audio.play('push');
+        this.riders[0].setY(-13 - 2);
+      } else {
+        this.toast(`Segura a moto, ${this.names[0]}!`, '#ffd6e4');
+        Audio.play('wrong');
+      }
+    }
+    this.moto.setAngle(holding ? 0 : Math.sin(time / 80) * 3);
+    this.repairBar?.clear().fillStyle(0x1b1424, 1).fillRoundedRect(GAME_W / 2 - 200, 262, 400, 22, 8)
+      .fillStyle(0x8be07a, 1).fillRoundedRect(GAME_W / 2 - 196, 266, 392 * this.repair, 14, 6);
+    if (this.repair >= 1) {
+      this.repair = -1;
+      this.flatDone = true;
+      this.repairUi.forEach((o) => o.destroy());
+      this.repairUi = [];
+      Audio.play('revive');
+      this.toast('Consertado! Dupla imbatível ♥', '#8be07a');
+      this.burst(this.mx, this.my - 10, 'fx_heart', 12);
+      this.spawnT = 1.5;
+    }
+  }
+
+  private openPause(): void {
+    if (this.ended || !this.scene.isActive()) return;
+    Audio.play('select');
+    this.scene.launch('Pause', { levelKey: this.scene.key, levelId: this.info.id });
+    this.scene.pause();
   }
 
   private spawnSpot(s: { label: string; decor: string }): void {
@@ -507,7 +568,7 @@ export class MotoLevel extends Phaser.Scene {
 
   private arrive(): void {
     if (this.ended) return;
-    this.toast('Chegamos na cachoeira! ♥', '#ffd23a');
+    this.toast(this.cfg.arriveText, '#ffd23a');
     this.finish(true);
   }
 
@@ -522,11 +583,11 @@ export class MotoLevel extends Phaser.Scene {
       this.cameras.main.fadeOut(400, 27, 20, 36);
       this.time.delayedCall(420, () => this.scene.start('Result', {
         levelId: this.info.id, win, stars, score,
-        title: win ? 'Chegaram na cachoeira!' : 'A moto precisou de conserto...',
+        title: win ? this.cfg.finishTitle : 'A moto precisou de conserto...',
         lines: [
           `Fotos do casal: ${this.photos}/3 ${this.photos >= 3 ? '(estrela!)' : ''}`,
           `Batidas: ${this.hits} ${this.hits <= 1 ? '(estrela!)' : '(meta: no máximo 1)'}`,
-          `Moedas na estrada: ${this.coins}`,
+          win ? this.cfg.memory : `Moedas na estrada: ${this.coins}`,
         ],
         stats: { hugs: 0, faints: 0, revives: 0, crystals: 0, coins: this.coins * 2 },
       }));

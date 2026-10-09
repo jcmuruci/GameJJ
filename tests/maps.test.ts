@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { TUTORIAL_MAP, FOREST_MAP, BOSS_MAP, AMAZON_MAP } from '../src/data/maps';
+import { TUTORIAL_MAP, CANYON_MAP, BOSS_MAP, AMAZON_MAP, CLIMB_MAP, ITACOLOMI_MAP, TOPO_MAP, FARM_MAP } from '../src/data/maps';
 import { KITCHENS } from '../src/data/kitchens';
 
-const all: Record<string, string[]> = { tutorial: TUTORIAL_MAP, forest: FOREST_MAP, boss: BOSS_MAP, amazon: AMAZON_MAP, ...Object.fromEntries(Object.entries(KITCHENS).map(([k, v]) => [k, v.map])) };
+const all: Record<string, string[]> = { tutorial: TUTORIAL_MAP, canyon: CANYON_MAP, boss: BOSS_MAP, amazon: AMAZON_MAP, climb: CLIMB_MAP, itacolomi: ITACOLOMI_MAP, topo: TOPO_MAP, farm: FARM_MAP, ...Object.fromEntries(Object.entries(KITCHENS).map(([k, v]) => [k, v.map])) };
 
 /** Busca em largura: paredes bloqueiam; obstáculos que os jogadores conseguem remover não. */
 function reachable(map: string[], walls: string, from: string): Set<string> {
@@ -36,16 +36,16 @@ describe('mapas', () => {
     });
   }
 
-  it('floresta: saída e 3 cristais alcançáveis', () => {
-    const r = reachable(FOREST_MAP, '#~hZYbi^l', 'P');
+  it('cânion: saída e 3 cristais alcançáveis', () => {
+    const r = reachable(CANYON_MAP, '#~hZYbi^l', 'P');
     const targets: string[] = [];
-    FOREST_MAP.forEach((row, y) => [...row].forEach((c, x) => { if (c === 'X' || c === '*') targets.push(`${x},${y}`); }));
+    CANYON_MAP.forEach((row, y) => [...row].forEach((c, x) => { if (c === 'X' || c === '*') targets.push(`${x},${y}`); }));
     expect(targets.length).toBe(4);
     targets.forEach((t) => expect(r.has(t), t).toBe(true));
   });
 
-  it('floresta: cada portão tem gatilho', () => {
-    const s = FOREST_MAP.join('');
+  it('cânion: cada portão tem gatilho', () => {
+    const s = CANYON_MAP.join('');
     const trig: Record<string, string> = { A: '1', B: '2', C: '3', D: '4', E: '57', F: '68' };
     for (const g of 'ABCDEF') if (s.includes(g)) expect([...trig[g]].some((t) => s.includes(t)), g).toBe(true);
     expect(s.split('l').length - 1).toBe(2);
@@ -84,10 +84,12 @@ describe('mapas', () => {
   it('cozinhas: têm entrega, pratos e fontes', () => {
     for (const [name, k] of Object.entries(KITCHENS)) {
       const s = k.map.join('');
-      for (const c of 'DpbA') expect(s.includes(c), `${name} sem ${c}`).toBe(true);
+      for (const c of 'Dpb') expect(s.includes(c), `${name} sem ${c}`).toBe(true);
+      for (const d of Object.keys(k.sources)) expect(s.includes(d), `${name} sem cesta ${d}`).toBe(true);
       // os dois jogadores alcançam a entrega
-      const r = reachable(k.map, '#~cbfoptDAMRFTYBLh', 'P');
-      const r2 = reachable(k.map, '#~cbfoptDAMRFTYBLh', 'Q');
+      const walls = '#w~cbfoptDTYBLhGIEJ123456789';
+      const r = reachable(k.map, walls, 'P');
+      const r2 = reachable(k.map, walls, 'Q');
       expect(r.size).toBeGreaterThan(20);
       expect(r2.size).toBeGreaterThan(20);
     }

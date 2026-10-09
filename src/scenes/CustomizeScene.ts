@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
 import { GAME_W, GAME_H, PLAYER_COLORS } from '../config';
-import { txt, panel } from '../ui/text';
+import { txt, panel, uiButton } from '../ui/text';
 import { Input, PlayerId, KEY_LABELS } from '../systems/InputManager';
 import { Audio } from '../systems/Audio';
 import { Save } from '../systems/SaveManager';
 import { generateCharacterTexture, charFrame, Dir } from '../art/CharacterArt';
+import { generatePortrait } from '../art/Portrait';
 import {
   CharacterLook, SKIN_TONES, HAIR_COLORS, EYE_COLORS, CLOTH_COLORS, HAIR_STYLES, ACCESSORIES, BEARDS,
   HAIR_STYLE_LABEL, ACCESSORY_LABEL, DEFAULT_P1, DEFAULT_P2, HIGHLIGHT_COLORS,
@@ -103,6 +104,7 @@ export class CustomizeScene extends Phaser.Scene {
         this.swatches[i].push(sw);
       });
     }
+    uiButton(this, 80, 30, '< Voltar', () => { if (this.editing === null) { Audio.play('back'); this.leave(); } }, { size: 15 });
     this.refresh();
     Audio.music('menu');
     this.cameras.main.fadeIn(300, 27, 20, 36);
@@ -111,6 +113,7 @@ export class CustomizeScene extends Phaser.Scene {
   private regen(id: PlayerId): void {
     const look = Save.data.looks[id];
     generateCharacterTexture(this, `char_${id}`, look, id);
+    generatePortrait(this, `portrait_${id}`, look);
     this.previews[id].setTexture(`char_${id}`, 0);
     Save.save();
     this.refresh();

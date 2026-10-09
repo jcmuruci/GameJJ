@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { BaseLevel } from './BaseLevel';
 import { KITCHENS, KitchenConfig } from '../../data/kitchens';
 import {
-  CHOP, ItemKind, RecipeId, RECIPES, POT_RECIPES, OVEN_RECIPES, CookRecipe, ITEM_NAME,
+  CHOP, ItemKind, RecipeId, RECIPES, COOKERS, CookRecipe, ITEM_NAME,
   canAddToPlate, matchRecipe, canAddToCooker, cookerResult, deliveryScore, starsFor,
 } from '../../data/recipes';
 import { Item } from '../../entities/Item';
@@ -11,7 +11,7 @@ import { Save } from '../../systems/SaveManager';
 import { Input, KEY_LABELS } from '../../systems/InputManager';
 import { Audio } from '../../systems/Audio';
 import type { HUDScene } from '../HUDScene';
-import { GAME_W, GAME_H, TILE } from '../../config';
+import { GAME_W, GAME_H, TILE, ZOOM, RES } from '../../config';
 import { txt, panel, fillNames } from '../../ui/text';
 
 interface Order {
@@ -214,15 +214,15 @@ class Cooker implements Interactable {
   constructor(public L: KitchenLevel, tx: number, ty: number, public type: 'pot' | 'oven') {
     const c = L.tileCenter(tx, ty);
     this.x = c.x; this.y = c.y;
-    L.add.image(c.x, c.y, type === 'pot' ? 'st_fire' : 'st_oven').setDepth(c.y - 8);
+    L.add.image(c.x, c.y, type === 'pot' ? 'st_fire' : L.cfg.ovenTex ?? 'st_oven').setDepth(c.y - 8);
     this.fireImg = L.add.sprite(c.x, c.y + 6, 'fire', 0).setDepth(c.y - 7).setScale(0.8).setVisible(false);
     if (type === 'oven') this.fireImg.setPosition(c.x, c.y + 4).setScale(0.6);
     L.addSolid(tx, ty, this);
     this.warn = L.add.text(c.x, c.y - 22, '!', { fontFamily: 'monospace', fontSize: '12px', color: '#ff5c5c', stroke: '#2a1d2e', strokeThickness: 3, fontStyle: 'bold' })
-      .setOrigin(0.5).setDepth(9500).setVisible(false).setResolution(3);
+      .setOrigin(0.5).setDepth(9500).setVisible(false).setResolution(ZOOM * RES + 1);
   }
 
-  get recipes(): CookRecipe[] { return this.type === 'pot' ? POT_RECIPES : OVEN_RECIPES; }
+  get recipes(): CookRecipe[] { const set = COOKERS[this.L.cfg.cookers] ?? COOKERS.classic; return this.type === 'pot' ? set.pot : set.oven; }
 
   private refreshIcons(): void {
     this.icons.forEach((i) => i.destroy());
@@ -344,6 +344,89 @@ class Cooker implements Interactable {
   }
 }
 
+/** Pier de pesca: só a Juliana pesca (AÇÃO lança; AÇÃO de novo quando aparecer o "!"). */
+class FishingSpot implements Interactable {
+  x: number;
+  y: number;
+  priority = 3;
+  reach = 2;
+  state: 'idle' | 'wait' | 'bite' = 'idle';
+  t = 0;
+  fisher: Player | null = null;
+  bobber: Phaser.GameObjects.Image;
+  mark: Phaser.GameObjects.Text;
+  private hintCd = 0;
+  constructor(public L: KitchenLevel, tx: number, ty: number) {
+    const c = L.tileCenter(tx, ty);
+    this.x = c.x;
+    this.y = c.y;
+    L.layer.putTileAt(4, tx, ty);
+    L.add.image(c.x, c.y, 'dock').setDepth(-5);
+    L.addSolid(tx, ty, this);
+    this.bobber = L.add.image(c.x, c.y, 'bobber').setDepth(c.y + 2).setVisible(false);
+    this.mark = L.add.text(c.x, c.y - 18, '!', { fontFamily: 'monospace', fontSize: '14px', color: '#ffd25e', stroke: '#2a1d2e', strokeThickness: 3, fontStyle: 'bold' })
+      .setOrigin(0.5).setDepth(9600).setVisible(false).setResolution(ZOOM * RES + 1);
+  }
+
+  interact(p: Player): boolean {
+    const L = this.L;
+    if (p.id !== 1) {
+      if (this.hintCd <= 0) { this.hintCd = 3; L.say(p, `${L.names[1]}, me ensina a pescar? Quem pesca aqui é você!`, 2000); }
+      return true;
+    }
+    if (p.held) { L.say(p, 'Mãos livres pra pescar!', 1200); return true; }
+    if (this.state === 'idle') {
+      this.state = 'wait';
+      this.fisher = p;
+      this.t = Phaser.Math.FloatBetween(1.2, 3.2);
+      // a boia cai um pouco à frente, na água
+      const dx = Math.sign(this.x - p.x) * 10;
+      const dy = Math.sign(this.y - p.y) * 10;
+      this.bobber.setPosition(this.x + dx, this.y + dy).setVisible(true).setScale(0.3);
+      L.tweens.add({ targets: this.bobber, scale: 1, duration: 200, ease: 'Back.Out' });
+      L.sfx('splash');
+      return true;
+    }
+    if (this.state === 'wait') {
+      L.say(p, 'Calma... ainda não fisgou!', 1000);
+      this.cancel();
+      return true;
+    }
+    // fisgou!
+    this.cancel();
+    L.give(p, 'fish');
+    L.sfx('coin');
+    L.burst(this.x, this.y, 'fx_pixel', 8, { speed: 50, tint: 0xbfe9ff });
+    L.hud?.floatText(this.x, this.y - 14, 'Peixe!', '#9ce8ff');
+    return true;
+  }
+
+  cancel(): void {
+    this.state = 'idle';
+    this.fisher = null;
+    this.bobber.setVisible(false);
+    this.mark.setVisible(false);
+  }
+
+  update(dt: number): void {
+    this.hintCd = Math.max(0, this.hintCd - dt);
+    if (this.state === 'idle') return;
+    if (!this.fisher || this.fisher.fainted || this.L.dist(this.fisher, this) > 30) { this.cancel(); return; }
+    this.t -= dt;
+    this.bobber.y += Math.sin(this.L.time.now / 150) * 0.05;
+    if (this.state === 'wait' && this.t <= 0) {
+      this.state = 'bite';
+      this.t = 0.9;
+      this.mark.setVisible(true);
+      this.L.tweens.add({ targets: this.bobber, y: this.bobber.y + 2, yoyo: true, repeat: 3, duration: 60 });
+      this.L.sfx('blip');
+    } else if (this.state === 'bite' && this.t <= 0) {
+      this.L.say(this.fisher, 'Escapou! Vou de novo...', 1200);
+      this.cancel();
+    }
+  }
+}
+
 /** Corvo ladrão: rouba itens deixados nas bancadas. */
 class Crow implements Interactable {
   sprite: Phaser.GameObjects.Sprite;
@@ -352,11 +435,13 @@ class Crow implements Interactable {
   reach = 4;
   gone = false;
   private dirOut = 1;
+  private tex = 'crow';
   constructor(public L: KitchenLevel, public target: Surface) {
     const fromLeft = Math.random() < 0.5;
     const W = L.cols * TILE;
-    this.sprite = L.add.sprite(fromLeft ? -16 : W + 16, Phaser.Math.Between(10, 60), 'crow', 0).setDepth(9800).setFlipX(fromLeft);
-    this.sprite.play('crow-fly');
+    this.tex = L.cfg.crows?.tex ?? 'crow';
+    this.sprite = L.add.sprite(fromLeft ? -16 : W + 16, Phaser.Math.Between(10, 60), this.tex, 0).setDepth(9800).setFlipX(fromLeft);
+    this.sprite.play(`${this.tex}-fly`);
     L.sfx('crow');
   }
   get x(): number { return this.sprite.x; }
@@ -380,7 +465,7 @@ class Crow implements Interactable {
       if (this.t > 2.6) {
         const it = this.target.item;
         this.target.item = null;
-        this.L.hud?.toast(`O corvo roubou: ${ITEM_NAME[it.kind]}!`, '#ff9c9c');
+        this.L.hud?.toast(`${this.L.cfg.crows?.name ?? 'O corvo'} roubou: ${ITEM_NAME[it.kind]}!`, '#ff9c9c');
         it.destroy();
         this.L.sfx('crow');
         this.flee();
@@ -395,7 +480,7 @@ class Crow implements Interactable {
   flee(): void {
     if (this.state === 'out') return;
     this.state = 'out';
-    this.sprite.play('crow-fly');
+    this.sprite.play(`${this.tex}-fly`);
     this.dirOut = this.sprite.x < (this.L.cols * TILE) / 2 ? -1 : 1;
     this.sprite.setFlipX(this.dirOut > 0);
   }
@@ -426,6 +511,7 @@ export class KitchenLevel extends BaseLevel {
   cookers: Cooker[] = [];
   surfaces: Surface[] = [];
   crows: Crow[] = [];
+  fishing: FishingSpot[] = [];
   private nextOrder = 0;
   private windT = 0;
   private crowT = 0;
@@ -447,6 +533,7 @@ export class KitchenLevel extends BaseLevel {
     this.cfg = KITCHENS[this.info.id];
     this.surfaces = [];
     this.cookers = [];
+    this.fishing = [];
     this.defaultFloor = this.cfg.floor;
     this.objectFloor = this.cfg.objectFloor;
     return this.cfg.map;
@@ -471,9 +558,23 @@ export class KitchenLevel extends BaseLevel {
       case 'B': this.add.image(c.x, c.y, 'bush').setDepth(c.y); this.addSolid(tx, ty); return true;
       case 'k': this.add.image(c.x, c.y, 'blanket').setDepth(-5).setScale(0.5); return true;
       case 'W': this.spawnWaterfall(tx, ty); return true;
+      case 'G': this.fishing.push(new FishingSpot(this, tx, ty)); this.interactables.push(this.fishing[this.fishing.length - 1]); return true;
+      case 'I': this.add.image(c.x, c.y - 2, 'flag_italy').setDepth(c.y); this.addSolid(tx, ty); return true;
+      case 'U': this.add.image(c.x, c.y - 2, 'bunting_j').setDepth(9000); return true;
+      case 'J': {
+        this.add.image(c.x + 8, c.y + 4, 'bonfire').setDepth(c.y + 8);
+        const f = this.add.sprite(c.x + 8, c.y - 4, 'fire', 0).setScale(2).setDepth(c.y + 9).play('fire-anim');
+        this.tweens.add({ targets: f, scaleY: 2.3, yoyo: true, repeat: -1, duration: 300 });
+        for (let dx = 0; dx <= 1; dx++) for (let dy = 0; dy <= 1; dy++) this.addSolid(tx + dx, ty + dy);
+        return true;
+      }
       case 'E': this.add.image(c.x, c.y - 2, 'table').setDepth(c.y); this.addSolid(tx, ty); return true;
       case 'L': this.add.image(c.x, c.y - 4, 'lantern').setDepth(c.y); this.addSolid(tx, ty); return true;
-      default: return false;
+      default: {
+        const kind = this.cfg.sources?.[ch];
+        if (kind) { this.interactables.push(new Source(this, tx, ty, 'src_basket', kind)); return true; }
+        return false;
+      }
     }
   }
 
@@ -498,7 +599,6 @@ export class KitchenLevel extends BaseLevel {
     this.lastTick = 99;
     this.started = false;
     if (!this.anims.exists('fire-anim')) this.anims.create({ key: 'fire-anim', frames: this.anims.generateFrameNumbers('fire', { start: 0, end: 1 }), frameRate: 8, repeat: -1 });
-    if (!this.anims.exists('crow-fly')) this.anims.create({ key: 'crow-fly', frames: this.anims.generateFrameNumbers('crow', { start: 0, end: 1 }), frameRate: 8, repeat: -1 });
     // fogueiras começam acesas para ensinar
     this.cookers.forEach((c) => { if (c.type === 'pot') c.onMagic(this.players[1]); });
   }
@@ -526,7 +626,7 @@ export class KitchenLevel extends BaseLevel {
       const rec = RECIPES[r];
       rec.icons.forEach((k, j) => objs.push(hud.add.image(x0 + 50 + j * 34, y, `item_${k}`).setScale(2.4)));
       objs.push(txt(hud, x0 + 120, y - 9, rec.name + (this.cfg.recipes.includes(r) ? '' : ' (desbloqueia depois)'), 16, { origin: [0, 0.5], color: '#ffd25e' }));
-      objs.push(txt(hud, x0 + 120, y + 10, rec.how, 13, { origin: [0, 0.5], bold: false }));
+      objs.push(txt(hud, x0 + 120, y + 10, fillNames(rec.how, this.names), 13, { origin: [0, 0.5], bold: false }));
     });
     const ty = y0 + 116 + all.length * 42;
     this.cfg.tips.forEach((t, i) => objs.push(txt(hud, GAME_W / 2, ty + i * 20, '• ' + fillNames(t, this.names), 13, { color: '#d8c8e8', bold: false })));
@@ -671,6 +771,7 @@ export class KitchenLevel extends BaseLevel {
       if (b instanceof Board && b.progress > 0 && b.choppable()) this.drawBar(b.x, b.y + 9, b.progress, 0x8be07a);
     }
     for (const cr of this.crows) cr.update(dt);
+    for (const f of this.fishing) f.update(dt);
     this.crows = this.crows.filter((c) => !c.gone);
     if (!this.started || this.ended) return;
 
@@ -763,7 +864,7 @@ export class KitchenLevel extends BaseLevel {
           const cr = new Crow(this, Phaser.Utils.Array.GetRandom(targets));
           this.crows.push(cr);
           this.interactables.push(cr);
-          this.hud.toast('Um corvo! Espantem com espada ou magia!', '#d8c8e8', 2000);
+          this.hud.toast(`${cfg.crows.name ?? 'Um corvo'} vem roubar! Espantem com espada ou magia!`, '#d8c8e8', 2000);
           this.crowT = cfg.crows.every + Phaser.Math.Between(-6, 6);
         } else this.crowT = 4;
       }
@@ -812,15 +913,16 @@ export class KitchenLevel extends BaseLevel {
     if (!this.cart) {
       this.cartT -= dt;
       if (this.cartT <= 1.6 && !this.cartWarn) {
-        this.cartWarn = this.add.text(10, y - 18, '!! CARROÇA !!', { fontFamily: 'monospace', fontSize: '10px', color: '#ffd25e', stroke: '#2a1d2e', strokeThickness: 3, fontStyle: 'bold' })
-          .setDepth(9900).setResolution(3);
+        const fx = (this.cfg.cart?.fromX ?? 0) * TILE;
+        this.cartWarn = this.add.text(fx + 10, y - 18, `!! ${this.cfg.cart?.warn ?? 'CARROÇA'} !!`, { fontFamily: 'monospace', fontSize: '10px', color: '#ffd25e', stroke: '#2a1d2e', strokeThickness: 3, fontStyle: 'bold' })
+          .setDepth(9900).setResolution(ZOOM * RES + 1);
         this.tweens.add({ targets: this.cartWarn, alpha: 0.2, yoyo: true, repeat: -1, duration: 150 });
         this.sfx('bell');
       }
       if (this.cartT <= 0) {
         this.cartWarn?.destroy();
         this.cartWarn = null;
-        this.cart = this.add.image(-20, y - 4, 'cart').setDepth(y + 4);
+        this.cart = this.add.image((this.cfg.cart?.fromX ?? 0) * TILE - 20, y - 4, this.cfg.cart?.tex ?? 'cart').setDepth(y + 4);
         this.cartT = every + Phaser.Math.Between(-4, 4);
         this.sfx('push');
       }
@@ -832,7 +934,7 @@ export class KitchenLevel extends BaseLevel {
         p.pushBack(this.cart.x - 10, y + (p.y < y ? 10 : -10), 260, 0.25);
         p.invuln = 0.8;
         if (p.held) this.dropOnFloor(p, p.x, p.y + (p.y < y ? -14 : 14));
-        this.say(p, Phaser.Utils.Array.GetRandom(['Ei! Olha a carroça!', 'Socorro!', 'Que susto!', 'Meus ingredientes!']), 1400);
+        this.say(p, Phaser.Utils.Array.GetRandom(this.cfg.cart?.lines ?? ['Ei! Olha a carroça!', 'Socorro!', 'Que susto!', 'Meus ingredientes!']), 1400);
         this.sfx('hit');
       }
     }

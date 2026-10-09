@@ -7,6 +7,7 @@ import { Audio } from '../systems/Audio';
 import { LEVELS, levelById, levelIndex } from '../data/levels';
 import { cozyBackground } from './MenuScene';
 import { charFrame } from '../art/CharacterArt';
+import { refreshCharacters } from './BootScene';
 
 interface ResultData {
   levelId: string;
@@ -59,26 +60,37 @@ export class ResultScene extends Phaser.Scene {
     // recompensa
     let coins = 0;
     let newBest = false;
+    let relic = '';
     if (d.win) {
       const prev = Save.data.levels[d.levelId]?.stars ?? 0;
       // moedas: por estrela (dobro para estrelas novas) + moedas coletadas
       coins = d.stars * info.coinsPerStar + Math.max(0, d.stars - prev) * info.coinsPerStar + d.stats.coins;
       newBest = Save.record(d.levelId, d.stars, d.score).newBest;
+      if (info.reward && !Save.data.relics[info.reward]) {
+        Save.data.relics[info.reward] = true;
+        relic = info.reward === 'medalha' ? 'Medalha de São Bento (protege o João do 1º golpe)' : 'Alianças (abraços curam mais)';
+        if (info.reward === 'medalha' && Save.data.looks[0].accessory === 'nenhum') {
+          Save.data.looks[0].accessory = 'medalha';
+          refreshCharacters(this);
+        }
+      }
       Save.data.coins += coins;
       Save.save();
     }
     const lines = [...d.lines];
+    if (relic) lines.push(`Lembrança desbloqueada: ${relic}`);
     if (d.win) lines.push(`Moedas ganhas: +${coins}${newBest && d.score ? '  (novo recorde!)' : ''}`);
     lines.forEach((l, i) => txt(this, GAME_W / 2, 268 + i * 26, l, 16, { bold: false, color: i === lines.length - 1 && d.win ? '#ffd25e' : '#fff4e0' }));
 
     const idx = levelIndex(d.levelId);
     const next = LEVELS[idx + 1]?.id ?? d.levelId;
     const items = [];
-    if (d.win && info.endStory) items.push({ label: 'Ver o final ♥', onSelect: () => this.go('Story', { id: info.endStory, next: 'Map', nextData: { select: next } }) });
+    if (d.win && info.endStory) items.push({ label: 'Continuar a história ♥', onSelect: () => this.go('Story', { id: info.endStory, next: 'Map', nextData: { select: next } }) });
     else if (d.win) items.push({ label: 'Continuar', onSelect: () => this.go('Map', { select: next }) });
     items.push({ label: d.win ? 'Jogar de novo' : 'Tentar de novo', onSelect: () => this.go(info.scene, { levelId: d.levelId }) });
     items.push({ label: 'Voltar ao mapa', onSelect: () => this.go('Map', { select: d.levelId }) });
-    this.list = new MenuList(this, GAME_W / 2, 400, items, 34, 20);
+    items.push({ label: 'Menu principal', onSelect: () => this.go('Menu', {}) });
+    this.list = new MenuList(this, GAME_W / 2, 380, items, 30, 19);
     this.list.setVisible(false);
     this.time.delayedCall(900, () => { this.list.setVisible(true); this.ready = true; });
     Audio.music(d.win ? 'map' : null);

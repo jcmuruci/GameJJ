@@ -1,8 +1,8 @@
 /**
  * Diálogos da história. {p1} e {p2} viram os nomes dos personagens.
- * who: 0 = Jogador 1, 1 = Jogador 2, 'n' = narração, 'nimbo' = o vilão, 'vovo' = Vovó Rosa, 'mae' = Mamãe Jacaré.
+ * who: 0 = Jogador 1 (João), 1 = Jogador 2 (Juliana), 'n' = narração, e personagens secundários.
  */
-export type Speaker = 0 | 1 | 'n' | 'nimbo' | 'vovo' | 'mae';
+export type Speaker = 0 | 1 | 'n' | 'nimbo' | 'vovo' | 'mae' | 'paiJ' | 'maeJ' | 'garcom' | 'avestruz';
 
 export interface Line {
   who: Speaker;
@@ -11,56 +11,110 @@ export interface Line {
 
 export const STORY: Record<string, Line[]> = {
   intro: [
-    { who: 'n', text: 'Era uma vez um sábado perfeito.' },
-    { who: 'n', text: 'Tudo começou numa pedra bem grande: {p1} e {p2} se conheceram descendo de rapel.' },
-    { who: 0, text: 'Lembra? Você olhou lá pra baixo e eu falei: "confia, que eu seguro".' },
-    { who: 1, text: 'E segura até hoje. Feliz aniversário de namoro, amor!' },
-    { who: 0, text: 'Plano do dia: Pedra Grande, moto amarela até a cachoeira, piquenique, trilha, jantar no restaurante...' },
-    { who: 1, text: '...e à noite, a Chuva de Estrelas lá do alto da Torre da Colina!' },
-    { who: 'nimbo', text: 'HMPF! Casais felizes... Que coisa mais irritante!' },
-    { who: 'nimbo', text: 'Eu, Nimbo, a nuvem mais rabugenta do céu, vou cobrir TODAS as estrelas esta noite!' },
-    { who: 0, text: 'Ué... aquela nuvem acabou de falar?' },
-    { who: 1, text: 'E ameaçar o nosso encontro! Ah, mas não vai mesmo.' },
-    { who: 'n', text: 'E assim começou a aventura mais romântica (e bagunçada) de todas.' },
+    { who: 'n', text: 'Esta é a história de {p1} e {p2}.' },
+    { who: 'n', text: 'Uma história contada em capítulos... e em aventuras.' },
+    { who: 0, text: 'Tudo começou em julho de 2025, pendurado numa corda de rapel.' },
+    { who: 1, text: 'Numa pedra bem grande! Eu lembro direitinho.' },
+    { who: 0, text: 'Cada fase é uma lembrança nossa. Bora reviver juntos?' },
+    { who: 1, text: 'Bora! E os próximos capítulos a gente escreve depois.' },
+    { who: 'n', text: '(Os capítulos futuros aparecem no mapa como "em breve".)' },
   ],
   tutorial: [
-    { who: 'n', text: 'Pedra Grande. O lugar onde tudo começou.' },
-    { who: 1, text: 'Bora relembrar como é descer de rapel?' },
-    { who: 0, text: 'Relembrar? Eu sou praticamente um profissional!' },
-    { who: 1, text: 'Amor, no dia em que a gente se conheceu você quase desceu de cabeça pra baixo.' },
-    { who: 0, text: '...Foi charme. Bora treinar.' },
+    { who: 'n', text: 'Julho de 2025. Uma pedra bem grande, cordas, mosquetões... e dois desconhecidos.' },
+    { who: 1, text: 'Primeira vez fazendo rapel?' },
+    { who: 0, text: 'Que nada! ...Tá, é. Me dá uma segurança aí?' },
+    { who: 1, text: 'Confia que eu seguro.' },
+    { who: 'n', text: 'Ninguém ali sabia, mas aquela descida era o começo de tudo.' },
   ],
-  moto: [
-    { who: 'n', text: 'Hora de pegar a estrada!' },
-    { who: 0, text: 'A moto amarela está brilhando! Sobe aí, amor.' },
-    { who: 1, text: 'Eu cuido das fotos. Você cuida de não cair em buraco.' },
-    { who: 0, text: 'E se aparecer capivara na pista?' },
-    { who: 1, text: 'Eu buzino. E se aparecer pedra... eu explodo com magia.' },
-    { who: 0, text: 'Às vezes eu esqueço que namoro uma maga.' },
-    { who: 'nimbo', text: 'Vou espalhar pedras pela estrada inteira! Hehehe!' },
+  climb: [
+    { who: 'n', text: 'Janeiro de 2026. Escalada de parede!' },
+    { who: 1, text: 'Hoje eu subo primeiro. Você faz minha segurança?' },
+    { who: 0, text: 'Sempre. E lá no alto tem um mirante esperando a gente.' },
+    { who: 1, text: 'Então a foto no mirante é obrigatória!' },
   ],
-  picnic: [
-    { who: 'n', text: 'A cachoeira. 10 da manhã. O barulhinho da água é perfeito.' },
-    { who: 1, text: 'Que lugar lindo! Bora cozinhar juntos aqui?' },
-    { who: 'vovo', text: 'Ah, jovens! Vocês cozinham? Meus netinhos estão famintos e eu estou sem fôlego!' },
-    { who: 0, text: 'Pode deixar, Vovó Rosa! A gente ama cozinhar juntos. Eu corto, {p2} cozinha.' },
-    { who: 1, text: 'E nós dois servimos. Trabalho em equipe!' },
-    { who: 'nimbo', text: '(lá do alto) Vamos ver se aguentam um ventinho... hehehe.' },
+  canyon: [
+    { who: 'n', text: "Fevereiro de 2026. Um cânion de pedras, vegetação, água corrente e quedas d'água." },
+    { who: 0, text: 'Cuidado nas pedras, tá escorregadio!' },
+    { who: 1, text: 'Se eu escorregar você me segura. E os espinhos eu queimo!' },
+    { who: 'n', text: 'E no fim da trilha: Lavras Novas, uma cidadezinha de casas coloridas.' },
+    { who: 1, text: 'Parece cenário de anime!' },
   ],
-  forest: [
-    { who: 'n', text: 'A Trilha da Cachoeira. O caminho até a vila.' },
-    { who: 0, text: 'Esses espinhos não estavam aqui antes...' },
-    { who: 'nimbo', text: 'Presentinho meu! Boa sorte atravessando, pombinhos!' },
-    { who: 1, text: 'Espinhos queimam. E pedras se empurram. A gente dá conta.' },
-    { who: 0, text: 'Dizem que tem três Cristais do Coração escondidos... e uma cachoeira secreta no final!' },
+  bread: [
+    { who: 'n', text: 'Março de 2026. Quase 40 dias sem se falar.' },
+    { who: 'n', text: 'No aniversário dele, chegou um presente: um cordão com a medalha de São Bento.' },
+    { who: 0, text: 'Ela lembrou de mim...' },
+    { who: 0, text: 'Tá decidido. Vou levar um pão quentinho pra ela. De moto.' },
+    { who: 1, text: 'Nessa lembrança eu vou na garupa, cuidando do pão! Acelera, mas sem derrubar!' },
+    { who: 'n', text: 'Às vezes, um pão quentinho diz mais que mil palavras.' },
   ],
-  festival: [
-    { who: 'n', text: 'Restaurante da Vila. Noite de casa cheia!' },
-    { who: 'vovo', text: 'Vocês de novo! O Nimbo assustou meus cozinheiros e o restaurante está lotado!' },
-    { who: 1, text: 'A gente ama restaurante... e hoje vamos trabalhar em um!' },
-    { who: 0, text: 'O riacho corta a cozinha no meio. Eu fico com os ingredientes, você com o fogo.' },
-    { who: 1, text: 'Combinado. E cuidado com as carroças, hein!' },
-    { who: 'vovo', text: 'Se der tudo certo, o jantar de vocês é por conta da casa!' },
+  itacolomi: [
+    { who: 'n', text: 'Abril de 2026. Viagem de moto e trilha a pé até o Pico do Itacolomi.' },
+    { who: 'n', text: 'Dias antes, ele tinha entregado a ela um poema... incompleto.' },
+    { who: 1, text: 'Ainda tô pensando naquele poema. Por que ele termina no meio?!' },
+    { who: 0, text: 'Vai ver o final ainda não foi escrito...' },
+    { who: 1, text: 'Você tá quieto hoje... tá tudo bem?' },
+    { who: 0, text: 'Eu? Tô ótimo! É só o cansaço da subida.' },
+    { who: 'n', text: '(No bolso dele: o resto do poema e uma pergunta muito importante.)' },
+  ],
+  itacolomi_end: [
+    { who: 1, text: 'O poema finalmente terminou... e o último verso era um pedido. ♥' },
+    { who: 1, text: 'Lá em cima do Itacolomi, eu disse SIM!' },
+    { who: 0, text: 'A vista mais bonita do pico era você sorrindo.' },
+    { who: 'n', text: 'Abril de 2026: o começo oficial do namoro. ♥' },
+  ],
+  italiano: [
+    { who: 'n', text: 'Maio de 2026. Jantar no restaurante O Italiano.' },
+    { who: 'garcom', text: 'Buona sera! Mesa para o casal?' },
+    { who: 0, text: 'Hoje é noite de conversa séria... e de uma surpresa.' },
+    { who: 1, text: 'Surpresa? Agora eu quero saber!' },
+    { who: 'garcom', text: 'Scusate... a cozinha está um caos hoje. Vocês cozinham?' },
+    { who: 0, text: 'Melhor ainda: a gente ama cozinhar juntos!' },
+  ],
+  italiano_end: [
+    { who: 'n', text: 'Entre massas e pizzas, vieram os alinhamentos: sonhos, planos e combinados.' },
+    { who: 0, text: 'Eu tenho uma coisa pra você.' },
+    { who: 1, text: 'São... alianças?! ♥' },
+    { who: 'n', text: 'Lembrança desbloqueada: as Alianças. Agora os abraços curam ainda mais.' },
+  ],
+  junina: [
+    { who: 'n', text: 'Junho de 2026. Viagem a Juiz de Fora para conhecer os pais do {p1}.' },
+    { who: 'paiJ', text: 'Então essa é a famosa {p2}!' },
+    { who: 'maeJ', text: 'Seja bem-vinda, minha filha! Entra, a casa é sua.' },
+    { who: 1, text: '(Que nervoso!) Prazer! Ouvi dizer que aqui eu vou aprender a pescar?' },
+    { who: 'paiJ', text: 'Vai sim! E depois tem festa junina em BH. Arraiá!' },
+    { who: 0, text: 'Milho cozido, canjica e o peixe que ela pescar!' },
+  ],
+  tire: [
+    { who: 'n', text: 'Julho de 2026. Rumo à Lapinha da Serra... pela estrada de terra.' },
+    { who: 0, text: 'Que barulho é esse? ...Ah, não. O pneu.' },
+    { who: 1, text: 'Calma! A gente conserta juntos: eu bombeio, você segura.' },
+    { who: 'n', text: 'Depois: São José da Serra e um almoço na roça, com lagoa e peixes.' },
+  ],
+  roca: [
+    { who: 'n', text: 'Um restaurante de roça, com lagoa cheia de peixes e fogão a lenha.' },
+    { who: 1, text: 'Agora eu sei pescar, hein! Deixa comigo.' },
+    { who: 0, text: 'Você pesca, eu limpo. Time perfeito.' },
+  ],
+  topo: [
+    { who: 'n', text: 'Agosto de 2026. O Topo do Mundo, pertinho de BH.' },
+    { who: 1, text: 'Olha os parapentes decolando! Que coragem!' },
+    { who: 0, text: 'E depois... finalmente, a Lapinha da Serra!' },
+    { who: 1, text: 'Com cachoeira no final? Melhor dia!' },
+  ],
+  farm: [
+    { who: 'n', text: 'Setembro de 2026. Um hotel fazenda!' },
+    { who: 1, text: 'Cabra, cavalo, cachorro, galinhas... que fofos!' },
+    { who: 0, text: 'E aquela avestruz ali... por que ela tá olhando assim pra gente?' },
+    { who: 'avestruz', text: 'QUÉÉÉÉ!' },
+    { who: 1, text: 'CORRE!!!' },
+    { who: 'n', text: 'Depois do susto, o pedalinho. E nos comandos dele, os dois mandaram muito bem.' },
+  ],
+  farm_end: [
+    { who: 0, text: 'Do rapel em julho até o pedalinho em setembro...' },
+    { who: 1, text: 'Quanta aventura, né? E a gente nem tá no meio ainda.' },
+    { who: 0, text: 'Ainda falta a Amazônia. E os seus jacarés.' },
+    { who: 1, text: 'Os próximos capítulos a gente escreve juntos.' },
+    { who: 'n', text: 'Continua... ♥  (novos capítulos em breve)' },
   ],
   storm: [
     { who: 'n', text: 'Torre da Colina. O sol se pôs. As estrelas estão quase chegando.' },

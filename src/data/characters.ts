@@ -12,7 +12,7 @@
  */
 
 export type HairStyle = 'careca' | 'curto' | 'topete' | 'longo' | 'ondulado' | 'cacheado' | 'rabo' | 'coque' | 'raspado';
-export type Accessory = 'nenhum' | 'flor' | 'laco' | 'tiara' | 'bone' | 'chapeu' | 'brinco' | 'colar_sol';
+export type Accessory = 'nenhum' | 'flor' | 'laco' | 'tiara' | 'bone' | 'chapeu' | 'brinco' | 'colar_sol' | 'medalha';
 
 export interface CharacterLook {
   name: string;
@@ -101,7 +101,7 @@ export const HAIR_COLORS = ['#1c1414', '#2a1a12', '#3a2419', '#d8ae5a', '#d8b468
 export const EYE_COLORS = ['#2e1c12', '#3f8ad8', '#5f8296', '#3a2a1e', '#4a2f1e', '#1c1c2a', '#3a6a3a', '#3a5a9a', '#6a8aa0'];
 export const CLOTH_COLORS = ['#3a3844', '#3a4a70', '#3f7fd6', '#2a9d8f', '#4fa35a', '#e9c46a', '#f4a261', '#e76f51', '#d64545', '#b25bd6', '#ff7aa8', '#f0f0f0', '#3b3f5c', '#5b3f8c', '#2a2a2a', '#7a5a3a'];
 export const HAIR_STYLES: HairStyle[] = ['careca', 'curto', 'topete', 'longo', 'ondulado', 'cacheado', 'rabo', 'coque', 'raspado'];
-export const ACCESSORIES: Accessory[] = ['nenhum', 'flor', 'laco', 'tiara', 'bone', 'chapeu', 'brinco', 'colar_sol'];
+export const ACCESSORIES: Accessory[] = ['nenhum', 'flor', 'laco', 'tiara', 'bone', 'chapeu', 'brinco', 'colar_sol', 'medalha'];
 export const HIGHLIGHT_COLORS = ['', '#8a6046', '#b07a3a', '#d6a85a', '#f0d48a', '#e06a8a', '#7a5ad6'];
 export const BEARDS: CharacterLook['beard'][] = ['nenhuma', 'rala', 'cheia'];
 
@@ -110,7 +110,7 @@ export const HAIR_STYLE_LABEL: Record<HairStyle, string> = {
   cacheado: 'Cacheado', rabo: 'Rabo de cavalo', coque: 'Coque', raspado: 'Raspado',
 };
 export const ACCESSORY_LABEL: Record<Accessory, string> = {
-  nenhum: 'Nenhum', flor: 'Flor', laco: 'Laço', tiara: 'Tiara', bone: 'Boné', chapeu: 'Chapéu', brinco: 'Brincos', colar_sol: 'Colar de sol',
+  nenhum: 'Nenhum', flor: 'Flor', laco: 'Laço', tiara: 'Tiara', bone: 'Boné', chapeu: 'Chapéu', brinco: 'Brincos', colar_sol: 'Colar de sol', medalha: 'Medalha de São Bento',
 };
 
 export const BUILDS: CharacterLook['build'][] = ['magro', 'medio', 'forte'];

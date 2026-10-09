@@ -25,13 +25,14 @@ export class PauseScene extends Phaser.Scene {
 
   create(): void {
     this.add.graphics().fillStyle(0x1b1424, 0.6).fillRect(0, 0, GAME_W, GAME_H);
-    panel(this, GAME_W / 2 - 200, 120, 400, 300);
-    txt(this, GAME_W / 2, 160, 'Pausa', 36, { color: '#ffd6e4' });
-    this.list = new MenuList(this, GAME_W / 2, 220, [
+    panel(this, GAME_W / 2 - 200, 100, 400, 350);
+    txt(this, GAME_W / 2, 140, 'Pausa', 36, { color: '#ffd6e4' });
+    this.list = new MenuList(this, GAME_W / 2, 200, [
       { label: 'Continuar', onSelect: () => this.resume() },
       { label: 'Reiniciar fase', onSelect: () => this.restart() },
-      { label: 'Como jogar', onSelect: () => { this.list.setVisible(false); this.overlay = controlsPanel(this); } },
+      { label: 'Como jogar', onSelect: () => { this.list.setVisible(false); this.overlay = controlsPanel(this); this.time.delayedCall(250, () => this.input.once('pointerdown', () => this.closeOverlay())); } },
       { label: 'Sair para o mapa', onSelect: () => this.quit() },
+      { label: 'Menu principal', onSelect: () => this.quit('Menu') },
     ], 46, 22);
   }
 
@@ -47,24 +48,29 @@ export class PauseScene extends Phaser.Scene {
     this.scene.stop();
   }
 
-  private quit(): void {
+  private quit(to: 'Map' | 'Menu' = 'Map'): void {
     Audio.music(null);
     this.scene.stop('HUD');
     this.scene.stop(this.levelKey);
-    this.scene.start('Map', { select: this.levelId });
+    this.scene.start(to, { select: this.levelId });
   }
 
   update(): void {
     if (this.overlay) {
       if (Input.confirmPressed() || Input.backPressed() || Input.pausePressed) {
-        this.overlay.destroy();
-        this.overlay = null;
-        this.list.setVisible(true);
-        Audio.play('back');
+        this.closeOverlay();
       }
       return;
     }
     if (Input.pausePressed) { Audio.play('back'); this.resume(); return; }
     this.list.update();
+  }
+
+  private closeOverlay(): void {
+    if (!this.overlay) return;
+    this.overlay.destroy();
+    this.overlay = null;
+    this.list.setVisible(true);
+    Audio.play('back');
   }
 }

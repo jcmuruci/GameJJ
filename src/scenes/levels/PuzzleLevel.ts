@@ -187,6 +187,20 @@ export abstract class PuzzleLevel extends BaseLevel {
         this.interactables.push({ x: c.x, y: c.y, priority: 3, reach: 2, interact: (p) => this.tryRappel(p, tx, ty) });
         return true;
       case 'W': this.spawnWaterfall(tx, ty); return true;
+      case 'V': this.spawnVines(tx, ty); return true;
+      case 'U':
+        // rota de escalada: parede com agarras; sobe com o parceiro na segurança
+        this.layer.putTileAt(T.CLIFF, tx, ty);
+        this.add.image(c.x, c.y, 'holds').setDepth(c.y + 1);
+        this.interactables.push({ x: c.x, y: c.y, priority: 3, reach: 2, interact: (p) => this.tryClimb(p, tx, ty) });
+        return true;
+      case 'k': this.add.image(c.x + 8, c.y, 'big_stone').setDepth(c.y + 6); for (let dx = 0; dx <= 1; dx++) this.addSolid(tx + dx, ty); return true;
+      case 'n': {
+        const i = (tx * 7 + ty * 3) % 6;
+        this.add.image(c.x, c.y + 8, `house_c${i}`).setOrigin(0.5, 1).setDepth(c.y + 8);
+        for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 0; dy++) if (!this.isBlocked(tx + dx, ty + dy)) this.addSolid(tx + dx, ty + dy);
+        return true;
+      }
       case 'Z': this.add.image(c.x, c.y - 12, 'tree_big').setDepth(c.y + 6); this.addSolid(tx, ty); return true;
       case 'Y': this.add.image(c.x, c.y - 12, 'tree_pink').setDepth(c.y + 6); this.addSolid(tx, ty); return true;
       case 'b': this.add.image(c.x, c.y, 'bush').setDepth(c.y); this.addSolid(tx, ty); return true;
@@ -301,6 +315,80 @@ export abstract class PuzzleLevel extends BaseLevel {
       x: c.x, y: c.y, priority: 1,
       interact: () => { this.say({ x: c.x, y: c.y - 6 }, fillNames(text, this.names), 4200, '#fff4e0'); this.sfx('blip'); return true; },
     });
+  }
+
+  spawnVines(tx: number, ty: number): void {
+    const c = this.tileCenter(tx, ty);
+    const img = this.add.image(c.x, c.y, 'vines').setDepth(c.y);
+    const zone = this.addSolid(tx, ty);
+    let hint = 0;
+    const it: Interactable = {
+      x: c.x, y: c.y,
+      selectable: () => false,
+      onStrike: (p) => {
+        if (p.id !== 0) return false;
+        this.removeInteractable(it);
+        this.sfx('chop');
+        this.burst(c.x, c.y, 'fx_leaf', 12, { speed: 60, lifespan: 600 });
+        this.tweens.add({ targets: img, alpha: 0, scaleY: 0.2, duration: 250, onComplete: () => img.destroy() });
+        this.setSolidEnabled(zone, false);
+        return true;
+      },
+      onMagic: (p) => {
+        if (this.time.now > hint) { hint = this.time.now + 5000; this.say(p, `Cipó molhado não pega fogo... ${this.names[0]}, a espada!`, 2000); }
+        return true;
+      },
+    };
+    this.interactables.push(it);
+  }
+
+  /** Escalada: sobe pela parede com agarras se o parceiro estiver na segurança. */
+  tryClimb(p: Player, tx: number, ty: number): boolean {
+    if (p.held) { this.say(p, 'Mãos livres pra escalar!', 1400); return true; }
+    if (p.y < ty * TILE) { this.say(p, 'Pra descer, use a corda de rapel!', 1400); return true; }
+    const o = this.other(p);
+    if (!this.belaying(o)) {
+      if (this.belayCd <= 0) {
+        this.belayCd = 2;
+        this.say(p, `${this.names[o.id]}, me dá segurança? (segure AÇÃO na ancoragem)`, 2200);
+      }
+      this.sfx('wrong');
+      return true;
+    }
+    // topo da parede: primeira linha acima que não é penhasco
+    let top = ty;
+    while (top > 0 && this.layer.getTileAt(tx, top - 1)?.index === T.CLIFF) top--;
+    const x = tx * TILE + 8;
+    const y0 = (ty + 1) * TILE + 6;
+    const y1 = (top - 1) * TILE + 6;
+    p.locked = true;
+    p.face = { x: 0, y: -1 };
+    p.body.checkCollision.none = true;
+    p.teleport(x, y0);
+    this.say(o, 'Segurança! Pode subir!', 1400);
+    this.sfx('lever');
+    if (!this.rope) this.rope = this.add.graphics().setDepth(9000);
+    const t = { v: 0 };
+    this.tweens.add({
+      targets: t, v: 1, duration: 900 + (ty - top + 1) * 500, ease: 'Sine.InOut',
+      onUpdate: () => {
+        const yy = y0 + (y1 - y0) * t.v;
+        p.teleport(x + Math.sin(t.v * Math.PI * 6) * 1.5, yy);
+        p.actTimer = Math.floor(t.v * 8) % 2 ? 0.05 : 0;
+        this.rope!.clear().lineStyle(1, 0xe8424a, 1).lineBetween(x, y1 - 10, x, yy - 14);
+        if (Math.random() < 0.12) this.sfx('step');
+      },
+      onComplete: () => {
+        this.rope?.clear();
+        p.locked = false;
+        p.body.checkCollision.none = false;
+        this.rappels++;
+        this.sfx('revive');
+        this.floatHeart(p.x, p.y - 26);
+        this.say(p, Phaser.Utils.Array.GetRandom(['Cheguei!', 'Que braço!', 'Valeu pela segurança!', 'Uhuul!']), 1800);
+      },
+    });
+    return true;
   }
 
   /** O parceiro está dando segurança (segurando AÇÃO numa ancoragem)? */

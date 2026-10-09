@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
 import '@fontsource/pixelify-sans/400.css';
 import '@fontsource/pixelify-sans/700.css';
-import { GAME_W, GAME_H } from './config';
+import { GAME_W, GAME_H, RES } from './config';
+import { installHiRes } from './systems/HiRes';
 import { Save } from './systems/SaveManager';
-import { Input } from './systems/InputManager';
+import { Input, KEY_LABELS } from './systems/InputManager';
 import { Audio } from './systems/Audio';
+import { TouchControls, isTouchDevice } from './systems/TouchControls';
 import { BootScene } from './scenes/BootScene';
 import { MenuScene } from './scenes/MenuScene';
 import { MapScene } from './scenes/MapScene';
@@ -14,11 +16,12 @@ import { PauseScene } from './scenes/PauseScene';
 import { CustomizeScene } from './scenes/CustomizeScene';
 import { HUDScene } from './scenes/HUDScene';
 import { KitchenLevel } from './scenes/levels/KitchenLevel';
-import { ForestLevel } from './scenes/levels/ForestLevel';
+import { TrailLevel } from './scenes/levels/TrailLevel';
 import { BossLevel } from './scenes/levels/BossLevel';
 import { TutorialLevel } from './scenes/levels/TutorialLevel';
 import { MotoLevel } from './scenes/levels/MotoLevel';
 import { AmazonLevel } from './scenes/levels/AmazonLevel';
+import { FarmLevel } from './scenes/levels/FarmLevel';
 
 async function boot(): Promise<void> {
   // espera a fonte pixel (com tempo limite, para nunca travar)
@@ -36,12 +39,19 @@ async function boot(): Promise<void> {
   Input.padSwap = Save.data.settings.padSwap;
   Audio.setVolumes(Save.data.settings.music, Save.data.settings.sfx);
   Input.onFirstGesture = () => Audio.unlock();
+  if (isTouchDevice()) {
+    new TouchControls().mount();
+    // textos de ajuda passam a citar os botões da tela
+    Object.assign(KEY_LABELS[0], { move: 'joystick', action: 'Ação', ability: 'Espada' });
+    Object.assign(KEY_LABELS[1], { move: 'joystick', action: 'Ação', ability: 'Magia' });
+  }
 
+  installHiRes();
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'game',
-    width: GAME_W,
-    height: GAME_H,
+    width: GAME_W * RES,
+    height: GAME_H * RES,
     backgroundColor: '#1b1424',
     pixelArt: true,
     roundPixels: true,
@@ -51,7 +61,7 @@ async function boot(): Promise<void> {
     fps: { target: 60 },
     scene: [
       BootScene, MenuScene, MapScene, StoryScene, CustomizeScene,
-      TutorialLevel, KitchenLevel, ForestLevel, BossLevel, MotoLevel, AmazonLevel,
+      TutorialLevel, KitchenLevel, TrailLevel, BossLevel, MotoLevel, AmazonLevel, FarmLevel,
       HUDScene, PauseScene, ResultScene,
     ],
   });
