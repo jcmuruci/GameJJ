@@ -27,7 +27,11 @@ export interface SaveData {
   upgrades: Upgrades;
   settings: Settings;
   seenIntro: boolean;
+  /** Revisão da aparência padrão (sobe quando os personagens padrão mudam). */
+  looksRev: number;
 }
+
+export const LOOKS_REV = 2;
 
 export const SAVE_KEY = 'juntos-save-v1';
 
@@ -40,6 +44,7 @@ export function defaultSave(): SaveData {
     upgrades: { speed: 0, hearts: 0, blade: 0, spark: 0 },
     settings: { music: 0.5, sfx: 0.7, padSwap: false },
     seenIntro: false,
+    looksRev: LOOKS_REV,
   };
 }
 
@@ -48,9 +53,15 @@ export function sanitize(raw: unknown): SaveData {
   const base = defaultSave();
   if (!raw || typeof raw !== 'object') return base;
   const r = raw as Partial<SaveData>;
-  const looks = Array.isArray(r.looks) && r.looks.length === 2
-    ? ([{ ...DEFAULT_P1, ...r.looks[0] }, { ...DEFAULT_P2, ...r.looks[1] }] as [CharacterLook, CharacterLook])
-    : base.looks;
+  let looks = base.looks;
+  if (Array.isArray(r.looks) && r.looks.length === 2) {
+    if (r.looksRev === LOOKS_REV) {
+      looks = [{ ...DEFAULT_P1, ...r.looks[0] }, { ...DEFAULT_P2, ...r.looks[1] }] as [CharacterLook, CharacterLook];
+    } else {
+      // aparência padrão nova (feita a partir da foto do casal): mantém só os nomes
+      looks = [{ ...DEFAULT_P1, name: r.looks[0]?.name || DEFAULT_P1.name }, { ...DEFAULT_P2, name: r.looks[1]?.name || DEFAULT_P2.name }];
+    }
+  }
   const levels: Record<string, LevelRecord> = {};
   if (r.levels && typeof r.levels === 'object') {
     for (const [k, v] of Object.entries(r.levels)) {
@@ -71,6 +82,7 @@ export function sanitize(raw: unknown): SaveData {
     upgrades: { ...base.upgrades, ...(r.upgrades ?? {}) },
     settings: { ...base.settings, ...(r.settings ?? {}) },
     seenIntro: !!r.seenIntro,
+    looksRev: LOOKS_REV,
   };
 }
 

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { CharacterLook } from '../data/characters';
-import { PG, shade, mix } from './pixel';
+import { PG, shade, mix, hexToRgb } from './pixel';
 
 /**
  * Gera a folha de sprites de um personagem a partir de um CharacterLook.
@@ -53,6 +53,8 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
   const act = frame === 3;
   const oy = walking ? 1 : 0; // balanço do corpo ao andar
   const long = L.hairStyle === 'longo' || L.hairStyle === 'ondulado';
+  const [er, eg, eb] = hexToRgb(L.eyes);
+  const lightEyes = er * 0.3 + eg * 0.59 + eb * 0.11 > 70;
 
   // ---------- PERNAS ----------
   if (dir === 'side') {
@@ -146,14 +148,19 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
   if (dir === 'down') {
     // olhos
     pg.rect(5, 7, 1, 2, L.eyes); pg.rect(10, 7, 1, 2, L.eyes);
-    pg.px(5, 7, mix(L.eyes, '#ffffff', 0.35));
-    pg.px(10, 7, mix(L.eyes, '#ffffff', 0.35));
+    if (lightEyes) { pg.px(5, 7, mix(L.eyes, '#ffffff', 0.35)); pg.px(10, 7, mix(L.eyes, '#ffffff', 0.35)); }
+    const brow = shade(L.beard !== 'nenhuma' ? L.beardColor || hair : hair, -0.15);
+    pg.px(5, 6, mix(brow, skin, long ? 0.35 : 0)); pg.px(10, 6, mix(brow, skin, long ? 0.35 : 0));
+    if (!long) { pg.px(4, 6, mix(brow, skin, 0.5)); pg.px(11, 6, mix(brow, skin, 0.5)); }
+    if (L.lashes) { pg.px(4, 7, '#1a1010'); pg.px(11, 7, '#1a1010'); }
     pg.px(4, 9, blush); pg.px(11, 9, blush);
     pg.rect(7, 10, 2, 1, act ? '#7a2a3a' : mix(skin, '#8a3a3a', 0.5));
     if (act) pg.px(7, 11, '#7a2a3a');
   } else if (dir === 'side') {
     pg.rect(4, 7, 1, 2, L.eyes);
-    pg.px(4, 7, mix(L.eyes, '#ffffff', 0.35));
+    if (lightEyes) pg.px(4, 7, mix(L.eyes, '#ffffff', 0.35));
+    pg.px(4, 6, shade(L.beard !== 'nenhuma' ? L.beardColor || hair : hair, -0.15));
+    if (L.lashes) pg.px(3, 7, '#1a1010');
     pg.px(5, 9, blush);
     pg.px(3, 10, mix(skin, '#8a3a3a', 0.5));
     pg.px(2, 8, skin); // nariz
@@ -162,10 +169,14 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
 
   // barba
   if (L.beard !== 'nenhuma' && dir !== 'up') {
-    const bc = L.beard === 'cheia' ? hair : mix(skin, hair, 0.55);
+    const beardC = L.beardColor || hair;
+    const bc = L.beard === 'cheia' ? beardC : mix(skin, beardC, 0.55);
     if (dir === 'down') {
       pg.rect(4, 10, 3, 2, bc); pg.rect(9, 10, 3, 2, bc); pg.rect(6, 11, 4, 1, bc);
-      if (L.beard === 'cheia') { pg.px(3, 9, bc); pg.px(12, 9, bc); pg.px(3, 10, bc); pg.px(12, 10, bc); pg.rect(7, 9, 2, 1, bc); }
+      if (L.beard === 'cheia') {
+        pg.px(3, 8, bc); pg.px(12, 8, bc); pg.px(3, 9, bc); pg.px(12, 9, bc); pg.px(3, 10, bc); pg.px(12, 10, bc); pg.rect(6, 9, 4, 1, bc);
+        pg.px(5, 11, shade(bc, 0.15)); pg.px(10, 11, shade(bc, 0.15));
+      }
       pg.rect(7, 10, 2, 1, mix(skin, '#8a3a3a', 0.5));
     } else {
       pg.rect(3, 10, 5, 2, bc); pg.px(7, 9, bc);
@@ -189,6 +200,18 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
 
   // ---------- CABELO (frente) ----------
   drawHairFront(pg, L, dir, hair, hairD, hairL, skin);
+
+  // ---------- MECHAS ----------
+  if (L.highlights && (L.hairStyle === 'longo' || L.hairStyle === 'ondulado')) {
+    const h = L.highlights;
+    const hl = shade(h, 0.2);
+    const pts: [number, number, string][] = dir === 'down'
+      ? [[2, 12, h], [3, 13, hl], [2, 14, h], [13, 12, h], [12, 13, hl], [13, 14, h], [1, 13, h], [14, 13, h]]
+      : dir === 'up'
+        ? [[4, 13, h], [6, 14, hl], [8, 15, h], [10, 13, h], [11, 14, hl], [5, 15, h], [12, 15, h]]
+        : [[10, 12, h], [11, 13, hl], [12, 14, h], [9, 14, h], [12, 11, h]];
+    for (const [x, y, c] of pts) pg.px(x, y, c);
+  }
 
   // ---------- ACESSÓRIO ----------
   drawAccessory(pg, L, dir);
@@ -241,8 +264,14 @@ function drawHairFront(pg: PG, L: CharacterLook, dir: Dir, hair: string, hairD: 
         } else if (st === 'curto') {
           pg.rect(3, 5, 2, 2, hair); pg.rect(11, 5, 2, 2, hair); pg.px(6, 5, hair); pg.px(7, 5, hairD); pg.px(10, 5, hair);
         } else {
-          pg.rect(3, 5, 2, 5, hair); pg.rect(11, 5, 2, 5, hair);
-          pg.px(5, 5, hair); pg.px(6, 5, hair); pg.px(9, 5, hair); pg.px(10, 5, hair);
+          if (long) {
+            // repartido no meio, emoldurando o rosto
+            pg.rect(3, 5, 1, 5, hair); pg.rect(12, 5, 1, 5, hair); pg.px(4, 5, hair); pg.px(11, 5, hair);
+            pg.px(7, 3, hairD); pg.px(8, 3, hairL);
+          } else {
+            pg.rect(3, 5, 2, 5, hair); pg.rect(11, 5, 2, 5, hair);
+            pg.px(5, 5, hair); pg.px(6, 5, hair); pg.px(9, 5, hair); pg.px(10, 5, hair);
+          }
           if (st === 'rabo' || st === 'coque') { pg.rect(3, 5, 1, 3, hair); pg.rect(12, 5, 1, 3, hair); pg.clear(4, 7); pg.px(4, 6, skin); pg.px(11, 6, skin); pg.px(4, 7, skin); pg.px(11, 7, skin); pg.px(4, 8, skin); pg.px(11, 8, skin); pg.px(4, 9, skin); pg.px(11, 9, skin); }
           if (st === 'coque') { pg.ellipse(8, 0, 2, 1, hair); pg.px(7, 0, hairL); }
           if (st === 'rabo') { pg.px(13, 4, hair); pg.px(13, 5, hair); }
@@ -309,6 +338,13 @@ function drawAccessory(pg: PG, L: CharacterLook, dir: Dir): void {
     case 'chapeu':
       pg.rect(1, 3, 14, 1, c); pg.rect(2, 4, 12, 1, cD);
       pg.rect(4, 0, 8, 3, c); pg.rect(4, 2, 8, 1, gold);
+      break;
+    case 'colar_sol':
+      if (dir === 'down') {
+        const dark = shade(c, -0.55);
+        pg.px(6, 13, c); pg.px(9, 13, c); pg.px(7, 12, shade(c, 0.25)); pg.px(8, 12, shade(c, 0.25));
+        pg.px(7, 13, dark); pg.px(8, 13, dark); pg.px(7, 14, c); pg.px(8, 14, c);
+      } else if (dir === 'side') { pg.px(4, 13, c); pg.px(5, 13, shade(c, -0.55)); }
       break;
     case 'brinco':
       if (dir === 'down') { pg.px(3, 10, gold); pg.px(12, 10, gold); }

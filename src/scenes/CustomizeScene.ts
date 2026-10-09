@@ -7,7 +7,7 @@ import { Save } from '../systems/SaveManager';
 import { generateCharacterTexture, charFrame, Dir } from '../art/CharacterArt';
 import {
   CharacterLook, SKIN_TONES, HAIR_COLORS, EYE_COLORS, CLOTH_COLORS, HAIR_STYLES, ACCESSORIES, BEARDS,
-  HAIR_STYLE_LABEL, ACCESSORY_LABEL, DEFAULT_P1, DEFAULT_P2,
+  HAIR_STYLE_LABEL, ACCESSORY_LABEL, DEFAULT_P1, DEFAULT_P2, HIGHLIGHT_COLORS,
 } from '../data/characters';
 import { cozyBackground } from './MenuScene';
 
@@ -63,12 +63,15 @@ export class CustomizeScene extends Phaser.Scene {
       { label: 'Nome', value: (l) => l.name, action: (id) => this.editName(id) },
       colorField('Pele', 'skin', SKIN_TONES),
       colorField('Cabelo', 'hair', HAIR_COLORS),
+      { label: 'Mechas', value: (l) => (l.highlights ? '■' : 'nenhuma'), change: (l, d) => { l.highlights = cycle(HIGHLIGHT_COLORS, l.highlights, d); } },
       { label: 'Penteado', value: (l) => HAIR_STYLE_LABEL[l.hairStyle], change: (l, d) => { l.hairStyle = cycle(HAIR_STYLES, l.hairStyle, d); } },
       colorField('Olhos', 'eyes', EYE_COLORS),
       colorField('Roupa', 'shirt', CLOTH_COLORS),
       colorField('Calça', 'pants', CLOTH_COLORS),
       colorField('Sapatos', 'shoes', CLOTH_COLORS),
       { label: 'Barba', value: (l) => l.beard, change: (l, d) => { l.beard = cycle(BEARDS, l.beard, d); } },
+      colorField('Cor da barba', 'beardColor', HAIR_COLORS),
+      { label: 'Cílios', value: (l) => (l.lashes ? 'marcados' : 'simples'), change: (l) => { l.lashes = !l.lashes; } },
       { label: 'Óculos', value: (l) => (l.glasses ? 'sim' : 'não'), change: (l) => { l.glasses = !l.glasses; } },
       { label: 'Acessório', value: (l) => ACCESSORY_LABEL[l.accessory], change: (l, d) => { l.accessory = cycle(ACCESSORIES, l.accessory, d); } },
       colorField('Cor do acessório', 'accessoryColor', CLOTH_COLORS),
@@ -87,11 +90,11 @@ export class CustomizeScene extends Phaser.Scene {
       this.add.image(px, 382, 'shadow').setScale(6).setAlpha(0.25).setDepth(-1);
       const lx = left ? cx + 60 : cx - 60;
       this.fields.forEach((_, k) => {
-        const t = txt(this, lx, 132 + k * 27, '', 15, { bold: false });
+        const t = txt(this, lx, 128 + k * 22, '', 14, { bold: false });
         t.setInteractive({ useHandCursor: true });
         t.on('pointerdown', () => { this.sel[i] = k; this.activate(i); });
         this.rows[i].push(t);
-        const sw = this.add.rectangle(lx + 80, 132 + k * 27, 16, 16, 0xffffff).setStrokeStyle(2, 0x2a1d2e).setVisible(false);
+        const sw = this.add.rectangle(lx + 80, 128 + k * 22, 16, 16, 0xffffff).setStrokeStyle(2, 0x2a1d2e).setVisible(false);
         this.swatches[i].push(sw);
       });
     }
@@ -123,7 +126,7 @@ export class CustomizeScene extends Phaser.Scene {
         t.setColor(selected ? '#ffd25e' : f.label === 'Pronto!' && this.ready[i] ? '#8be07a' : '#fff4e0');
         const sw = this.swatches[i][k];
         if (isColor) {
-          const key = ({ Pele: 'skin', Cabelo: 'hair', Olhos: 'eyes', Roupa: 'shirt', 'Calça': 'pants', Sapatos: 'shoes', 'Cor do acessório': 'accessoryColor' } as Record<string, keyof CharacterLook>)[f.label];
+          const key = ({ Pele: 'skin', Cabelo: 'hair', Mechas: 'highlights', 'Cor da barba': 'beardColor', Olhos: 'eyes', Roupa: 'shirt', 'Calça': 'pants', Sapatos: 'shoes', 'Cor do acessório': 'accessoryColor' } as Record<string, keyof CharacterLook>)[f.label];
           sw.setFillStyle(Phaser.Display.Color.HexStringToColor(look[key] as string).color).setVisible(true);
           sw.setX(t.x + t.width / 2 - 26);
         } else sw.setVisible(false);
