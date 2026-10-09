@@ -33,6 +33,13 @@ export function generateTrailTextures(scene: Phaser.Scene): void {
     [[5, 2], [3, 4], [7, 4], [4, 6], [6, 6]].forEach(([x, y]) => pg.ellipse(x, y, 1, 1, '#ff8fb1'));
     pg.px(5, 4, '#ffd25e');
   });
+  // folha do poema dobrada (com corações)
+  canvas(scene, 'item_poem', 12, 13, (pg) => {
+    pg.rect(1, 1, 10, 11, '#fff7e6');
+    pg.rect(1, 1, 10, 1, '#f0e2c4');
+    for (let y = 3; y <= 9; y += 2) pg.hline(3, y === 9 ? 6 : 9, y, '#b8a8c8');
+    pg.px(8, 9, '#ff7aa8'); pg.px(10, 9, '#ff7aa8'); pg.hline(8, 10, 10, '#ff7aa8'); pg.px(9, 11, '#ff7aa8');
+  });
   canvas(scene, 'paraglider', 28, 22, (pg) => {
     const cs = ['#e8424a', '#ffd25e', '#3f7fd6', '#5bbf4a', '#ff8fb1', '#f08a3a', '#b25bd6'];
     for (let i = 0; i < 26; i++) {

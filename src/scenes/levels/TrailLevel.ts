@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { PuzzleLevel } from './PuzzleLevel';
 import { TRAILS, TrailConfig } from '../../data/trails';
+import { POEM_REST } from '../../data/poem';
 import type { HUDScene } from '../HUDScene';
 import { GAME_W, GAME_H, TILE, ZOOM, RES } from '../../config';
 import { txt, fillNames } from '../../ui/text';
@@ -141,39 +142,86 @@ export class TrailLevel extends PuzzleLevel {
   }
 
   /** Pico do Itacolomi: o pedido de namoro. */
+  /** Pedido: ele entrega o resto do poema, os versos aparecem e o último verso é a pergunta. */
+  awaitingYes = false;
   private proposal(): void {
     this.cutscene = true;
     this.started = false;
+    this.awaitingYes = false;
     const [joao, ju] = this.players;
     joao.face = { x: Math.sign(ju.x - joao.x) || 1, y: 0 };
     ju.face = { x: -joao.face.x, y: 0 };
     Audio.music('ending');
     this.cameras.main.zoomTo(2.6 * RES, 1200);
+    const hud = this.hud;
     this.time.delayedCall(1200, () => {
-      joao.actTimer = 999; // ajoelhado
-      joao.sprite.setFrame(charFrame('side', 3));
-      this.say(joao, `${this.names[1]}... quer namorar comigo?`, 6000);
-      Audio.play('bell');
-      const hud = this.hud;
-      const prompt = txt(hud, GAME_W / 2, GAME_H - 90, `${this.names[1]}: aperte ${KEY_LABELS[1].action} para responder`, 20, { color: '#ffd6e4' });
-      hud.tweens.add({ targets: prompt, alpha: 0.4, yoyo: true, repeat: -1, duration: 500 });
-      const ev = this.time.addEvent({
-        delay: 16, loop: true, callback: () => {
-          if (!Input.players[1].actionPressed) return;
-          ev.remove();
-          prompt.destroy();
-          joao.actTimer = 0;
-          hud.clearBubbles();
-          this.say(ju, 'SIM!!! ♥', 3000, '#ffd6e4');
-          this.doHug(joao, ju);
-          this.fireworks();
-          this.time.delayedCall(3200, () => {
-            this.cameras.main.zoomTo(ZOOM * RES, 600);
-            this.complete(['Pedido de namoro: ACEITO ♥']);
+      this.say(joao, 'Lembra do poema incompleto? Trouxe o resto.', 2400);
+      // a folha passa das mãos dele para as dela
+      const paper = this.add.image(joao.x + joao.face.x * 7, joao.y + 3, 'item_poem').setScale(0.75).setDepth(9000);
+      this.tweens.add({ targets: paper, x: ju.x + ju.face.x * 7, y: ju.y + 3, duration: 900, delay: 900, ease: 'Sine.InOut' });
+      this.time.delayedCall(2500, () => {
+        Audio.play('pick');
+        const card = this.poemCard(hud);
+        let i = 0;
+        const nextVerse = () => {
+          if (i < card.verses.length) {
+            hud.tweens.add({ targets: card.verses[i++], alpha: 1, duration: 500 });
+            Audio.play('blip');
+            this.time.delayedCall(1300, nextVerse);
+            return;
+          }
+          // o último verso: a pergunta
+          paper.destroy();
+          joao.actTimer = 999; // ajoelhado
+          joao.sprite.setFrame(charFrame('side', 3));
+          hud.tweens.add({ targets: card.question, alpha: 1, scale: { from: 1.3, to: 1 }, duration: 500, ease: 'Back.Out' });
+          this.say(joao, `${this.names[1]}... quer namorar comigo?`, 60000);
+          Audio.play('bell');
+          const prompt = txt(hud, GAME_W / 2, GAME_H - 90, `${this.names[1]}: aperte ${KEY_LABELS[1].action} para responder`, 20, { color: '#ffd6e4' });
+          hud.tweens.add({ targets: prompt, alpha: 0.4, yoyo: true, repeat: -1, duration: 500 });
+          this.awaitingYes = true;
+          const ev = this.time.addEvent({
+            delay: 16, loop: true, callback: () => {
+              if (!Input.players[1].actionPressed) return;
+              ev.remove();
+              this.awaitingYes = false;
+              prompt.destroy();
+              hud.tweens.add({ targets: card.all, alpha: 0, duration: 400, onComplete: () => card.all.forEach((o) => o.destroy()) });
+              joao.actTimer = 0;
+              hud.clearBubbles();
+              this.say(ju, 'SIM!!! ♥', 3000, '#ffd6e4');
+              this.doHug(joao, ju);
+              this.fireworks();
+              this.time.delayedCall(3200, () => {
+                this.cameras.main.zoomTo(ZOOM * RES, 600);
+                this.complete(['Poema completo e pedido de namoro: ACEITO ♥']);
+              });
+            },
           });
-        },
+        };
+        this.time.delayedCall(600, nextVerse);
       });
     });
+  }
+
+  /** Folha com o resto do poema, desenhada na interface. */
+  private poemCard(hud: HUDScene): { all: Phaser.GameObjects.GameObject[]; verses: Phaser.GameObjects.Text[]; question: Phaser.GameObjects.Text } {
+    const w = 600;
+    const h = 64 + POEM_REST.length * 26 + 50;
+    const x = GAME_W / 2 - w / 2;
+    const y = 24;
+    const g = hud.add.graphics();
+    g.fillStyle(0x000000, 0.25).fillRoundedRect(x + 5, y + 6, w, h, 10);
+    g.fillStyle(0xfff7e6, 1).fillRoundedRect(x, y, w, h, 10);
+    g.lineStyle(3, 0xc9a87a, 1).strokeRoundedRect(x, y, w, h, 10);
+    for (let k = 0; k < POEM_REST.length + 1; k++) g.lineStyle(1, 0xe8d8c0, 1).lineBetween(x + 24, y + 70 + k * 26, x + w - 24, y + 70 + k * 26);
+    const title = txt(hud, GAME_W / 2, y + 26, 'O resto do poema', 20, { color: '#c94a7a', stroke: '#fff7e6', strokeW: 0 });
+    const verses = POEM_REST.map((v, k) => txt(hud, GAME_W / 2, y + 58 + k * 26, v, 16, { color: '#3a2a3e', stroke: '#fff7e6', strokeW: 0, bold: false }).setAlpha(0));
+    const question = txt(hud, GAME_W / 2, y + 58 + POEM_REST.length * 26 + 16, `${this.names[1]}, quer namorar comigo? ♥`, 22, { color: '#c94a7a', stroke: '#fff7e6', strokeW: 0 }).setAlpha(0);
+    const all: Phaser.GameObjects.GameObject[] = [g, title, ...verses, question];
+    [g, title].forEach((o) => o.setAlpha(0));
+    hud.tweens.add({ targets: [g, title], alpha: 1, duration: 400 });
+    return { all, verses, question };
   }
 
   private fireworks(): void {

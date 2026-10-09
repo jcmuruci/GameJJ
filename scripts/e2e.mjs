@@ -356,7 +356,11 @@ try {
   await wait(400);
   await shot('17-itacolomi');
   await evalG(() => { const s = window.__game.scene.getScene('TrailLevel'); s.players[1].teleport(s.players[0].x + 20, s.players[0].y); s.onExit(); });
-  await wait(1700);
+  await wait(4200);
+  await shot('18-poem');
+  await page.waitForFunction(() => window.__game.scene.getScene('TrailLevel').awaitingYes, null, { timeout: 15000 }).catch(() => undefined);
+  check('Poema completo leva à pergunta', await evalG(() => window.__game.scene.getScene('TrailLevel').awaitingYes));
+  await wait(300);
   await shot('18-proposal');
   await press('KeyK');
   await wait(800);

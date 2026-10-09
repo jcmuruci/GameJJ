@@ -49,11 +49,15 @@ export const STORY: Record<string, Line[]> = {
   ],
   itacolomi: [
     { who: 'n', text: 'Abril de 2026. Viagem de moto e trilha a pé até o Pico do Itacolomi.' },
+    { who: 'n', text: 'Dias antes, ele tinha entregado a ela um poema... incompleto.' },
+    { who: 1, text: 'Ainda tô pensando naquele poema. Por que ele termina no meio?!' },
+    { who: 0, text: 'Vai ver o final ainda não foi escrito...' },
     { who: 1, text: 'Você tá quieto hoje... tá tudo bem?' },
     { who: 0, text: 'Eu? Tô ótimo! É só o cansaço da subida.' },
-    { who: 'n', text: '(Ele estava levando uma pergunta muito importante.)' },
+    { who: 'n', text: '(No bolso dele: o resto do poema e uma pergunta muito importante.)' },
   ],
   itacolomi_end: [
+    { who: 1, text: 'O poema finalmente terminou... e o último verso era um pedido. ♥' },
     { who: 1, text: 'Lá em cima do Itacolomi, eu disse SIM!' },
     { who: 0, text: 'A vista mais bonita do pico era você sorrindo.' },
     { who: 'n', text: 'Abril de 2026: o começo oficial do namoro. ♥' },

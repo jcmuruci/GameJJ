@@ -37,7 +37,7 @@ O mapa é uma linha do tempo, mês a mês. Cada capítulo abre com uma cena de h
 | Jan 2026 | **Escalada e Mirante** | escalar com o parceiro dando segurança; mosquetões; foto no mirante |
 | Fev 2026 | **Cânion e Lavras Novas** | pedras, água corrente, cachoeiras, enigmas e as casinhas coloridas |
 | Mar 2026 | **O Pão de Moto** | moto até o condomínio dela; ganha a **medalha de São Bento** (protege o João do 1º golpe) |
-| Abr 2026 | **Pico do Itacolomi** | trilha a pé… e o **pedido de namoro** (ela aperta AÇÃO para dizer SIM) |
+| Abr 2026 | **Pico do Itacolomi** | trilha a pé… ele entrega o resto do poema e faz o **pedido de namoro** (ela aperta AÇÃO para dizer SIM); os versos ficam em `src/data/poem.ts` |
 | Mai 2026 | **O Italiano** | cozinha: bruschetta, sugo e pizza; garçom apressado; ganham as **alianças** (abraço cura mais) |
 | Jun 2026 | **Juiz de Fora e Festa Junina** | os pais dele; **só ela pesca** no pier; milho, canjica, peixe na brasa; quadrilha passando |
 | Jul 2026 | **Pneu Furado** | estrada de terra; pneu fura: ele segura a moto, ela aperta para consertar |
