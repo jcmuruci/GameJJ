@@ -31,7 +31,7 @@ export interface SaveData {
   looksRev: number;
 }
 
-export const LOOKS_REV = 2;
+export const LOOKS_REV = 3;
 
 export const SAVE_KEY = 'juntos-save-v1';
 

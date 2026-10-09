@@ -64,9 +64,9 @@ A pasta `dist/` é um site estático — funciona em qualquer hospedagem.
 
 ## Deixar os personagens parecidos com vocês
 
-Os personagens padrão já foram desenhados a partir da foto do casal (ele: cabelo raspado, barba cheia,
-olhos azul-acinzentados, moletom preto; ela: cabelo longo ondulado com mechas, delineado, blusa preta e
-colar de sol). Os sprites são gerados por código — nenhuma foto vai para o jogo. Para ajustar:
+Os personagens padrão já foram desenhados a partir da foto e da descrição do casal (ele: careca, barba
+loira, olhos azuis, corpo médio, tatuagem fechando o braço direito; ela: magra e elegante, cabelos longos
+e escuros, delineado, blusa preta e colar de sol). Os sprites são gerados por código — nenhuma foto vai para o jogo. Para ajustar:
 
 1. **No jogo:** menu → *Personagens*. Cada um ajusta nome, pele, cabelo, penteado, olhos, roupas,
    barba, óculos e acessório. Fica salvo no navegador.

@@ -41,7 +41,9 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
   const skinD = shade(skin, -0.18);
   const hair = L.hair;
   const hairD = shade(hair, -0.3);
-  const hairL = shade(hair, 0.25);
+  const [hr, hg, hb] = hexToRgb(hair);
+  // brilho do cabelo: em cabelo bem escuro, um reflexo quente em vez de cinza
+  const hairL = hr * 0.3 + hg * 0.59 + hb * 0.11 < 50 ? mix(hair, '#a8704a', 0.4) : shade(hair, 0.25);
   const shirt = L.shirt;
   const shirtD = shade(shirt, -0.28);
   const shirtL = shade(shirt, 0.2);
@@ -56,26 +58,48 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
   const [er, eg, eb] = hexToRgb(L.eyes);
   const lightEyes = er * 0.3 + eg * 0.59 + eb * 0.11 > 70;
 
+  // ---------- TIPO DE CORPO ----------
+  const bw = L.build === 'magro' ? 6 : L.build === 'forte' ? 10 : 8; // largura do tronco
+  const bx = 8 - bw / 2; // x inicial do tronco
+  const aLx = bx - 1; // braço à esquerda da tela
+  const aRx = bx + bw; // braço à direita da tela
+  const legW = L.build === 'magro' ? 3 : L.build === 'forte' ? 4 : 3;
+  const short = L.sleeves === 'curtas';
+  const ink = L.tattooColor || '#2f3a5a';
+  // braço direito do personagem: de frente fica à esquerda da tela; de costas, à direita
+  const tatScreenLeft = (L.tattoo === 'braco_direito' && dir === 'down') || (L.tattoo === 'braco_esquerdo' && dir === 'up') || L.tattoo === 'dois_bracos';
+  const tatScreenRight = (L.tattoo === 'braco_direito' && dir === 'up') || (L.tattoo === 'braco_esquerdo' && dir === 'down') || L.tattoo === 'dois_bracos';
+  const tatSide = L.tattoo !== 'nenhuma';
+
+  /** Braço vertical de 1px: manga + pele (+ tatuagem) + mão. */
+  const arm = (x: number, y0: number, sleeveC: string, tattooed: boolean) => {
+    if (short) {
+      pg.px(x, y0, sleeveC);
+      for (let k = 1; k <= 3; k++) pg.px(x, y0 + k, tattooed ? (k % 2 ? ink : mix(ink, skin, 0.45)) : skin);
+    } else {
+      pg.rect(x, y0, 1, 4, sleeveC);
+    }
+    pg.px(x, y0 + 4, skin);
+  };
+
   // ---------- PERNAS ----------
   if (dir === 'side') {
     if (frame === 1) {
       pg.rect(4, 18, 3, 3, pants); pg.rect(9, 18, 3, 3, pantsD);
       pg.rect(3, 21, 4, 2, shoes); pg.rect(9, 21, 4, 2, shade(shoes, -0.25));
-    } else if (frame === 2) {
-      pg.rect(6, 18, 4, 4, pants);
-      pg.rect(5, 21, 5, 2, shoes);
     } else {
-      pg.rect(6, 18, 4, 4, pants);
-      pg.rect(5, 21, 5, 2, shoes);
+      const lw = L.build === 'magro' ? 3 : 4;
+      pg.rect(6, 18, lw, 4, pants);
+      pg.rect(5, 21, lw + 1, 2, shoes);
     }
   } else {
     const lUp = frame === 1 ? 1 : 0;
     const rUp = frame === 2 ? 1 : 0;
-    pg.rect(4, 18, 8, 2, pants);
-    pg.rect(5, 20, 3, 2 - lUp, pants);
-    pg.rect(8, 20, 3, 2 - rUp, pantsD);
-    pg.rect(4, 22 - lUp, 4, 2, shoes);
-    pg.rect(8, 22 - rUp, 4, 2, shade(shoes, -0.2));
+    pg.rect(bx, 18, bw, 2, pants);
+    pg.rect(8 - legW, 20, legW, 2 - lUp, pants);
+    pg.rect(8, 20, legW, 2 - rUp, pantsD);
+    pg.rect(8 - legW - (L.build === 'magro' ? 0 : 1), 22 - lUp, legW + (L.build === 'magro' ? 0 : 1), 2, shoes);
+    pg.rect(8, 22 - rUp, legW + (L.build === 'magro' ? 0 : 1), 2, shade(shoes, -0.2));
   }
 
   pg.oy += oy;
@@ -101,33 +125,54 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
 
   // ---------- CORPO ----------
   if (dir === 'side') {
-    pg.rect(5, 12, 6, 6, shirt);
-    pg.rect(9, 12, 2, 6, shirtD);
-    pg.rect(5, 17, 6, 1, shade(shirt, -0.45)); // cinto
+    const sx = L.build === 'magro' ? 6 : 5;
+    const sw2 = L.build === 'magro' ? 5 : L.build === 'forte' ? 7 : 6;
+    pg.rect(sx, 12, sw2, 6, shirt);
+    pg.rect(sx + sw2 - 2, 12, 2, 6, shirtD);
+    pg.rect(sx, 17, sw2, 1, shade(shirt, -0.45)); // cinto
     if (act) {
-      pg.rect(1, 13, 5, 2, shirtL); pg.px(0, 13, skin); pg.px(0, 14, skin);
+      if (short) {
+        pg.rect(4, 13, 2, 2, shirtL);
+        for (let x = 1; x <= 3; x++) { pg.px(x, 13, tatSide ? (x % 2 ? ink : mix(ink, skin, 0.45)) : skin); pg.px(x, 14, tatSide ? mix(ink, skin, 0.3) : skin); }
+      } else pg.rect(1, 13, 5, 2, shirtL);
+      pg.px(0, 13, skin); pg.px(0, 14, skin);
     } else {
       const sw = frame === 1 ? -1 : frame === 2 ? 1 : 0;
-      pg.rect(7 + sw, 12, 2, 4, shirtL); pg.rect(7 + sw, 16, 2, 1, skin);
+      if (short) {
+        pg.rect(7 + sw, 12, 2, 1, shirtL);
+        for (let k = 13; k <= 15; k++) {
+          pg.px(7 + sw, k, tatSide ? (k % 2 ? ink : mix(ink, skin, 0.45)) : skin);
+          pg.px(8 + sw, k, tatSide ? (k % 2 ? mix(ink, skin, 0.45) : ink) : skin);
+        }
+      } else pg.rect(7 + sw, 12, 2, 4, shirtL);
+      pg.rect(7 + sw, 16, 2, 1, skin);
     }
   } else {
-    pg.rect(4, 12, 8, 6, shirt);
-    pg.rect(10, 12, 2, 6, shirtD);
-    pg.rect(4, 17, 8, 1, shade(shirt, -0.45));
+    pg.rect(bx, 12, bw, 6, shirt);
+    pg.rect(bx + bw - 2, 12, 2, 6, shirtD);
+    pg.rect(bx, 17, bw, 1, shade(shirt, -0.45));
+    if (L.build === 'magro' && dir === 'down') { pg.px(bx, 16, shade(shirt, -0.2)); pg.px(bx + bw - 1, 16, shade(shirt, -0.35)); } // cintura fina
     if (dir === 'down') {
       // gola e detalhe de classe
       pg.px(7, 12, skin); pg.px(8, 12, skin);
       if (role === 0) { pg.px(6, 13, shirtL); pg.px(9, 13, shirtL); pg.rect(7, 17, 2, 1, '#ffd25e'); }
-      else { pg.px(7, 14, '#ffd25e'); pg.px(8, 14, '#ffd25e'); pg.px(7, 13, '#fff1a8'); }
+      else if (L.accessory !== 'colar_sol') { pg.px(7, 14, '#ffd25e'); pg.px(8, 14, '#ffd25e'); pg.px(7, 13, '#fff1a8'); }
     }
     if (act) {
-      pg.rect(2, 11, 2, 3, shirtL); pg.rect(12, 11, 2, 3, shirtD);
-      pg.px(2, 10, skin); pg.px(13, 10, skin);
+      // braços erguidos
+      const up = (x: number, c: string, tattooed: boolean) => {
+        pg.rect(x, 11, 2, 1, c);
+        pg.rect(x, 12, 2, 2, short ? (tattooed ? ink : skin) : c);
+        if (short && tattooed) pg.px(x, 12, mix(ink, skin, 0.45));
+      };
+      up(aLx - 1, shirtL, tatScreenLeft);
+      up(aRx, shirtD, tatScreenRight);
+      pg.px(aLx - 1, 10, skin); pg.px(aRx + 1, 10, skin);
     } else {
       const aL = frame === 1 ? 1 : 0;
       const aR = frame === 2 ? 1 : 0;
-      pg.rect(3, 12 + aL, 1, 4, shirtL); pg.px(3, 16 + aL, skin);
-      pg.rect(12, 12 + aR, 1, 4, shirtD); pg.px(12, 16 + aR, skin);
+      arm(aLx, 12 + aL, shirtL, tatScreenLeft);
+      arm(aRx, 12 + aR, shirtD, tatScreenRight);
     }
     if (role === 0 && dir === 'up') {
       // espada nas costas
@@ -135,7 +180,7 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
     }
     if (role === 1 && dir === 'up') {
       // capa da maga
-      pg.rect(4, 12, 8, 6, shade(shirt, -0.12)); pg.rect(5, 17, 6, 1, shirtD);
+      pg.rect(bx, 12, bw, 6, shade(shirt, -0.12)); pg.rect(bx + 1, 17, bw - 2, 1, shirtD);
     }
   }
 
@@ -222,6 +267,16 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
 function drawHairFront(pg: PG, L: CharacterLook, dir: Dir, hair: string, hairD: string, hairL: string, skin: string): void {
   const st = L.hairStyle;
   const long = st === 'longo' || st === 'ondulado';
+  if (st === 'careca') {
+    // cabeça lisa com brilho
+    const shine = shade(skin, 0.35);
+    const side = shade(skin, -0.1);
+    pg.rect(5, 2, 6, 1, skin); pg.px(4, 3, skin); pg.px(11, 3, skin); // topo arredondado
+    if (dir === 'up') { pg.px(6, 4, shine); pg.px(7, 3, shine); pg.px(8, 3, shine); pg.px(3, 6, side); pg.px(12, 6, side); }
+    else if (dir === 'down') { pg.px(6, 3, shine); pg.px(7, 3, shine); pg.px(5, 4, shine); pg.px(3, 5, side); pg.px(12, 5, side); }
+    else { pg.px(5, 3, shine); pg.px(6, 3, shine); pg.px(4, 4, shine); pg.px(12, 6, side); }
+    return;
+  }
   if (dir === 'up') {
     if (st === 'raspado') {
       pg.rect(4, 3, 8, 7, shade(skin, -0.05)); pg.rect(4, 2, 8, 6, mix(skin, hair, 0.6));
