@@ -31,7 +31,9 @@ export interface SaveData {
   looksRev: number;
 }
 
-export const LOOKS_REV = 3;
+export const LOOKS_REV = 4;
+/** Nomes provisórios antigos, trocados pelos nomes reais do casal. */
+const PLACEHOLDER_NAMES = ['Jota', 'Mel'];
 
 export const SAVE_KEY = 'juntos-save-v1';
 
@@ -58,8 +60,9 @@ export function sanitize(raw: unknown): SaveData {
     if (r.looksRev === LOOKS_REV) {
       looks = [{ ...DEFAULT_P1, ...r.looks[0] }, { ...DEFAULT_P2, ...r.looks[1] }] as [CharacterLook, CharacterLook];
     } else {
-      // aparência padrão nova (feita a partir da foto do casal): mantém só os nomes
-      looks = [{ ...DEFAULT_P1, name: r.looks[0]?.name || DEFAULT_P1.name }, { ...DEFAULT_P2, name: r.looks[1]?.name || DEFAULT_P2.name }];
+      // aparência padrão nova (feita a partir da foto do casal): mantém só nomes personalizados
+      const keep = (n: unknown, def: string) => (typeof n === 'string' && n && !PLACEHOLDER_NAMES.includes(n) ? n : def);
+      looks = [{ ...DEFAULT_P1, name: keep(r.looks[0]?.name, DEFAULT_P1.name) }, { ...DEFAULT_P2, name: keep(r.looks[1]?.name, DEFAULT_P2.name) }];
     }
   }
   const levels: Record<string, LevelRecord> = {};

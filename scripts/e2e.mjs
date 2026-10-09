@@ -61,7 +61,8 @@ try {
   await wait(1500);
   await shot('02-story');
   await press('Escape');
-  await wait(900);
+  await page.waitForFunction(() => window.__game.scene.isActive('Map'), null, { timeout: 5000 }).catch(() => undefined);
+  await wait(400);
   check('Pular história leva ao mapa', (await activeScenes()).includes('Map'));
   await shot('03-map');
 

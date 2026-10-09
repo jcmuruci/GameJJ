@@ -47,7 +47,7 @@ export interface CharacterLook {
  * tatuagem fechando o braço direito inteiro, camiseta preta.
  */
 export const DEFAULT_P1: CharacterLook = {
-  name: 'Jota',
+  name: 'João',
   skin: '#f0c2a2',
   hair: '#d8b468',
   hairStyle: 'careca',
@@ -74,7 +74,7 @@ export const DEFAULT_P1: CharacterLook = {
  * pele morena dourada, olhos castanho-escuros com delineado, blusa preta e colar de sol.
  */
 export const DEFAULT_P2: CharacterLook = {
-  name: 'Mel',
+  name: 'Juliana',
   skin: '#c98d62',
   hair: '#2a1a12',
   hairStyle: 'ondulado',

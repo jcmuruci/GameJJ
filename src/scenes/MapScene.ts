@@ -127,8 +127,7 @@ export class MapScene extends Phaser.Scene {
     this.add.image(880, 384, 'gator', 0).setScale(1.6);
     this.add.image(60, 300, 'big_rock').setScale(1.1);
     this.add.image(430, 240, 'waterfall', 0).setScale(1.1);
-    this.add.image(560, 270, 'waterfall', 0).setScale(0.9);
-    this.add.image(690, 350, 'table').setScale(1.8);
+    this.add.image(560, 380, 'table').setScale(1.8);
     this.add.image(890, 170, 'pillar').setScale(2.4);
   }
 
