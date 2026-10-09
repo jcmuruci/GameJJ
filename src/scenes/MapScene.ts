@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_W, GAME_H } from '../config';
-import { LEVELS, UPGRADES, LevelInfo } from '../data/levels';
+import { LEVELS, UPGRADES, LevelInfo, unlockedCount } from '../data/levels';
 import { Save } from '../systems/SaveManager';
 import { Input, KEY_LABELS } from '../systems/InputManager';
 import { Audio } from '../systems/Audio';
@@ -35,53 +35,57 @@ export class MapScene extends Phaser.Scene {
   }
 
   unlockedCount(): number {
-    let n = 1;
-    for (let i = 0; i < LEVELS.length - 1; i++) {
-      if (Save.data.levels[LEVELS[i].id]?.done) n = i + 2;
-      else break;
-    }
-    return Math.min(n, LEVELS.length);
+    return unlockedCount((id) => !!Save.data.levels[id]?.done);
   }
 
   create(): void {
     this.drawWorld();
     const unlocked = this.unlockedCount();
-    // caminhos
+    // caminho da linha do tempo
     const g = this.add.graphics();
     for (let i = 0; i < LEVELS.length - 1; i++) {
       const a = LEVELS[i].map;
       const b = LEVELS[i + 1].map;
-      const steps = Math.floor(Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y) / 14);
+      const steps = Math.floor(Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y) / 13);
+      const soon = LEVELS[i + 1].soon;
       for (let s = 1; s < steps; s++) {
+        if (soon && s % 2) continue;
         const t = s / steps;
         const x = a.x + (b.x - a.x) * t;
-        const y = a.y + (b.y - a.y) * t - Math.sin(t * Math.PI) * 20;
+        const y = a.y + (b.y - a.y) * t - (a.y === b.y ? Math.sin(t * Math.PI) * 12 : 0);
         g.fillStyle(i + 1 < unlocked ? 0xfff4e0 : 0x6a5a7a, 1).fillRect(x - 3, y - 3, 6, 6);
       }
     }
     LEVELS.forEach((l, i) => {
       const open = i < unlocked;
-      const node = this.add.image(l.map.x, l.map.y, open ? 'map_node' : 'map_node_locked').setScale(2.4);
-      if (open) this.tweens.add({ targets: node, scale: 2.6, duration: 700, yoyo: true, repeat: -1, delay: i * 100 });
-      txt(this, l.map.x, l.map.y + 34, l.name, 13, { color: open ? '#fff4e0' : '#9a8aaa' });
-      const rec = Save.data.levels[l.id];
-      for (let s = 0; s < 3; s++) {
-        this.add.image(l.map.x - 18 + s * 18, l.map.y - 32, rec && rec.stars > s ? 'ui_star' : 'ui_star_empty').setScale(1.6);
+      const { x, y } = l.map;
+      if (l.icon) this.add.image(x + 34, y + 4, l.icon.key, 0).setScale(l.icon.scale).setAlpha(l.soon ? 0.45 : 0.95);
+      const node = this.add.image(x, y, open ? 'map_node' : 'map_node_locked').setScale(2);
+      if (open) this.tweens.add({ targets: node, scale: 2.2, duration: 700, yoyo: true, repeat: -1, delay: i * 90 });
+      txt(this, x, y + 26, l.month, 11, { color: l.soon ? '#9a8aaa' : '#ffd25e' });
+      txt(this, x, y + 41, l.soon && l.id === 'storm' ? '???' : l.short, 13, { color: open ? '#fff4e0' : '#9a8aaa' });
+      if (!l.soon) {
+        const rec = Save.data.levels[l.id];
+        for (let s = 0; s < 3; s++) this.add.image(x - 14 + s * 14, y - 26, rec && rec.stars > s ? 'ui_star' : 'ui_star_empty').setScale(1.25);
       }
     });
 
     const riders = [1, 0].map((i) => this.add.sprite(i === 0 ? 5 : -5, i === 0 ? -11 : -13, `char_${i}`, charFrame('side', 0)).setFlipX(true));
-    this.moto = this.add.container(0, 0, [...riders, this.add.image(0, 0, 'moto')]).setScale(1.8).setDepth(10);
+    this.moto = this.add.container(0, 0, [...riders, this.add.image(0, 0, 'moto')]).setScale(1.6).setDepth(10);
     this.placeCouple(false);
 
-    // HUD superior
+    // topo: título, lembranças, moedas e estrelas
     const top = this.add.graphics();
     top.fillStyle(0x1b1424, 0.75).fillRoundedRect(GAME_W - 250, 12, 238, 44, 10);
     this.add.image(GAME_W - 226, 34, 'ui_coin').setScale(3);
     this.coinsText = txt(this, GAME_W - 204, 34, '', 20, { origin: [0, 0.5], color: '#ffd25e' });
     this.add.image(GAME_W - 110, 34, 'ui_star').setScale(2);
-    txt(this, GAME_W - 92, 34, `${Save.totalStars}/${LEVELS.length * 3}`, 20, { origin: [0, 0.5] });
-    txt(this, 24, 30, 'Mapa da Aventura', 28, { origin: [0, 0.5], color: '#ffd6e4' });
+    const maxStars = LEVELS.filter((l) => !l.soon).length * 3;
+    txt(this, GAME_W - 92, 34, `${Save.totalStars}/${maxStars}`, 20, { origin: [0, 0.5] });
+    txt(this, 24, 28, 'Nossa Linha do Tempo', 26, { origin: [0, 0.5], color: '#ffd6e4' });
+    const rel = Save.data.relics;
+    const relics = [rel.medalha ? 'Medalha de São Bento' : '', rel.aliancas ? 'Alianças' : ''].filter(Boolean);
+    txt(this, 24, 54, relics.length ? `Lembranças: ${relics.join(' · ')}` : 'Lembranças: complete capítulos para ganhar', 12, { origin: [0, 0.5], color: '#d8c8e8', bold: false });
 
     // painel de informação
     panel(this, 20, GAME_H - 132, 560, 116);
@@ -93,15 +97,15 @@ export class MapScene extends Phaser.Scene {
     ];
     panel(this, 600, GAME_H - 132, 340, 116);
     const k = KEY_LABELS;
-    uiButton(this, 770, GAME_H - 104, `Jogar fase (${k[0].action}/${k[1].action})`, () => this.playSelected(), { minW: 300, color: 0xffd25e });
+    uiButton(this, 770, GAME_H - 104, `Jogar capítulo (${k[0].action}/${k[1].action})`, () => this.playSelected(), { minW: 300, color: 0xffd25e });
     uiButton(this, 770, GAME_H - 72, `Loja (${k[0].ability}/${k[1].ability})`, () => { if (!this.shop) { Audio.play('confirm'); this.openShop(); } }, { minW: 300 });
     uiButton(this, 770, GAME_H - 40, 'Menu principal (Esc)', () => this.toMenu(), { minW: 300 });
     // tocar/clicar numa fase: seleciona; tocar de novo: joga
     LEVELS.forEach((l, i) => {
-      const hit = this.add.zone(l.map.x, l.map.y, 70, 70).setInteractive({ useHandCursor: true });
+      const hit = this.add.zone(l.map.x, l.map.y, 64, 64).setInteractive({ useHandCursor: true });
       hit.on('pointerdown', () => {
         if (this.shop || this.moving || this.leaving) return;
-        if (i >= this.unlockedCount()) { Audio.play('wrong'); return; }
+        if (i >= this.unlockedCount()) { Audio.play('wrong'); this.showLocked(l); return; }
         if (i === this.sel) { this.playSelected(); return; }
         this.sel = i;
         Audio.play('select');
@@ -114,34 +118,27 @@ export class MapScene extends Phaser.Scene {
     this.cameras.main.fadeIn(300, 27, 20, 36);
   }
 
+  /** Mostra no painel por que um capítulo está bloqueado. */
+  private showLocked(l: LevelInfo): void {
+    this.infoTexts[0].setText(l.soon ? `${l.month}: ${l.name}` : l.name);
+    this.infoTexts[1].setText(l.soon ? 'Capítulo futuro' : 'Bloqueado');
+    this.infoTexts[2].setText(l.soon ? 'Este capítulo ainda vai ser vivido por vocês. Em breve!' : 'Completem o capítulo anterior para liberar.');
+    this.infoTexts[3].setText('');
+  }
+
   private drawWorld(): void {
-    this.add.tileSprite(0, 0, GAME_W / 3, GAME_H / 3, 'tiles', 4).setOrigin(0).setScale(3);
+    this.add.tileSprite(0, 0, GAME_W / 3, GAME_H / 3, 'tiles', 0).setOrigin(0).setScale(3);
     const g = this.add.graphics();
-    g.fillStyle(0x7ccf5a, 1);
-    g.fillEllipse(480, 300, 900, 520);
-    g.fillStyle(0x62b048, 1);
-    g.fillEllipse(480, 310, 820, 440);
-    g.fillStyle(0x7ccf5a, 1);
-    g.fillEllipse(470, 300, 800, 420);
-    g.fillStyle(0x9a8a7a, 1).fillTriangle(760, 210, 880, 210, 820, 70);
-    g.fillStyle(0xe8e0f4, 1).fillTriangle(800, 120, 840, 120, 820, 70);
-    const r = new Phaser.Math.RandomDataGenerator(['map']);
-    for (let i = 0; i < 40; i++) {
-      const x = r.between(110, 880);
-      const y = r.between(110, 520);
-      if (LEVELS.some((l) => Math.abs(x - l.map.x) < 80 && y - l.map.y > -60 && y - l.map.y < 90)) continue;
-      if (y > 400 || x > 800 || (x < 120 && y > 240 && y < 340)) continue;
-      this.add.image(x, y, r.pick(['tree_big', 'tree_big', 'tree_pink', 'bush'])).setScale(1.6);
+    g.fillStyle(0x1b1424, 0.18).fillRect(0, 0, GAME_W, GAME_H);
+    // nuvenzinhas sobre os capítulos futuros
+    g.fillStyle(0xffffff, 0.35).fillEllipse(330, 345, 300, 80);
+    const r = new Phaser.Math.RandomDataGenerator(['timeline']);
+    for (let i = 0; i < 26; i++) {
+      const x = r.between(30, 930);
+      const y = r.between(70, 400);
+      if (LEVELS.some((l) => Math.abs(x - l.map.x) < 75 && Math.abs(y - l.map.y) < 60)) continue;
+      this.add.image(x, y, r.pick(['tree_big', 'tree_pink', 'tree_ipe', 'bush', 'bush'])).setScale(1.2).setAlpha(0.9);
     }
-    // Amazônia: ilha de floresta densa com rio e jacaré
-    g.fillStyle(0x2f7a3a, 1).fillEllipse(880, 345, 150, 120);
-    g.fillStyle(0x4aa8e8, 1).fillRect(812, 380, 136, 8);
-    for (const [x, y] of [[830, 300], [925, 310], [845, 360], [915, 365]]) this.add.image(x, y, 'tree_jungle').setScale(1.3);
-    this.add.image(880, 384, 'gator', 0).setScale(1.6);
-    this.add.image(60, 300, 'big_rock').setScale(1.1);
-    this.add.image(430, 240, 'waterfall', 0).setScale(1.1);
-    this.add.image(560, 380, 'table').setScale(1.8);
-    this.add.image(890, 170, 'pillar').setScale(2.4);
   }
 
   private placeCouple(animate: boolean): void {
@@ -160,10 +157,10 @@ export class MapScene extends Phaser.Scene {
   private refreshInfo(): void {
     const l: LevelInfo = LEVELS[this.sel];
     const rec = Save.data.levels[l.id];
-    this.infoTexts[0].setText(l.name);
+    this.infoTexts[0].setText(`${l.month} · ${l.name}`);
     this.infoTexts[1].setText(l.subtitle);
     this.infoTexts[2].setText(l.goal);
-    this.infoTexts[3].setText(rec?.done ? `Melhor: ${rec.stars} estrela(s)${rec.best ? ` · ${rec.best} pts` : ''}` : 'Ainda não concluída');
+    this.infoTexts[3].setText(rec?.done ? `Melhor: ${rec.stars} estrela(s)${rec.best ? ` · ${rec.best} pts` : ''}` : l.reward ? `Lembrança ao vencer: ${l.reward === 'medalha' ? 'Medalha de São Bento' : 'Alianças'}` : 'Ainda não concluído');
     this.coinsText.setText(String(Save.data.coins));
     this.starImgs.forEach((s) => s.destroy());
   }

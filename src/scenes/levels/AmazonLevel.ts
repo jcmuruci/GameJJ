@@ -131,31 +131,6 @@ export class AmazonLevel extends PuzzleLevel {
     }
   }
 
-  private spawnVines(tx: number, ty: number): void {
-    const c = this.tileCenter(tx, ty);
-    const img = this.add.image(c.x, c.y, 'vines').setDepth(c.y);
-    const zone = this.addSolid(tx, ty);
-    let hint = 0;
-    const it: Interactable = {
-      x: c.x, y: c.y,
-      selectable: () => false,
-      onStrike: (p) => {
-        if (p.id !== 0) return false;
-        this.removeInteractable(it);
-        this.sfx('chop');
-        this.burst(c.x, c.y, 'fx_leaf', 12, { speed: 60, lifespan: 600 });
-        this.tweens.add({ targets: img, alpha: 0, scaleY: 0.2, duration: 250, onComplete: () => img.destroy() });
-        this.setSolidEnabled(zone, false);
-        return true;
-      },
-      onMagic: (p) => {
-        if (this.time.now > hint) { hint = this.time.now + 5000; this.say(p, `Cipó molhado não pega fogo... ${this.names[0]}, a espada!`, 2000); }
-        return true;
-      },
-    };
-    this.interactables.push(it);
-  }
-
   private spawnNest(tx: number, ty: number): void {
     const c = this.tileCenter(tx, ty);
     const img = this.add.image(c.x, c.y - 4, 'nest').setDepth(c.y + 4);

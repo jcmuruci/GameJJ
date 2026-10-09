@@ -1,4 +1,5 @@
 import { CharacterLook, DEFAULT_P1, DEFAULT_P2 } from '../data/characters';
+import { LEVELS } from '../data/levels';
 
 export interface LevelRecord {
   done: boolean;
@@ -19,6 +20,13 @@ export interface Settings {
   padSwap: boolean;
 }
 
+export interface Relics {
+  /** Mar/2026: medalha de São Bento (protege o João do primeiro golpe em cada fase). */
+  medalha: boolean;
+  /** Mai/2026: alianças (abraços curam mais e mais vezes). */
+  aliancas: boolean;
+}
+
 export interface SaveData {
   version: 1;
   looks: [CharacterLook, CharacterLook];
@@ -27,6 +35,7 @@ export interface SaveData {
   upgrades: Upgrades;
   settings: Settings;
   seenIntro: boolean;
+  relics: Relics;
   /** Revisão da aparência padrão (sobe quando os personagens padrão mudam). */
   looksRev: number;
 }
@@ -46,6 +55,7 @@ export function defaultSave(): SaveData {
     upgrades: { speed: 0, hearts: 0, blade: 0, spark: 0 },
     settings: { music: 0.5, sfx: 0.7, padSwap: false },
     seenIntro: false,
+    relics: { medalha: false, aliancas: false },
     looksRev: LOOKS_REV,
   };
 }
@@ -85,6 +95,7 @@ export function sanitize(raw: unknown): SaveData {
     upgrades: { ...base.upgrades, ...(r.upgrades ?? {}) },
     settings: { ...base.settings, ...(r.settings ?? {}) },
     seenIntro: !!r.seenIntro,
+    relics: { medalha: !!r.relics?.medalha, aliancas: !!r.relics?.aliancas },
     looksRev: LOOKS_REV,
   };
 }
@@ -138,7 +149,7 @@ class SaveManagerImpl {
   }
 
   get totalStars(): number {
-    return Object.values(this.data.levels).reduce((s, l) => s + l.stars, 0);
+    return LEVELS.filter((l) => !l.soon).reduce((s, l) => s + (this.data.levels[l.id]?.stars ?? 0), 0);
   }
 }
 

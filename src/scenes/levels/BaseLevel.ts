@@ -68,6 +68,9 @@ export abstract class BaseLevel extends Phaser.Scene {
   reviveProgress = [0, 0];
   reviveBars!: Phaser.GameObjects.Graphics;
   camTarget!: Phaser.GameObjects.Zone;
+  /** Textura do coletável principal da fase (cristal, mosquetão, flor...). */
+  crystalTex = 'item_crystal';
+  crystalName = 'Cristal do Coração';
   defaultFloor: number = T.GRASS;
   objectFloor: number = T.GRASS;
   terrain: Record<string, number> = DEFAULT_TERRAIN;
@@ -76,6 +79,7 @@ export abstract class BaseLevel extends Phaser.Scene {
   private heartT = 0;
   private bumpCd = 0;
   private hugCd = 0;
+  private medalUsed = false;
   protected levelData: Record<string, unknown> = {};
 
   abstract mapRows(): string[];
@@ -111,6 +115,7 @@ export abstract class BaseLevel extends Phaser.Scene {
     this.heartT = 0;
     this.bumpCd = 0;
     this.hugCd = 0;
+    this.medalUsed = false;
 
     const save = Save.data;
     this.names = [save.looks[0].name, save.looks[1].name];
@@ -330,7 +335,7 @@ export abstract class BaseLevel extends Phaser.Scene {
   }
 
   addPickup(kind: 'coin' | 'heart' | 'crystal', x: number, y: number): void {
-    const img = this.add.image(x, y, kind === 'coin' ? 'ui_coin' : kind === 'heart' ? 'item_heart' : 'item_crystal').setDepth(y);
+    const img = this.add.image(x, y, kind === 'coin' ? 'ui_coin' : kind === 'heart' ? 'item_heart' : this.crystalTex).setDepth(y);
     this.pickups.push({ img, kind, taken: false, baseY: y });
   }
 
@@ -346,7 +351,7 @@ export abstract class BaseLevel extends Phaser.Scene {
     } else {
       this.stats.crystals++;
       this.sfx('crystal');
-      this.hud?.toast(`Cristal do Coração! (${this.stats.crystals}/3)`, '#ff9cc2');
+      this.hud?.toast(`${this.crystalName}! (${this.stats.crystals}/3)`, '#ff9cc2');
       this.burst(p.x, p.y - 10, 'fx_spark', 14, { speed: 70 });
     }
   }
@@ -354,6 +359,16 @@ export abstract class BaseLevel extends Phaser.Scene {
   // ------------------------------------------------------------------ dano, desmaio, reviver, abraço
   damagePlayer(p: Player, n: number, fromX: number, fromY: number): void {
     if (this.ended || p.fainted || p.invuln > 0) return;
+    if (p.id === 0 && Save.data.relics.medalha && !this.medalUsed) {
+      // a medalha de São Bento protege o João do primeiro golpe da fase
+      this.medalUsed = true;
+      p.invuln = 1.2;
+      p.pushBack(fromX, fromY, 100, 0.12);
+      this.sfx('crystal');
+      this.burst(p.x, p.y - 12, 'fx_spark', 14, { speed: 60, tint: 0xffd25e });
+      this.hud?.floatText(p.x, p.y - 34, 'A medalha de São Bento protegeu!', '#ffd25e');
+      return;
+    }
     p.hp -= n;
     p.invuln = 1.3;
     p.pushBack(fromX, fromY);
@@ -417,9 +432,10 @@ export abstract class BaseLevel extends Phaser.Scene {
     this.burst(mx, my - 18, 'fx_heart', 10, { speed: 50, lifespan: 900 });
     if (this.hugCd <= 0) {
       let healed = false;
-      for (const p of [a, b]) if (p.hp < p.maxHp) { p.hp++; healed = true; }
-      this.hud?.floatText(mx, my - 34, healed ? 'Abraço! +1 ♥' : 'Abraço!', '#ff9cc2');
-      this.hugCd = 12;
+      const heal = Save.data.relics.aliancas ? 2 : 1;
+      for (const p of [a, b]) if (p.hp < p.maxHp) { p.hp = Math.min(p.maxHp, p.hp + heal); healed = true; }
+      this.hud?.floatText(mx, my - 34, healed ? `Abraço! +${heal} ♥` : 'Abraço!', '#ff9cc2');
+      this.hugCd = Save.data.relics.aliancas ? 8 : 12;
     } else {
       this.hud?.floatText(mx, my - 34, 'Abraço!', '#ffd6e4');
     }

@@ -207,8 +207,9 @@ try {
   const hugsAfter = await evalG(() => window.__game.scene.getScene('TutorialLevel').stats.hugs);
   check('Reiniciar fase pela pausa', sc.includes('TutorialLevel') && sc.includes('HUD') && !sc.includes('Pause') && hugsAfter === 0, sc.join(','));
 
-  // ---------------------------------------------------------------- COZINHA
-  await startScene('KitchenLevel', { levelId: 'picnic' });
+  // ---------------------------------------------------------------- O ITALIANO (cozinha)
+  const K = 'KitchenLevel';
+  await startScene(K, { levelId: 'italiano' });
   await wait(500);
   await shot('09-kitchen-intro');
   await press('KeyF');
@@ -216,68 +217,50 @@ try {
   await wait(2800);
   const started = await evalG(() => window.__game.scene.getScene('KitchenLevel').started);
   check('Cozinha inicia quando os dois confirmam', started === true);
-  // J1: maçã -> tábua -> corta
-  await place(0, 3, 4, 0, -1, 'KitchenLevel');
-  await wait(80);
-  await press('KeyF');
-  await place(0, 10, 7, 0, 1, 'KitchenLevel');
-  await wait(80);
-  await press('KeyF');
-  await page.keyboard.down('KeyF');
-  await wait(1900);
-  await page.keyboard.up('KeyF');
-  const boardItem = await evalG(() => window.__game.scene.getScene('KitchenLevel').surfaces.find((s) => s.tx === 10 && s.ty === 8)?.item?.kind);
-  check('J1 corta maçã na tábua (segurando AÇÃO)', boardItem === 'apple_cut', String(boardItem));
-  // J2 tenta cortar: não pode
-  await place(0, 4, 12, 0, 1, 'KitchenLevel');
-  await place(1, 17, 7, 0, 1, 'KitchenLevel');
-  await wait(80);
-  await press('KeyK'); // prato
-  await place(1, 10, 9, 0, -1, 'KitchenLevel');
-  await wait(80);
-  await press('KeyK'); // prato + maçã cortada
+  // J1: tomate -> tábua -> corta
+  const cut = async (srcX, boardX) => {
+    await place(0, srcX, 3, 0, -1, K); await wait(80); await press('KeyF');
+    await place(0, boardX, 8, 0, -1, K); await wait(80); await press('KeyF');
+    await page.keyboard.down('KeyF'); await wait(1900); await page.keyboard.up('KeyF');
+  };
+  await cut(2, 4);
+  const boardItem = await evalG(() => window.__game.scene.getScene('KitchenLevel').surfaces.find((s) => s.tx === 4 && s.ty === 7)?.item?.kind);
+  check('J1 pica tomate na tábua (segurando AÇÃO)', boardItem === 'tomato_cut', String(boardItem));
+  // J2 pega prato e o tomate picado
+  await place(0, 2, 12, 0, 1, K);
+  await place(1, 14, 11, 0, -1, K); await wait(80); await press('KeyK');
+  await place(1, 4, 8, 0, -1, K); await wait(80); await press('KeyK');
   let contents = await evalG(() => window.__game.scene.getScene('KitchenLevel').players[1].held?.contents);
-  check('Montar prato com ingrediente da bancada', Array.isArray(contents) && contents.includes('apple_cut'), JSON.stringify(contents));
+  check('Montar prato com ingrediente da bancada', Array.isArray(contents) && contents.includes('tomato_cut'), JSON.stringify(contents));
+  // fogo: J2 acende a panela com magia
+  await evalG(() => window.__game.scene.getScene('KitchenLevel').cookers.forEach((c) => c.extinguish()));
+  await place(1, 7, 8, 0, -1, K); await wait(80); await press('KeyL'); await wait(200);
+  const fire = await evalG(() => window.__game.scene.getScene('KitchenLevel').cookers[0].fire);
+  check('Magia acende o fogo', fire > 10, `fogo=${fire.toFixed(1)}`);
   const orders = await evalG(() => window.__game.scene.getScene('KitchenLevel').orders.map((o) => o.recipe));
-  if (!orders.includes('apple_slices') && orders.includes('fruit_salad')) {
-    await place(1, 6, 4, 0, -1, 'KitchenLevel');
-    await wait(80);
-    await press('KeyK'); // amoras direto no prato
+  // massa na panela
+  await place(1, 14, 12, 0, 1, K);
+  await place(0, 4, 3, 0, -1, K); await wait(80); await press('KeyF');
+  await place(0, 7, 8, 0, -1, K); await wait(80); await press('KeyF');
+  const pot = await evalG(() => window.__game.scene.getScene('KitchenLevel').cookers[0].contents);
+  check('Massa vai para a panela', JSON.stringify(pot) === '["pasta"]', JSON.stringify(pot));
+  await place(0, 2, 12, 0, 1, K);
+  await wait(7800);
+  const done = await evalG(() => window.__game.scene.getScene('KitchenLevel').cookers[0].done);
+  check('Macarrão cozinha com o fogo aceso', done === 'pasta_cooked', String(done));
+  if (orders.includes('sugo')) {
+    await place(1, 7, 8, 0, -1, K); await wait(80); await press('KeyK');
+  } else {
+    await cut(8, 5);
+    await place(0, 2, 12, 0, 1, K);
+    await place(1, 5, 8, 0, -1, K); await wait(80); await press('KeyK');
   }
   contents = await evalG(() => window.__game.scene.getScene('KitchenLevel').players[1].held?.contents);
-  await place(1, 24, 8, 1, 0, 'KitchenLevel');
-  await wait(80);
-  await press('KeyK');
-  await wait(200);
+  await place(1, 26, 8, 1, 0, K); await wait(80); await press('KeyK'); await wait(200);
   const score = await evalG(() => window.__game.scene.getScene('KitchenLevel').score);
   check('Entrega de pedido pontua', score > 0, `pedidos=${orders.join(',')} prato=${JSON.stringify(contents)} pontos=${score}`);
-  // fogo: apaga e J2 reacende
-  await evalG(() => window.__game.scene.getScene('KitchenLevel').cookers.forEach((c) => c.extinguish()));
-  await place(1, 13, 7, 0, 1, 'KitchenLevel');
-  await wait(80);
-  await press('KeyL');
-  await wait(200);
-  const fire = await evalG(() => window.__game.scene.getScene('KitchenLevel').cookers[0].fire);
-  check('Magia reacende a fogueira', fire > 10, `fogo=${fire.toFixed(1)}`);
-  // cogumelo -> corta -> panela -> sopa
-  await place(0, 9, 4, 0, -1, 'KitchenLevel');
-  await wait(80);
-  await press('KeyF');
-  await place(0, 11, 7, 0, 1, 'KitchenLevel');
-  await wait(80);
-  await press('KeyF');
-  await page.keyboard.down('KeyF');
-  await wait(1900);
-  await page.keyboard.up('KeyF');
-  await press('KeyF'); // pega cogumelo picado
-  await place(0, 13, 9, 0, -1, 'KitchenLevel');
-  await wait(80);
-  await press('KeyF'); // coloca na panela
-  const pot = await evalG(() => window.__game.scene.getScene('KitchenLevel').cookers[0].contents);
-  check('Cogumelo picado vai para a panela', JSON.stringify(pot) === '["mushroom_cut"]', JSON.stringify(pot));
-  await wait(8600);
-  const done = await evalG(() => window.__game.scene.getScene('KitchenLevel').cookers[0].done);
-  check('Sopa cozinha com o fogo aceso', done === 'soup', String(done));
+  await evalG(() => { const s = window.__game.scene.getScene('KitchenLevel'); s.cartT = 0.1; });
+  await wait(900);
   await shot('10-kitchen-play');
   // simula o fim do tempo
   await evalG(() => { window.__game.scene.getScene('KitchenLevel').timeLeft = 0.05; });
@@ -290,58 +273,100 @@ try {
   await page.waitForFunction(() => window.__game.scene.isActive('Menu'), null, { timeout: 4000 }).catch(() => undefined);
   check('Resultado: "Menu principal" volta ao menu', (await activeScenes()).includes('Menu'));
 
-  // ---------------------------------------------------------------- FESTIVAL
-  await startScene('KitchenLevel', { levelId: 'festival' });
+  // ---------------------------------------------------------------- FESTA JUNINA (pesca)
+  await startScene(K, { levelId: 'junina' });
   await press('KeyF');
   await press('KeyK');
   await wait(2600);
+  await place(0, 6, 10, 0, 1, K); await wait(80); await press('KeyF');
+  const joaoFish = await evalG(() => window.__game.scene.getScene('KitchenLevel').fishing[1].state);
+  check('Só a Juliana pesca (João não lança)', joaoFish === 'idle', joaoFish);
+  await place(1, 3, 10, 0, 1, K); await wait(80); await press('KeyK');
+  await evalG(() => { window.__game.scene.getScene('KitchenLevel').fishing[0].t = 0.01; });
+  await page.waitForFunction(() => window.__game.scene.getScene('KitchenLevel').fishing[0].state === 'bite', null, { timeout: 3000 }).catch(() => undefined);
+  await press('KeyK');
+  const fish = await evalG(() => window.__game.scene.getScene('KitchenLevel').players[1].held?.kind);
+  check('Juliana pesca um peixe', fish === 'fish', String(fish));
   await evalG(() => { const s = window.__game.scene.getScene('KitchenLevel'); s.cartT = 0.1; s.crowT = 0.1; });
   await wait(1200);
-  await shot('12-festival');
-  check('Festival roda sem erros', (await activeScenes()).includes('KitchenLevel'));
+  await shot('12-junina');
+  check('Festa junina roda sem erros', (await activeScenes()).includes('KitchenLevel'));
 
-  // ---------------------------------------------------------------- FLORESTA
-  await startScene('ForestLevel', { levelId: 'forest' });
+  // ---------------------------------------------------------------- ROÇA
+  await startScene(K, { levelId: 'roca' });
+  await press('KeyF');
+  await press('KeyK');
+  await wait(2600);
+  await evalG(() => { const s = window.__game.scene.getScene('KitchenLevel'); s.crowT = 0.1; });
+  await wait(1200);
+  await shot('12b-roca');
+  check('Restaurante da roça roda sem erros', (await activeScenes()).includes('KitchenLevel'));
+
+  // ---------------------------------------------------------------- CÂNION
+  const TL = 'TrailLevel';
+  await startScene(TL, { levelId: 'canyon' });
   await wait(500);
-  await shot('13-forest');
-  await place(1, 14, 7, 1, 0, 'ForestLevel');
-  await place(0, 13, 8, 1, 0, 'ForestLevel');
+  await shot('13-canyon');
+  await place(1, 14, 7, 1, 0, TL);
+  await place(0, 13, 8, 1, 0, TL);
   await wait(100);
   await press('KeyL');
   await wait(900);
-  const thorn = await evalG(() => window.__game.scene.getScene('ForestLevel').occupied.has('15,7'));
+  const thorn = await evalG(() => window.__game.scene.getScene('TrailLevel').occupied.has('15,7'));
   check('Magia queima os espinhos', thorn === false);
   // J1 empurra a pedra grande para baixo
-  await place(0, 40, 5, 0, 1, 'ForestLevel');
-  await place(1, 38, 5, 0, 1, 'ForestLevel');
+  await place(0, 40, 5, 0, 1, TL);
+  await place(1, 38, 5, 0, 1, TL);
   await wait(100);
   await page.keyboard.down('KeyS');
   await wait(2200);
   await page.keyboard.up('KeyS');
-  const by = await evalG(() => window.__game.scene.getScene('ForestLevel').boulders.find((b) => b.tx === 40)?.ty);
+  const by = await evalG(() => window.__game.scene.getScene('TrailLevel').boulders.find((b) => b.tx === 40)?.ty);
   check('J1 empurra pedra', by > 6, `linha=${by}`);
   // J2 não consegue empurrar
-  await place(0, 30, 3, 0, 1, 'ForestLevel');
-  await place(1, 45, 2, 1, 0, 'ForestLevel');
+  await place(0, 30, 3, 0, 1, TL);
+  await place(1, 45, 2, 1, 0, TL);
   await wait(100);
   await page.keyboard.down('ArrowRight');
   await wait(900);
   await page.keyboard.up('ArrowRight');
-  const nook = await evalG(() => window.__game.scene.getScene('ForestLevel').boulders.find((b) => b.ty === 2)?.tx);
-  check('J2 não empurra pedra (só o Guardião)', nook === 46, `coluna=${nook}`);
-  await shot('14-forest-push');
+  const nook = await evalG(() => window.__game.scene.getScene('TrailLevel').boulders.find((b) => b.ty === 2)?.tx);
+  check('J2 não empurra pedra (só o João)', nook === 46, `coluna=${nook}`);
+  await shot('14-canyon-push');
   // desmaio e reviver
-  await evalG(() => { const s = window.__game.scene.getScene('ForestLevel'); s.players[1].hp = 1; s.damagePlayer(s.players[1], 1, 0, 0); });
-  await place(0, 44, 2, 1, 0, 'ForestLevel');
+  await evalG(() => { const s = window.__game.scene.getScene('TrailLevel'); s.players[1].hp = 1; s.damagePlayer(s.players[1], 1, 0, 0); });
+  await place(0, 44, 2, 1, 0, TL);
   await wait(100);
   await page.keyboard.down('KeyF');
   await wait(1700);
   await page.keyboard.up('KeyF');
-  const fainted = await evalG(() => window.__game.scene.getScene('ForestLevel').players[1].fainted);
+  const fainted = await evalG(() => window.__game.scene.getScene('TrailLevel').players[1].fainted);
   check('Reviver o parceiro segurando AÇÃO', fainted === false);
 
-  // ---------------------------------------------------------------- MOTO
-  await startScene('MotoLevel', { levelId: 'moto' });
+  // ---------------------------------------------------------------- ESCALADA / ITACOLOMI / TOPO
+  await startScene(TL, { levelId: 'climb' });
+  await wait(400);
+  await shot('15-climb');
+  check('Escalada abre sem erros', (await activeScenes()).includes('TrailLevel'));
+  await startScene(TL, { levelId: 'topo' });
+  await wait(400);
+  await shot('16-topo');
+  check('Topo do Mundo abre sem erros', (await activeScenes()).includes('TrailLevel'));
+  await startScene(TL, { levelId: 'itacolomi' });
+  await wait(400);
+  await shot('17-itacolomi');
+  await evalG(() => { const s = window.__game.scene.getScene('TrailLevel'); s.players[1].teleport(s.players[0].x + 20, s.players[0].y); s.onExit(); });
+  await wait(1700);
+  await shot('18-proposal');
+  await press('KeyK');
+  await wait(800);
+  await shot('19-proposal-yes');
+  await page.waitForFunction(() => window.__game.scene.isActive('Result'), null, { timeout: 6000 }).catch(() => undefined);
+  check('Pedido de namoro aceito leva ao resultado', (await activeScenes()).includes('Result'));
+
+  // ---------------------------------------------------------------- MOTO (pão)
+  const M = 'MotoLevel';
+  await startScene(M, { levelId: 'bread' });
   await shot('20-moto-intro');
   await press('KeyF');
   await press('KeyK');
@@ -356,18 +381,58 @@ try {
   await page.keyboard.up('KeyD');
   const mdist = await evalG(() => window.__game.scene.getScene('MotoLevel').dist);
   check('Moto anda pela estrada', mdist > 300, `dist=${mdist.toFixed(0)}`);
-  await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = 15000 * 0.22; s.invuln = 99; });
+  await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = s.cfg.total * 0.2; s.invuln = 99; });
   await page.waitForFunction(() => { const s = window.__game.scene.getScene('MotoLevel'); const o = s.objs.find((x) => x.kind === 'spot'); return o && o.x < s.mx + 160; }, null, { timeout: 5000 });
   await shot('21-moto');
   await press('KeyK');
   await wait(200);
   const photos = await evalG(() => window.__game.scene.getScene('MotoLevel').photos);
   check('Garupa tira foto na placa', photos === 1, `fotos=${photos}`);
-  await wait(300);
-  await shot('22-moto-photo');
-  await evalG(() => { window.__game.scene.getScene('MotoLevel').dist = 15000; });
+  await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = s.cfg.total; });
   await wait(3200);
-  check('Chegar na cachoeira leva ao resultado', (await activeScenes()).includes('Result'));
+  check('Entregar o pão leva ao resultado', (await activeScenes()).includes('Result'));
+
+  // ---------------------------------------------------------------- MOTO (pneu furado)
+  await startScene(M, { levelId: 'tire' });
+  await press('KeyF');
+  await press('KeyK');
+  await page.waitForFunction(() => window.__game.scene.getScene('MotoLevel').started, null, { timeout: 5000 }).catch(() => undefined);
+  await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = s.cfg.total * 0.43; s.invuln = 99; });
+  await wait(400);
+  const flat = await evalG(() => window.__game.scene.getScene('MotoLevel').repair);
+  check('Pneu fura no caminho', flat >= 0, `repair=${flat}`);
+  await shot('22-flat-tire');
+  await page.keyboard.down('KeyF');
+  for (let i = 0; i < 14; i++) await press('KeyK', 40);
+  await page.keyboard.up('KeyF');
+  await wait(200);
+  const fixed = await evalG(() => window.__game.scene.getScene('MotoLevel').flatDone);
+  check('Conserto do pneu em dupla', fixed === true);
+
+  // ---------------------------------------------------------------- HOTEL FAZENDA
+  const F = 'FarmLevel';
+  await startScene(F, { levelId: 'farm' });
+  await wait(500);
+  await shot('23-farm');
+  const pet = await evalG(() => { const s = window.__game.scene.getScene('FarmLevel'); const a = s.animals[0]; s.players[0].teleport(a.x, a.y + 14); a.interact(s.players[0]); return a.petted; });
+  check('Carinho nos bichos', pet === true);
+  await evalG(() => { const s = window.__game.scene.getScene('FarmLevel'); const o = s.ostrich; s.players[0].teleport(o.x - 40, o.y); });
+  await wait(2500);
+  await shot('24-ostrich');
+  await evalG(() => window.__game.scene.getScene('FarmLevel').onExit());
+  await wait(400);
+  const bx0 = await evalG(() => window.__game.scene.getScene('FarmLevel').boat?.x);
+  for (let i = 0; i < 6; i++) { await page.keyboard.down('KeyF'); await page.keyboard.down('KeyK'); await wait(60); await page.keyboard.up('KeyF'); await page.keyboard.up('KeyK'); await wait(120); }
+  await wait(600);
+  const bx1 = await evalG(() => window.__game.scene.getScene('FarmLevel').boat?.x);
+  check('Pedalinho anda pedalando juntos', bx0 !== undefined && Math.abs(bx1 - bx0) > 10, `${bx0} -> ${bx1}`);
+  await shot('25-pedalinho');
+
+  // ---------------------------------------------------------------- HISTÓRIA ESTILO ANIME
+  await startScene('Story', { id: 'itacolomi_end', next: 'Map' });
+  await wait(1800);
+  await shot('26-story-anime');
+  check('Cena de história abre', (await activeScenes()).includes('Story'));
 
   // ---------------------------------------------------------------- AMAZÔNIA
   await startScene('AmazonLevel', { levelId: 'amazon' });

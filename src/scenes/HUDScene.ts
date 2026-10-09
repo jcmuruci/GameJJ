@@ -130,6 +130,11 @@ export class HUDScene extends Phaser.Scene {
     this.bubbles.push({ c, target, until: this.time.now + ms });
   }
 
+  clearBubbles(): void {
+    this.bubbles.forEach((b) => b.c.destroy());
+    this.bubbles = [];
+  }
+
   floatText(wx: number, wy: number, text: string, color = '#ffd25e'): void {
     if (!this.ready) return;
     const s = this.worldToScreen(wx, wy);

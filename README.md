@@ -28,14 +28,23 @@ esquerda e Juliana à direita, cada um com joystick + botões **Ação** e **Esp
 - **Abraço:** juntinhos e de mãos vazias, apertem AÇÃO quase ao mesmo tempo → +1 coração.
 - **Desmaio:** se alguém cair, o outro fica perto e **segura AÇÃO** para reviver. Se os dois caírem, perdem a fase.
 
-### Fases (inspiradas na história do casal)
-0. **Pedra Grande** — tutorial onde tudo começou: inclui **rapel em dupla** (um segura AÇÃO na ancoragem dando segurança, o outro desce pela corda).
-1. **Moto Amarela** — passeio na estrada: ele pilota (desvia, acelera, pula buracos), ela vai na garupa (magia nas pedras, buzina para capivaras e tira as fotos do passeio).
-2. **Piquenique na Cachoeira** — cozinha cooperativa com tempo (vento apaga o fogo, corvos roubam comida).
-3. **Trilha da Cachoeira** — exploração, enigmas, gelecas, 3 cristais e uma cachoeira secreta.
-4. **Restaurante da Vila** — cozinha dividida por um riacho, chuva e carroças atravessando.
-5. **Torre da Tempestade** — chefe final: o Nimbo, a nuvem rabugenta.
-6. **Amazônia (epílogo, um ano depois)** — os jacarés só aparecem para ela e viram ponte; ele corta cipós e empurra troncos no rio; juntos levam 3 filhotes até a mamãe jacaré.
+### Capítulos — a nossa linha do tempo
+O mapa é uma linha do tempo, mês a mês. Cada capítulo abre com uma cena de história em estilo anime.
+
+| Mês | Capítulo | Jogo |
+|---|---|---|
+| Jul 2025 | **O Rapel** | tutorial; rapel em dupla (um dá segurança na ancoragem, o outro desce) |
+| Jan 2026 | **Escalada e Mirante** | escalar com o parceiro dando segurança; mosquetões; foto no mirante |
+| Fev 2026 | **Cânion e Lavras Novas** | pedras, água corrente, cachoeiras, enigmas e as casinhas coloridas |
+| Mar 2026 | **O Pão de Moto** | moto até o condomínio dela; ganha a **medalha de São Bento** (protege o João do 1º golpe) |
+| Abr 2026 | **Pico do Itacolomi** | trilha a pé… e o **pedido de namoro** (ela aperta AÇÃO para dizer SIM) |
+| Mai 2026 | **O Italiano** | cozinha: bruschetta, sugo e pizza; garçom apressado; ganham as **alianças** (abraço cura mais) |
+| Jun 2026 | **Juiz de Fora e Festa Junina** | os pais dele; **só ela pesca** no pier; milho, canjica, peixe na brasa; quadrilha passando |
+| Jul 2026 | **Pneu Furado** | estrada de terra; pneu fura: ele segura a moto, ela aperta para consertar |
+| Jul 2026 | **Restaurante da Roça** | lagoa com peixes, tilápia, tropeiro e galinhas ladras |
+| Ago 2026 | **Topo do Mundo e Lapinha** | parapentes decolando, rapel e a cachoeira da Lapinha |
+| Set 2026 | **Hotel Fazenda** | carinho nos bichos, fujam da **avestruz** e pedalinho (pedalem juntos!) |
+| em breve | próximos capítulos | bloqueados por enquanto |
 
 Estrelas e moedas ficam salvas no navegador (localStorage); moedas compram melhorias na
 **Loja da Vovó Rosa** (no mapa, aperte `G`/`L`).
@@ -89,10 +98,10 @@ src/
   config.ts               resolução, cores, constantes
   data/                   personagens, receitas, cozinhas, mapas, fases, história (lógica pura)
   systems/                entrada (teclado + controles), áudio sintetizado, save
-  art/                    geração da pixel art (tiles, itens, personagens)
+  art/                    geração da pixel art (tiles, itens, personagens, retratos anime)
   entities/               jogador, itens, inimigos
   scenes/                 boot, menu, mapa, história, personalização, HUD, pausa, resultado
-  scenes/levels/          BaseLevel (núcleo), KitchenLevel, PuzzleLevel, Tutorial, Floresta, Chefe
+  scenes/levels/          BaseLevel (núcleo), Kitchen, Puzzle, Trail, Moto, Farm, Tutorial, Chefe, Amazônia
 tests/                    testes unitários (vitest)
 scripts/e2e.mjs           teste ponta-a-ponta no navegador
 ```

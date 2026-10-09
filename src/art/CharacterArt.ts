@@ -18,11 +18,11 @@ export function charFrame(dir: Dir, col: number): number {
 }
 
 export function generateCharacterTexture(scene: Phaser.Scene, key: string, look: CharacterLook, role: 0 | 1): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const tex = scene.textures.createCanvas(key, CHAR_W * 4, CHAR_H * 3);
+  const tex = reuseCanvas(scene, key, CHAR_W * 4, CHAR_H * 3);
   if (!tex) return;
   const ctx = tex.getContext();
   ctx.imageSmoothingEnabled = false;
+  const fresh = !tex.has('0');
   const pg = new PG(ctx);
   const dirs: Dir[] = ['down', 'up', 'side'];
   dirs.forEach((dir, row) => {
@@ -30,10 +30,27 @@ export function generateCharacterTexture(scene: Phaser.Scene, key: string, look:
       pg.at(col * CHAR_W, row * CHAR_H);
       drawCharacter(pg, look, dir, col, role);
       pg.outline(0, 0, CHAR_W, CHAR_H);
-      tex.add(row * 4 + col, 0, col * CHAR_W, row * CHAR_H, CHAR_W, CHAR_H);
+      if (fresh) tex.add(row * 4 + col, 0, col * CHAR_W, row * CHAR_H, CHAR_W, CHAR_H);
     }
   });
   tex.refresh();
+}
+
+/**
+ * Devolve uma textura de canvas limpa com essa chave. Se já existir com o mesmo
+ * tamanho, redesenha no mesmo canvas: sprites que a usam continuam válidos
+ * (remover a textura com sprites na tela derruba o render).
+ */
+export function reuseCanvas(scene: Phaser.Scene, key: string, w: number, h: number): Phaser.Textures.CanvasTexture | null {
+  if (scene.textures.exists(key)) {
+    const old = scene.textures.get(key);
+    if (old instanceof Phaser.Textures.CanvasTexture && old.width === w && old.height === h) {
+      old.getContext().clearRect(0, 0, w, h);
+      return old;
+    }
+    scene.textures.remove(key);
+  }
+  return scene.textures.createCanvas(key, w, h);
 }
 
 function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 0 | 1): void {
@@ -395,6 +412,11 @@ function drawAccessory(pg: PG, L: CharacterLook, dir: Dir): void {
     case 'chapeu':
       pg.rect(1, 3, 14, 1, c); pg.rect(2, 4, 12, 1, cD);
       pg.rect(4, 0, 8, 3, c); pg.rect(4, 2, 8, 1, gold);
+      break;
+    case 'medalha':
+      // cordão prateado com a medalha de São Bento
+      if (dir === 'down') { pg.px(6, 12, '#c8c8d4'); pg.px(9, 12, '#c8c8d4'); pg.px(7, 13, '#c8c8d4'); pg.px(8, 13, '#d8b050'); pg.px(8, 14, '#f0d070'); }
+      else if (dir === 'side') pg.px(4, 13, '#d8b050');
       break;
     case 'colar_sol':
       if (dir === 'down') {
