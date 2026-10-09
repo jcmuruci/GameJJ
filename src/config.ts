@@ -5,6 +5,20 @@ export const GAME_H = 540;
 export const ZOOM = 2;
 export const TILE = 16;
 
+/**
+ * Fator de resolução: o jogo continua pensando em 960x540, mas desenha o canvas
+ * em 960x540 × RES, de acordo com a tela (Full HD = 2, celular/retina = 3).
+ * Assim pixel art, textos e contornos ficam nítidos em vez de esticados.
+ */
+export const RES = (() => {
+  if (typeof window === 'undefined') return 1;
+  const forced = Number(new URLSearchParams(window.location.search).get('res'));
+  if (forced >= 1 && forced <= 4) return Math.round(forced);
+  const dpr = window.devicePixelRatio || 1;
+  const fit = Math.min((window.innerWidth * dpr) / 960, (window.innerHeight * dpr) / 540);
+  return Math.max(1, Math.min(3, Math.round(fit)));
+})();
+
 export const FONT = '"Pixelify Sans", "Courier New", monospace';
 
 export const COLORS = {

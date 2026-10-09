@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { PuzzleLevel } from './PuzzleLevel';
 import { TRAILS, TrailConfig } from '../../data/trails';
 import type { HUDScene } from '../HUDScene';
-import { GAME_W, GAME_H, TILE } from '../../config';
+import { GAME_W, GAME_H, TILE, ZOOM, RES } from '../../config';
 import { txt, fillNames } from '../../ui/text';
 import { Slime } from '../../entities/Enemy';
 import { Input, KEY_LABELS } from '../../systems/InputManager';
@@ -148,7 +148,7 @@ export class TrailLevel extends PuzzleLevel {
     joao.face = { x: Math.sign(ju.x - joao.x) || 1, y: 0 };
     ju.face = { x: -joao.face.x, y: 0 };
     Audio.music('ending');
-    this.cameras.main.zoomTo(2.6, 1200);
+    this.cameras.main.zoomTo(2.6 * RES, 1200);
     this.time.delayedCall(1200, () => {
       joao.actTimer = 999; // ajoelhado
       joao.sprite.setFrame(charFrame('side', 3));
@@ -168,7 +168,7 @@ export class TrailLevel extends PuzzleLevel {
           this.doHug(joao, ju);
           this.fireworks();
           this.time.delayedCall(3200, () => {
-            this.cameras.main.zoomTo(2, 600);
+            this.cameras.main.zoomTo(ZOOM * RES, 600);
             this.complete(['Pedido de namoro: ACEITO ♥']);
           });
         },

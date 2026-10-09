@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { TILE, ZOOM, GAME_W, GAME_H } from '../../config';
+import { TILE, ZOOM, GAME_W, GAME_H, RES } from '../../config';
 import { T, SOLID_TILES } from '../../art/Textures';
 import { Input, PlayerId } from '../../systems/InputManager';
 import { Audio, Sfx } from '../../systems/Audio';
@@ -180,7 +180,7 @@ export abstract class BaseLevel extends Phaser.Scene {
 
     // câmera
     const cam = this.cameras.main;
-    cam.setZoom(ZOOM);
+    cam.setZoom(ZOOM * RES);
     cam.setBounds(0, 0, Math.max(W, GAME_W / ZOOM), Math.max(H, GAME_H / ZOOM));
     this.scrolling = W > GAME_W / ZOOM + 8 || H > GAME_H / ZOOM + 8;
     const mx = (this.players[0].x + this.players[1].x) / 2;

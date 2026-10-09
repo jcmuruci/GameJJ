@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, ZOOM } from '../../config';
+import { GAME_W, GAME_H, ZOOM, RES } from '../../config';
 import { LevelInfo, levelById } from '../../data/levels';
 import { MOTOS, MotoConfig } from '../../data/motos';
 import { Save } from '../../systems/SaveManager';
@@ -127,9 +127,9 @@ export class MotoLevel extends Phaser.Scene {
     this.world = this.add.layer();
     this.ui = this.add.layer();
     const cam = this.cameras.main;
-    cam.setZoom(ZOOM).centerOn(W / 2, H / 2).setBackgroundColor('#7ccf5a');
+    cam.setZoom(ZOOM * RES).centerOn(W / 2, H / 2).setBackgroundColor('#7ccf5a');
     cam.ignore(this.ui);
-    this.uiCam = this.cameras.add(0, 0, GAME_W, GAME_H);
+    this.uiCam = this.cameras.add(0, 0, GAME_W * RES, GAME_H * RES).setZoom(RES).centerOn(GAME_W / 2, GAME_H / 2);
     this.uiCam.ignore(this.world);
 
     // cenário

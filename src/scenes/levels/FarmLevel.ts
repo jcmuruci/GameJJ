@@ -4,7 +4,7 @@ import { FARM_MAP } from '../../data/maps';
 import { T } from '../../art/tiles';
 import { Player, Interactable } from '../../entities/Player';
 import type { HUDScene } from '../HUDScene';
-import { GAME_W, TILE } from '../../config';
+import { GAME_W, TILE, ZOOM, RES } from '../../config';
 import { txt } from '../../ui/text';
 import { Input, KEY_LABELS } from '../../systems/InputManager';
 import { Audio } from '../../systems/Audio';
@@ -77,7 +77,7 @@ class Ostrich implements Interactable {
     L.physics.add.collider(this.sprite, L.layer);
     L.physics.add.collider(this.sprite, L.solids);
     this.mark = L.add.text(x, y - 30, '!', { fontFamily: 'monospace', fontSize: '14px', color: '#ff5c5c', stroke: '#2a1d2e', strokeThickness: 3, fontStyle: 'bold' })
-      .setOrigin(0.5).setDepth(9600).setVisible(false).setResolution(3);
+      .setOrigin(0.5).setDepth(9600).setVisible(false).setResolution(ZOOM * RES + 1);
   }
   get body(): Phaser.Physics.Arcade.Body { return this.sprite.body as Phaser.Physics.Arcade.Body; }
   get x(): number { return this.body.center.x; }
@@ -328,7 +328,7 @@ export class FarmLevel extends PuzzleLevel {
       const c = this.tileCenter(tx, ty);
       const img = this.add.image(c.x, c.y, 'buoy').setDepth(c.y);
       const label = this.add.text(c.x, c.y - 14, String(i + 1), { fontFamily: 'monospace', fontSize: '10px', color: '#fff4e0', stroke: '#2a1d2e', strokeThickness: 3, fontStyle: 'bold' })
-        .setOrigin(0.5).setDepth(9500).setResolution(3);
+        .setOrigin(0.5).setDepth(9500).setResolution(ZOOM * RES + 1);
       return { img, label, x: c.x, y: c.y };
     });
     this.arrow = this.add.triangle(0, 0, 0, 0, 8, 0, 4, 6, 0xffd25e).setDepth(9600).setStrokeStyle(1, 0x2a1d2e);

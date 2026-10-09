@@ -13,7 +13,7 @@ fs.mkdirSync(OUT, { recursive: true });
 
 const server = await createServer({ server: { port: 5174, strictPort: false }, logLevel: 'error' });
 await server.listen();
-const url = server.resolvedUrls.local[0];
+const url = server.resolvedUrls.local[0] + (process.env.E2E_RES ? `?res=${process.env.E2E_RES}` : '');
 
 const browser = await chromium.launch({ executablePath: EXEC, args: ['--autoplay-policy=no-user-gesture-required', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });

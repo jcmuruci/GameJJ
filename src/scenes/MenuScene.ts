@@ -47,26 +47,9 @@ export class MenuScene extends Phaser.Scene {
     const n = Save.data.looks;
     txt(this, GAME_W / 2, 196, `${n[0].name} ♥ ${n[1].name}`, 18, { color: '#ffd25e' });
 
-    // pétalas de sakura caindo (estilo anime)
-    this.add.particles(0, -10, 'fx_heart', {
-      x: { min: 0, max: GAME_W }, lifespan: 7000, speedY: { min: 25, max: 55 }, speedX: { min: -20, max: 25 },
-      rotate: { min: 0, max: 360 }, scale: { min: 0.8, max: 1.6 }, alpha: { start: 0.8, end: 0.15 }, frequency: 320, tint: [0xffd6e4, 0xff9cc2, 0xffffff],
-    });
-
-    // retratos em estilo anime, com brilho atrás
-    [0, 1].forEach((i) => {
-      const x = i === 0 ? 170 : 790;
-      const glow = this.add.graphics();
-      for (let r = 6; r >= 1; r--) glow.fillStyle(i === 0 ? 0x9cd8ff : 0xffb6d2, 0.07).fillCircle(x, 330, 40 + r * 18);
-      const p = this.add.image(x, GAME_H - 30, `portrait_${i}`, 1).setOrigin(0.5, 1).setScale(4).setFlipX(i === 1);
-      this.tweens.add({ targets: p, y: GAME_H - 36, duration: 1800 + i * 300, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-      // de vez em quando, olhos de coração
-      this.time.addEvent({ delay: 4200 + i * 1700, loop: true, callback: () => { p.setFrame(3); this.time.delayedCall(900, () => p.setFrame(1)); } });
-    });
-
     // personagens
     this.chars = [0, 1].map((i) => {
-      const s = this.add.sprite(i === 0 ? 300 : 660, 440, `char_${i}`, charFrame('side', 0)).setScale(4);
+      const s = this.add.sprite(i === 0 ? 210 : 750, 360, `char_${i}`, charFrame('side', 0)).setScale(6);
       s.setFlipX(i === 0);
       return s;
     });
@@ -84,7 +67,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private heart(): void {
-    const h = this.add.image(GAME_W / 2 + Phaser.Math.Between(-180, 180), 420, 'fx_heart').setScale(3).setAlpha(0.9);
+    const h = this.add.image(GAME_W / 2 + Phaser.Math.Between(-200, 200), 400, 'fx_heart').setScale(3).setAlpha(0.9);
     this.tweens.add({ targets: h, y: 300, alpha: 0, duration: 2200, onComplete: () => h.destroy() });
   }
 

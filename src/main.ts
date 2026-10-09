@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import '@fontsource/pixelify-sans/400.css';
 import '@fontsource/pixelify-sans/700.css';
-import { GAME_W, GAME_H } from './config';
+import { GAME_W, GAME_H, RES } from './config';
+import { installHiRes } from './systems/HiRes';
 import { Save } from './systems/SaveManager';
 import { Input, KEY_LABELS } from './systems/InputManager';
 import { Audio } from './systems/Audio';
@@ -45,11 +46,12 @@ async function boot(): Promise<void> {
     Object.assign(KEY_LABELS[1], { move: 'joystick', action: 'Ação', ability: 'Magia' });
   }
 
+  installHiRes();
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'game',
-    width: GAME_W,
-    height: GAME_H,
+    width: GAME_W * RES,
+    height: GAME_H * RES,
     backgroundColor: '#1b1424',
     pixelArt: true,
     roundPixels: true,

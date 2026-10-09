@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, PLAYER_COLORS } from '../config';
+import { GAME_W, GAME_H, PLAYER_COLORS, RES } from '../config';
 import { txt, uiButton } from '../ui/text';
 import { isTouchDevice } from '../systems/TouchControls';
 import type { BaseLevel } from './levels/BaseLevel';
@@ -72,7 +72,8 @@ export class HUDScene extends Phaser.Scene {
 
   worldToScreen(x: number, y: number): { x: number; y: number } {
     const cam = this.level.cameras.main;
-    return { x: (x - cam.worldView.x) * cam.zoom, y: (y - cam.worldView.y) * cam.zoom };
+    const k = cam.zoom / RES;
+    return { x: (x - cam.worldView.x) * k, y: (y - cam.worldView.y) * k };
   }
 
   update(time: number): void {

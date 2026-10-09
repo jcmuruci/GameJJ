@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { FONT } from '../config';
+import { FONT, RES } from '../config';
 
 export interface TxtOpts {
   color?: string;
@@ -25,6 +25,7 @@ export function txt(scene: Phaser.Scene, x: number, y: number, s: string, size =
     align: o.align ?? 'center',
     wordWrap: o.wrap ? { width: o.wrap, useAdvancedWrap: true } : undefined,
     lineSpacing: o.lineSpacing ?? 2,
+    resolution: RES,
   });
   const [ox, oy] = o.origin ?? [0.5, 0.5];
   t.setOrigin(ox, oy);

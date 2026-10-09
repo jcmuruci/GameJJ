@@ -7,7 +7,7 @@ import { Input } from '../systems/InputManager';
 import { Audio, TrackName } from '../systems/Audio';
 import { Save } from '../systems/SaveManager';
 import { cozyBackground } from './MenuScene';
-import { Mood } from '../art/Portrait';
+import { charFrame } from '../art/CharacterArt';
 
 interface StoryData {
   id: string;
@@ -15,15 +15,15 @@ interface StoryData {
   nextData?: object;
 }
 
-/** Personagens secundários: retrato, nome e cor da etiqueta. */
-const NPC: Partial<Record<Speaker, { tex: string; frame?: number; name: string; color: string; scale: number; y: number }>> = {
-  garcom: { tex: 'portrait_garcom', name: 'Garçom', color: '#f0f0f0', scale: 4, y: 256 },
-  paiJ: { tex: 'portrait_pai', name: 'Pai do {p1}', color: '#8be07a', scale: 4, y: 256 },
-  maeJ: { tex: 'portrait_mae', name: 'Mãe do {p1}', color: '#ffb08a', scale: 4, y: 256 },
-  avestruz: { tex: 'ostrich', name: 'Avestruz', color: '#ff9c9c', scale: 7, y: 270 },
-  nimbo: { tex: 'boss', name: 'Nimbo', color: '#d8d8e8', scale: 3, y: 130 },
-  mae: { tex: 'nest', name: 'Mamãe Jacaré', color: '#b8e8a0', scale: 5, y: 240 },
-  vovo: { tex: 'portrait_mae', name: 'Vovó Rosa', color: '#d8c8e8', scale: 4, y: 256 },
+/** Personagens secundários: sprite, nome e posição. */
+const NPC: Partial<Record<Speaker, { tex: string; frame?: number; name: string; scale: number; y: number }>> = {
+  garcom: { tex: 'npc_garcom', frame: charFrame('down', 0), name: 'Garçom', scale: 7, y: 270 },
+  paiJ: { tex: 'npc_pai', frame: charFrame('down', 0), name: 'Pai do {p1}', scale: 7, y: 270 },
+  maeJ: { tex: 'npc_mae', frame: charFrame('down', 0), name: 'Mãe do {p1}', scale: 7, y: 270 },
+  avestruz: { tex: 'ostrich', name: 'Avestruz', scale: 7, y: 270 },
+  nimbo: { tex: 'boss', name: 'Nimbo', scale: 3, y: 120 },
+  mae: { tex: 'nest', name: 'Mamãe Jacaré', scale: 5, y: 230 },
+  vovo: { tex: 'npc_mae', frame: charFrame('down', 0), name: 'Vovó Rosa', scale: 7, y: 270 },
 };
 
 /** Decoração de fundo de cada capítulo. */
@@ -47,15 +47,7 @@ const DECOR: Record<string, [string, number, number, number][]> = {
   amazon_end: [['tree_jungle', 120, 180, 4], ['tree_jungle', 840, 170, 4], ['nest', 480, 330, 4]],
 };
 
-/** Expressão do retrato a partir do texto da fala (estilo anime). */
-export function moodOf(text: string): Mood {
-  if (text.includes('♥')) return 3;
-  if (/\?!|!!|QUÉ|CORRE|nervoso|Ah, não|pneu/i.test(text)) return 2;
-  if (text.includes('!')) return 1;
-  return 0;
-}
-
-/** Cena de diálogo entre as fases, no estilo visual novel de anime. */
+/** Cena de diálogo entre as fases. */
 export class StoryScene extends Phaser.Scene {
   private lines: Line[] = [];
   private idx = 0;
@@ -63,14 +55,11 @@ export class StoryScene extends Phaser.Scene {
   private full = '';
   private body!: Phaser.GameObjects.Text;
   private nameT!: Phaser.GameObjects.Text;
-  private nameTag!: Phaser.GameObjects.Graphics;
-  private next!: Phaser.GameObjects.Text;
-  private portraits: Phaser.GameObjects.Image[] = [];
-  private npcs: Partial<Record<Speaker, Phaser.GameObjects.Image>> = {};
+  private portraits: Phaser.GameObjects.Sprite[] = [];
+  private npcs: Partial<Record<Speaker, Phaser.GameObjects.Image | Phaser.GameObjects.Container>> = {};
   private data_!: StoryData;
   private names!: [string, string];
   private done = false;
-  private titleCard = false;
 
   constructor() {
     super('Story');
@@ -89,50 +78,42 @@ export class StoryScene extends Phaser.Scene {
     const id = this.data_.id;
     const night = id === 'storm' || id === 'ending';
     cozyBackground(this, night ? 0x5a5a9a : id.startsWith('amazon') ? 0x9ac890 : 0xffffff);
-    this.add.graphics().fillStyle(0x1b1424, night ? 0.45 : 0.28).fillRect(0, 0, GAME_W, GAME_H);
+    this.add.graphics().fillStyle(0x1b1424, night ? 0.45 : 0.25).fillRect(0, 0, GAME_W, GAME_H);
     if (night) {
       for (let i = 0; i < 60; i++) {
         const s = this.add.image(Phaser.Math.Between(0, GAME_W), Phaser.Math.Between(0, 260), 'fx_spark').setScale(Phaser.Math.FloatBetween(0.5, 1.4));
         this.tweens.add({ targets: s, alpha: 0.2, duration: Phaser.Math.Between(600, 1600), yoyo: true, repeat: -1 });
       }
     }
+    if (id === 'ending') this.time.addEvent({ delay: 500, loop: true, callback: () => this.shootingStar() });
     for (const [key, x, y, sc] of DECOR[id] ?? []) {
-      const img = this.add.image(x, y, key, 0).setScale(sc).setAlpha(0.95);
+      const img = this.add.image(x, y, key, 0).setScale(sc);
       if (key === 'paraglider') this.tweens.add({ targets: img, x: x + 40, y: y + 10, duration: 3000, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     }
-    // pétalas de sakura caindo
-    this.add.particles(0, -10, 'fx_heart', {
-      x: { min: 0, max: GAME_W }, lifespan: 6000, speedY: { min: 30, max: 60 }, speedX: { min: -20, max: 25 },
-      rotate: { min: 0, max: 360 }, scale: { min: 0.8, max: 1.6 }, alpha: { start: 0.85, end: 0.2 }, frequency: 260, tint: [0xffd6e4, 0xff9cc2, 0xffffff],
-    }).setDepth(5);
 
-    // retratos (estilo anime)
-    this.portraits = [0, 1].map((i) => this.add.image(i === 0 ? 210 : 750, 256, `portrait_${i}`, 0).setScale(4).setDepth(10));
+    this.portraits = [0, 1].map((i) => this.add.sprite(i === 0 ? 260 : 700, 270, `char_${i}`, charFrame('down', 0)).setScale(7));
     for (const [who, n] of Object.entries(NPC) as [Speaker, NonNullable<typeof NPC[Speaker]>][]) {
-      if (!this.lines.some((l) => l.who === who)) continue;
-      this.npcs[who] = this.add.image(GAME_W / 2, n.y, n.tex, n.frame ?? 0).setScale(n.scale).setAlpha(0).setDepth(9);
+      if (!this.lines.some((l) => l.who === who) && !(who === 'nimbo' && id === 'ending')) continue;
+      const obj = who === 'vovo' ? this.makeVovo() : this.add.image(GAME_W / 2, n.y, n.tex, n.frame ?? (who === 'nimbo' && id === 'ending' ? 2 : 0)).setScale(n.scale);
+      this.npcs[who] = obj.setAlpha(0);
     }
 
-    // caixa de diálogo
-    const g = this.add.graphics().setDepth(20);
-    g.fillStyle(0x000000, 0.35).fillRoundedRect(44, GAME_H - 158, GAME_W - 80, 140, 16);
-    g.fillStyle(0x2a1d3a, 0.96).fillRoundedRect(40, GAME_H - 162, GAME_W - 80, 140, 16);
-    g.lineStyle(3, 0xffd6e4, 1).strokeRoundedRect(40, GAME_H - 162, GAME_W - 80, 140, 16);
-    g.lineStyle(1, 0xffd6e4, 0.4).strokeRoundedRect(46, GAME_H - 156, GAME_W - 92, 128, 12);
-    this.nameTag = this.add.graphics().setDepth(21);
-    this.nameT = txt(this, 76, GAME_H - 168, '', 18, { origin: [0, 0.5], color: '#2a1d2e', stroke: '#ffffff', strokeW: 0 }).setDepth(22);
-    this.body = txt(this, 70, GAME_H - 132, '', 20, { origin: [0, 0], wrap: GAME_W - 150, bold: false, lineSpacing: 6 }).setDepth(22);
-    this.next = txt(this, GAME_W - 70, GAME_H - 40, '▼', 16, { color: '#ffd6e4' }).setDepth(22).setVisible(false);
-    this.tweens.add({ targets: this.next, y: GAME_H - 36, yoyo: true, repeat: -1, duration: 300 });
-    txt(this, GAME_W / 2, GAME_H - 12, 'Toque ou AÇÃO: continuar · Esc: pular', 11, { color: '#d8c8e8', bold: false }).setDepth(22);
+    const g = this.add.graphics();
+    g.fillStyle(0x000000, 0.3).fillRoundedRect(44, GAME_H - 166, GAME_W - 80, 146, 14);
+    g.fillStyle(0x2a1d3a, 0.95).fillRoundedRect(40, GAME_H - 170, GAME_W - 80, 146, 14);
+    g.lineStyle(3, 0xffd6e4, 1).strokeRoundedRect(40, GAME_H - 170, GAME_W - 80, 146, 14);
+    this.nameT = txt(this, 70, GAME_H - 170, '', 20, { origin: [0, 0.5], color: '#ffd25e' });
+    this.body = txt(this, 70, GAME_H - 140, '', 20, { origin: [0, 0], wrap: GAME_W - 150, bold: false, lineSpacing: 6 });
     uiButton(this, GAME_W - 70, 30, 'Pular >', () => this.finish(), { size: 15 });
     this.input.on('pointerdown', (_p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => { if (!over.length) this.advance(); });
+    const hint = txt(this, GAME_W - 70, GAME_H - 40, 'Toque ou AÇÃO: continuar · Esc: pular', 12, { origin: [1, 0.5], color: '#d8c8e8', bold: false });
+    this.tweens.add({ targets: hint, alpha: 0.4, duration: 700, yoyo: true, repeat: -1 });
+    const level = LEVELS.find((l) => l.story === id);
+    if (level && !level.soon) txt(this, 40, 30, `${level.month} · ${level.name}`, 16, { origin: [0, 0.5], color: '#ffd6e4' });
 
     Audio.music(this.musicFor(id));
     this.cameras.main.fadeIn(300, 27, 20, 36);
-    const level = LEVELS.find((l) => l.story === id);
-    if (level && !level.soon) this.showTitleCard(LEVELS.indexOf(level) + 1, level.month, level.name);
-    else this.showLine();
+    this.showLine();
   }
 
   private musicFor(id: string): TrackName {
@@ -145,33 +126,25 @@ export class StoryScene extends Phaser.Scene {
     return 'map';
   }
 
-  /** Cartão de título do capítulo, com linhas de velocidade (estilo abertura de anime). */
-  private showTitleCard(n: number, month: string, name: string): void {
-    this.titleCard = true;
-    const c = this.add.container(0, 0).setDepth(50);
-    const bg = this.add.graphics();
-    bg.fillStyle(0x1b1424, 0.85).fillRect(0, GAME_H / 2 - 80, GAME_W, 160);
-    for (let i = 0; i < 26; i++) {
-      const y = GAME_H / 2 - 76 + Math.random() * 152;
-      bg.fillStyle(0xffd6e4, Phaser.Math.FloatBetween(0.08, 0.3)).fillRect(Math.random() * GAME_W, y, Phaser.Math.Between(60, 240), 2);
-    }
-    bg.fillStyle(0xff9cc2, 1).fillRect(0, GAME_H / 2 - 82, GAME_W, 4).fillRect(0, GAME_H / 2 + 78, GAME_W, 4);
-    c.add(bg);
-    c.add(txt(this, GAME_W / 2, GAME_H / 2 - 36, `Capítulo ${n} · ${month}`, 20, { color: '#ffd25e' }));
-    const title = txt(this, GAME_W / 2, GAME_H / 2 + 12, name, 46, { color: '#ffd6e4', strokeW: 8 });
-    c.add(title);
-    c.setAlpha(0);
-    this.tweens.add({ targets: c, alpha: 1, duration: 250 });
-    this.tweens.add({ targets: title, x: { from: GAME_W / 2 + 80, to: GAME_W / 2 }, duration: 450, ease: 'Back.Out' });
-    Audio.play('bell');
-    const close = () => {
-      if (!this.titleCard) return;
-      this.titleCard = false;
-      this.tweens.add({ targets: c, alpha: 0, duration: 250, onComplete: () => c.destroy() });
-      this.showLine();
-    };
-    this.time.delayedCall(1700, close);
-    this.input.once('pointerdown', close);
+  private makeVovo(): Phaser.GameObjects.Container {
+    // Vovó Rosa: personagem simples feito com formas
+    const c = this.add.container(GAME_W / 2, 280);
+    const g = this.add.graphics();
+    g.fillStyle(0xb25bd6).fillRoundedRect(-30, 10, 60, 70, 12);
+    g.fillStyle(0xf0c8a8).fillCircle(0, -10, 30);
+    g.fillStyle(0xe8e8f0).fillCircle(0, -36, 22).fillCircle(-24, -22, 12).fillCircle(24, -22, 12);
+    g.fillStyle(0x2a1d2e).fillRect(-12, -12, 5, 6).fillRect(8, -12, 5, 6);
+    g.lineStyle(3, 0x2a1d2e).strokeCircle(-9, -9, 8).strokeCircle(10, -9, 8);
+    g.fillStyle(0xff8fb1).fillCircle(-18, 4, 5).fillCircle(18, 4, 5);
+    g.fillStyle(0xfff4e0).fillRect(-20, 30, 40, 40);
+    c.add(g);
+    return c;
+  }
+
+  private shootingStar(): void {
+    const x = Phaser.Math.Between(100, GAME_W);
+    const s = this.add.image(x, -10, 'fx_spark').setScale(1.5);
+    this.tweens.add({ targets: s, x: x - 300, y: 260, alpha: 0, duration: 1200, onComplete: () => s.destroy() });
   }
 
   private speakerName(l: Line): string {
@@ -180,51 +153,27 @@ export class StoryScene extends Phaser.Scene {
     return n ? fillNames(n.name, this.names) : '';
   }
 
-  private speakerColor(l: Line): string {
-    if (l.who === 0) return '#6cc4ff';
-    if (l.who === 1) return '#ff9cc2';
-    return NPC[l.who]?.color ?? '#d8c8e8';
-  }
-
   private showLine(): void {
     const l = this.lines[this.idx];
     if (!l) { this.finish(); return; }
     this.full = fillNames(l.text, this.names);
     this.shown = 0;
-    this.next.setVisible(false);
-    const name = this.speakerName(l);
-    this.nameT.setText(name);
-    this.nameTag.clear();
-    if (name) {
-      const w = this.nameT.width + 28;
-      this.nameTag.fillStyle(Phaser.Display.Color.HexStringToColor(this.speakerColor(l)).color, 1).fillRoundedRect(60, GAME_H - 184, w, 32, 10);
-      this.nameTag.lineStyle(3, 0x2a1d2e, 1).strokeRoundedRect(60, GAME_H - 184, w, 32, 10);
-    }
+    this.nameT.setText(this.speakerName(l));
     this.body.setText('');
     this.body.setColor(l.who === 'n' ? '#d8c8e8' : '#fff4e0');
     this.body.setFontStyle(l.who === 'n' ? 'italic' : 'normal');
-    const mood = moodOf(this.full);
     this.portraits.forEach((p, i) => {
       const active = l.who === i;
-      p.setTint(active ? 0xffffff : 0x8a80a0).setFrame(active ? mood : 0);
-      if (active) this.tweens.add({ targets: p, scale: { from: 4.25, to: 4 }, y: { from: 246, to: 256 }, duration: 220, ease: 'Back.Out' });
+      p.setTint(active ? 0xffffff : 0x8a80a0).setFrame(charFrame('down', active ? 3 : 0));
+      if (active) this.tweens.add({ targets: p, y: { from: 262, to: 270 }, duration: 200, ease: 'Back.Out' });
     });
-    for (const [who, img] of Object.entries(this.npcs) as [Speaker, Phaser.GameObjects.Image][]) {
-      const on = l.who === who;
-      this.tweens.add({ targets: img, alpha: on ? 1 : 0, duration: 250 });
-      if (on && img.texture.key.startsWith('portrait_')) img.setFrame(mood);
+    for (const [who, obj] of Object.entries(this.npcs) as [Speaker, Phaser.GameObjects.Image][]) {
+      const on = l.who === who || (who === 'nimbo' && this.data_.id === 'ending' && this.idx < 5);
+      this.tweens.add({ targets: obj, alpha: on ? 1 : 0, duration: 250 });
     }
+    if (l.who === 'mae') Audio.play('gator');
     if (l.who === 'nimbo') Audio.play('boss');
     if (l.who === 'avestruz') { Audio.play('crow'); this.cameras.main.shake(300, 0.01); }
-    if (l.who === 'mae') Audio.play('gator');
-    if (mood === 3) for (let i = 0; i < 6; i++) this.time.delayedCall(i * 90, () => this.heartPop(l));
-  }
-
-  /** Coraçõezinhos saindo do retrato (momentos ♥). */
-  private heartPop(l: Line): void {
-    const x = l.who === 0 ? 210 : l.who === 1 ? 750 : GAME_W / 2;
-    const h = this.add.image(x + Phaser.Math.Between(-80, 80), 220, 'fx_heart').setScale(3).setDepth(15);
-    this.tweens.add({ targets: h, y: 120, alpha: 0, duration: 1200, onComplete: () => h.destroy() });
   }
 
   private finish(): void {
@@ -237,20 +186,18 @@ export class StoryScene extends Phaser.Scene {
   update(_t: number, delta: number): void {
     if (this.done) return;
     if (Input.backPressed() || Input.pausePressed) { this.finish(); return; }
-    if (this.titleCard) return;
     if (this.shown < this.full.length) {
       const prev = Math.floor(this.shown);
       this.shown = Math.min(this.full.length, this.shown + delta * 0.05);
       if (Math.floor(this.shown) !== prev && Math.floor(this.shown) % 3 === 0) Audio.play('blip');
       this.body.setText(this.full.slice(0, Math.floor(this.shown)));
-      if (this.shown >= this.full.length) this.next.setVisible(true);
     }
     if (Input.confirmPressed()) this.advance();
   }
 
   private advance(): void {
-    if (this.done || this.titleCard) return;
-    if (this.shown < this.full.length) { this.shown = this.full.length; this.body.setText(this.full); this.next.setVisible(true); }
+    if (this.done) return;
+    if (this.shown < this.full.length) { this.shown = this.full.length; this.body.setText(this.full); }
     else { this.idx++; this.showLine(); }
   }
 }

@@ -11,7 +11,7 @@ import { Save } from '../../systems/SaveManager';
 import { Input, KEY_LABELS } from '../../systems/InputManager';
 import { Audio } from '../../systems/Audio';
 import type { HUDScene } from '../HUDScene';
-import { GAME_W, GAME_H, TILE } from '../../config';
+import { GAME_W, GAME_H, TILE, ZOOM, RES } from '../../config';
 import { txt, panel, fillNames } from '../../ui/text';
 
 interface Order {
@@ -219,7 +219,7 @@ class Cooker implements Interactable {
     if (type === 'oven') this.fireImg.setPosition(c.x, c.y + 4).setScale(0.6);
     L.addSolid(tx, ty, this);
     this.warn = L.add.text(c.x, c.y - 22, '!', { fontFamily: 'monospace', fontSize: '12px', color: '#ff5c5c', stroke: '#2a1d2e', strokeThickness: 3, fontStyle: 'bold' })
-      .setOrigin(0.5).setDepth(9500).setVisible(false).setResolution(3);
+      .setOrigin(0.5).setDepth(9500).setVisible(false).setResolution(ZOOM * RES + 1);
   }
 
   get recipes(): CookRecipe[] { const set = COOKERS[this.L.cfg.cookers] ?? COOKERS.classic; return this.type === 'pot' ? set.pot : set.oven; }
@@ -365,7 +365,7 @@ class FishingSpot implements Interactable {
     L.addSolid(tx, ty, this);
     this.bobber = L.add.image(c.x, c.y, 'bobber').setDepth(c.y + 2).setVisible(false);
     this.mark = L.add.text(c.x, c.y - 18, '!', { fontFamily: 'monospace', fontSize: '14px', color: '#ffd25e', stroke: '#2a1d2e', strokeThickness: 3, fontStyle: 'bold' })
-      .setOrigin(0.5).setDepth(9600).setVisible(false).setResolution(3);
+      .setOrigin(0.5).setDepth(9600).setVisible(false).setResolution(ZOOM * RES + 1);
   }
 
   interact(p: Player): boolean {
@@ -915,7 +915,7 @@ export class KitchenLevel extends BaseLevel {
       if (this.cartT <= 1.6 && !this.cartWarn) {
         const fx = (this.cfg.cart?.fromX ?? 0) * TILE;
         this.cartWarn = this.add.text(fx + 10, y - 18, `!! ${this.cfg.cart?.warn ?? 'CARROÇA'} !!`, { fontFamily: 'monospace', fontSize: '10px', color: '#ffd25e', stroke: '#2a1d2e', strokeThickness: 3, fontStyle: 'bold' })
-          .setDepth(9900).setResolution(3);
+          .setDepth(9900).setResolution(ZOOM * RES + 1);
         this.tweens.add({ targets: this.cartWarn, alpha: 0.2, yoyo: true, repeat: -1, duration: 150 });
         this.sfx('bell');
       }
