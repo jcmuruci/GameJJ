@@ -32,15 +32,18 @@ const DECOR: Record<string, [string, number, number, number][]> = {
   tutorial: [['big_rock', 480, 150, 3]],
   climb: [['mirante', 480, 110, 4]],
   canyon: [['waterfall', 380, 170, 3], ['house_c0', 560, 160, 2.2], ['house_c2', 660, 170, 2]],
-  bread: [['bakery', 480, 150, 3], ['moto', 480, 360, 4]],
+  bread: [['bakery', 400, 150, 3], ['item_lata', 600, 170, 5], ['moto', 480, 360, 4]],
+  bread_end: [['condo', 480, 150, 3], ['item_bread', 440, 330, 5], ['item_lata', 530, 330, 5]],
   itacolomi: [['itacolomi', 480, 170, 3]],
   itacolomi_end: [['itacolomi', 480, 170, 3]],
   italiano: [['table', 480, 330, 5], ['flag_italy', 600, 140, 3]],
   italiano_end: [['table', 480, 330, 5]],
-  junina: [['bunting_j', 330, 60, 4], ['bunting_j', 630, 60, 4], ['bonfire', 480, 190, 4]],
+  junina: [['bunting_j', 330, 60, 4], ['bunting_j', 630, 60, 4], ['dock', 480, 200, 5], ['rod', 560, 190, 4]],
   tire: [['moto', 480, 340, 4], ['big_rock', 680, 140, 2]],
-  roca: [['farmhouse', 480, 160, 3]],
-  topo: [['paraglider', 360, 100, 3], ['paraglider', 620, 70, 2.4], ['waterfall', 480, 230, 2.5]],
+  roca: [['porteira', 300, 200, 1.2], ['moto', 480, 340, 4], ['cow', 680, 330, 4]],
+  roca_end: [['farmhouse', 480, 160, 3], ['duck', 640, 330, 4]],
+  topo: [['paraglider', 360, 100, 3], ['paraglider', 620, 70, 2.4], ['takeoff_ramp', 480, 250, 4], ['windsock', 680, 240, 3]],
+  lapinha: [['waterfall', 480, 170, 3], ['big_rock', 330, 300, 2], ['big_rock', 640, 300, 1.6]],
   farm: [['farmhouse', 480, 150, 3], ['goat', 330, 350, 4], ['horse', 640, 350, 3]],
   farm_end: [['pedalinho', 480, 330, 4]],
   amazon: [['tree_jungle', 120, 180, 4], ['tree_jungle', 840, 170, 4], ['gator', 480, 340, 5]],
@@ -87,7 +90,7 @@ export class StoryScene extends Phaser.Scene {
   create(): void {
     this.names = [Save.data.looks[0].name, Save.data.looks[1].name];
     const id = this.data_.id;
-    const night = id === 'storm' || id === 'ending';
+    const night = id === 'storm' || id === 'ending' || id === 'bread' || id === 'bread_end';
     cozyBackground(this, night ? 0x5a5a9a : id.startsWith('amazon') ? 0x9ac890 : 0xffffff);
     this.add.graphics().fillStyle(0x1b1424, night ? 0.45 : 0.28).fillRect(0, 0, GAME_W, GAME_H);
     if (night) {
@@ -139,9 +142,9 @@ export class StoryScene extends Phaser.Scene {
     if (id === 'storm') return 'boss';
     if (id === 'ending' || id.endsWith('_end')) return 'ending';
     if (id.startsWith('amazon')) return 'jungle';
-    if (id === 'bread' || id === 'tire') return 'road';
+    if (id === 'bread' || id === 'tire' || id === 'roca') return 'road';
     if (id === 'junina') return 'festival';
-    if (id === 'italiano' || id === 'roca') return 'kitchen';
+    if (id === 'italiano') return 'kitchen';
     return 'map';
   }
 

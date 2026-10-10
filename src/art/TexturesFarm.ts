@@ -46,6 +46,30 @@ export function generateFarmTextures(scene: Phaser.Scene): void {
   };
   sheet(scene, 'cow', 22, 16, [cow(true), cow(false)]);
 
+  // lata de carne de lata (da família)
+  sheet(scene, 'item_lata', 12, 12, [(pg) => {
+    pg.rect(2, 2, 8, 9, '#c8c8d0'); pg.rect(2, 4, 8, 5, '#c94a3a'); pg.hline(3, 8, 5, '#ffd25e');
+    pg.hline(2, 9, 2, '#e8e8f0'); pg.hline(2, 9, 10, '#9a9aa8'); pg.px(4, 7, '#fff4e0'); pg.px(6, 7, '#fff4e0');
+  }]);
+  // poste de luz (estrada à noite)
+  sheet(scene, 'lamp_post', 10, 30, [(pg) => {
+    pg.vline(4, 4, 29, '#5a5a6a'); pg.vline(5, 4, 29, '#7a7a8a');
+    pg.hline(4, 8, 3, '#5a5a6a'); pg.rect(6, 4, 3, 2, '#fff1a8');
+  }]);
+  // porteira de fazenda (atravessa a estrada de terra)
+  sheet(scene, 'porteira', 12, 124, [(pg) => {
+    pg.rect(4, 0, 4, 124, '#8a5a34');
+    for (let y = 6; y < 124; y += 14) pg.rect(1, y, 10, 3, '#c8915a');
+    for (let y = 6; y < 110; y += 28) for (let k = 0; k < 14; k++) pg.px(2 + Math.floor((k / 14) * 8), y + k, '#a8703a');
+    pg.rect(3, 0, 6, 3, '#5a3a24'); pg.rect(3, 121, 6, 3, '#5a3a24');
+  }]);
+  // placa de curva
+  sheet(scene, 'curve_sign', 14, 20, [(pg) => {
+    pg.vline(7, 10, 19, '#7a7a8a');
+    pg.rect(1, 0, 12, 11, '#ffd25e'); pg.hline(1, 12, 0, '#2a1d2e'); pg.hline(1, 12, 10, '#2a1d2e');
+    pg.hline(4, 9, 5, '#2a1d2e'); pg.px(8, 4, '#2a1d2e'); pg.px(8, 6, '#2a1d2e'); pg.px(9, 5, '#2a1d2e');
+  }]);
+
   // poça de lama da estrada de terra
   sheet(scene, 'mud', 24, 9, [(pg) => { pg.ellipse(12, 4, 11, 4, '#6a4426'); pg.ellipse(10, 4, 7, 2, '#7e5432'); pg.hline(6, 9, 2, '#9a6a42'); }]);
 

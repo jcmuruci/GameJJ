@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_W, GAME_H, ZOOM, RES } from '../../config';
 import { LevelInfo, levelById } from '../../data/levels';
-import { MOTOS, MotoConfig } from '../../data/motos';
+import { MOTOS, MotoConfig, MotoSpot } from '../../data/motos';
 import { Save } from '../../systems/SaveManager';
 import { Input, KEY_LABELS } from '../../systems/InputManager';
 import { Audio } from '../../systems/Audio';
@@ -16,11 +16,11 @@ import { TaskList } from '../../ui/TaskList';
  * explode pedras com magia, buzina para as capivaras e tira fotos dos lugares lindos.
  */
 
-type Kind = 'pothole' | 'rock' | 'cone' | 'capy' | 'coin' | 'heart' | 'spot' | 'mud';
+type Kind = 'pothole' | 'rock' | 'cone' | 'capy' | 'coin' | 'heart' | 'spot' | 'mud' | 'gate';
 
 interface Obj {
   kind: Kind;
-  img: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite;
+  img: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite | Phaser.GameObjects.Ellipse;
   x: number;
   y: number;
   w: number;
@@ -33,6 +33,7 @@ interface Obj {
   /** Faixa onde a capivara vai sentar. */
   ty?: number;
   decor?: string;
+  spot?: MotoSpot;
 }
 
 const W = GAME_W / ZOOM; // 480
@@ -93,6 +94,22 @@ export class MotoLevel extends Phaser.Scene {
   private wasAir = false;
   private flyingBread: Phaser.GameObjects.Image | null = null;
   private warmBar: Phaser.GameObjects.Graphics | null = null;
+  /** O pão só existe depois da parada na padaria. */
+  private breadOn = false;
+  /** Parada obrigatória em que a moto está esperando. */
+  private stopWait: Obj | null = null;
+  // porteiras
+  private gateIdx = 0;
+  private gate: { o: Obj; state: 'closed' | 'open' | 'closing' | 'done'; t: number; warned: boolean } | null = null;
+  gatesDone = 0;
+  // curvas
+  private curveT = 6;
+  curve: { dir: number; t: number; b: number; failed: boolean } | null = null;
+  curvesOk = 0;
+  private balanceUi: Phaser.GameObjects.Graphics | null = null;
+  private camRot = 0;
+  // noite
+  private headlight: Phaser.GameObjects.Graphics | null = null;
 
   constructor() {
     super('MotoLevel');
@@ -141,6 +158,17 @@ export class MotoLevel extends Phaser.Scene {
     this.wasAir = false;
     this.flyingBread = null;
     this.warmBar = null;
+    this.breadOn = false;
+    this.stopWait = null;
+    this.gateIdx = 0;
+    this.gate = null;
+    this.gatesDone = 0;
+    this.curveT = 6;
+    this.curve = null;
+    this.curvesOk = 0;
+    this.balanceUi = null;
+    this.camRot = 0;
+    this.headlight = null;
 
     this.world = this.add.layer();
     this.ui = this.add.layer();
@@ -181,6 +209,17 @@ export class MotoLevel extends Phaser.Scene {
 
     this.flash = this.add.rectangle(W / 2, H / 2, W, H, 0xffffff, 0);
     this.world.add(this.flash);
+    if (this.cfg.night) {
+      // noite: tudo escurece; farol e postes iluminam
+      this.world.add(this.add.rectangle(W / 2, H / 2, W, H, 0x0a0a26, 0.62).setDepth(8000));
+      this.headlight = this.add.graphics().setDepth(8001).setBlendMode(Phaser.BlendModes.ADD);
+      this.world.add(this.headlight);
+      for (let i = 0; i < 26; i++) {
+        const st = this.add.image(Phaser.Math.Between(0, W), Phaser.Math.Between(4, ROAD_TOP - 20), 'fx_spark').setScale(0.4).setDepth(8002).setAlpha(0.7);
+        this.world.add(st);
+        this.tweens.add({ targets: st, alpha: 0.2, yoyo: true, repeat: -1, duration: Phaser.Math.Between(600, 1500) });
+      }
+    }
 
     this.buildUi();
     this.showIntro();
@@ -195,7 +234,7 @@ export class MotoLevel extends Phaser.Scene {
     g.fillStyle(0x1b1424, 0.75).fillRoundedRect(12, 10, 220, 46, 10);
     for (let i = 0; i < this.maxHp; i++) this.hearts.push(add(this.add.image(36 + i * 22, 33, 'ui_heart').setScale(2.4)));
     this.photoText = add(txt(this, GAME_W - 24, 32, '', 18, { origin: [1, 0.5], color: '#ffd6e4' }));
-    add(this.add.image(GAME_W - 200, 32, 'photo_spot').setScale(1.6));
+    add(this.add.image(GAME_W - 200, 32, this.hasStops ? 'item_bread' : 'photo_spot').setScale(1.6));
     this.progress = add(this.add.graphics());
     this.progressMoto = add(this.add.image(0, 0, 'moto_map').setScale(2));
     add(this.add.image(GAME_W / 2 + 214, 58, this.cfg.goalIcon, 0).setScale(0.5));
@@ -203,12 +242,13 @@ export class MotoLevel extends Phaser.Scene {
     this.toastT = add(txt(this, GAME_W / 2, 110, '', 20, { color: '#fff4e0' }).setAlpha(0));
     this.cdBars = add(this.add.graphics());
     if (this.cfg.bread) {
-      add(this.add.image(GAME_W - 200, 66, 'item_bread').setScale(2));
+      add(this.add.image(GAME_W - 200, 66, 'fx_heart').setScale(1.6).setTint(0xffa64a));
       this.warmBar = add(this.add.graphics());
     }
+    if (this.cfg.curves) this.balanceUi = add(this.add.graphics());
     const help = [
       `${this.names[0]}: ${KEY_LABELS[0].move} pilota · ${KEY_LABELS[0].ability}: pula buracos`,
-      `${this.names[1]}: ${KEY_LABELS[1].ability}: magia nas pedras · ${KEY_LABELS[1].action}: buzina / foto`,
+      `${this.names[1]}: ${KEY_LABELS[1].ability}: magia nas pedras · ${KEY_LABELS[1].action}: ${this.hasStops ? 'buzina / paradas' : this.cfg.gates ? 'porteira / foto' : 'buzina / foto'}${this.cfg.curves ? ' · ← →: equilíbrio' : ''}`,
     ];
     help.forEach((h, i) => add(txt(this, i === 0 ? 20 : GAME_W - 20, GAME_H - 18, h, 13, { origin: [i === 0 ? 0 : 1, 0.5], color: i === 0 ? '#bfe6ff' : '#ffd6e4', bold: false })));
     if (!isTouchDevice()) add(uiButton(this, GAME_W / 2, GAME_H - 20, 'Pausa (Esc)', () => this.openPause(), { size: 13 }));
@@ -217,9 +257,9 @@ export class MotoLevel extends Phaser.Scene {
 
   private refreshUi(): void {
     this.hearts.forEach((h, i) => h.setTexture(i < this.hp ? 'ui_heart' : 'ui_heart_empty'));
-    this.photoText.setText(`Fotos: ${this.photos}/3`);
+    this.photoText.setText(`${this.hasStops ? 'Paradas' : 'Fotos'}: ${this.photos}/${this.cfg.spots.length}`);
     if (this.warmBar) {
-      const w = this.warmth / 100;
+      const w = this.breadOn ? this.warmth / 100 : 0;
       this.warmBar.clear().fillStyle(0x1b1424, 0.75).fillRoundedRect(GAME_W - 186, 60, 164, 14, 6)
         .fillStyle(w >= 0.5 ? 0xffa64a : 0x9ab0d8, 1).fillRect(GAME_W - 182, 64, 156 * w, 6);
     }
@@ -234,7 +274,21 @@ export class MotoLevel extends Phaser.Scene {
     g.fillStyle(0x000000, 0.4).fillRect(20, GAME_H - 36, 120, 3).fillRect(GAME_W - 140, GAME_H - 36, 120, 3);
     g.fillStyle(this.jumpCd <= 0 ? 0x8be07a : 0xffd25e, 1).fillRect(20, GAME_H - 36, 120 * (1 - this.jumpCd / 1.3), 3);
     g.fillStyle(this.boltCd <= 0 ? 0x8be07a : 0xffd25e, 1).fillRect(GAME_W - 140, GAME_H - 36, 120 * (1 - this.boltCd / 0.45), 3);
+    // equilíbrio nas curvas
+    if (this.balanceUi) {
+      const b = this.balanceUi.clear();
+      if (this.curve) {
+        const cx = GAME_W / 2;
+        const cy = GAME_H - 64;
+        b.fillStyle(0x1b1424, 0.8).fillRoundedRect(cx - 130, cy - 12, 260, 24, 8);
+        b.fillStyle(0xff7a7a, 1).fillRect(cx - 124, cy - 4, 24, 8).fillRect(cx + 100, cy - 4, 24, 8);
+        b.fillStyle(0x8be07a, 1).fillRect(cx - 40, cy - 4, 80, 8);
+        b.fillStyle(0xfff4e0, 1).fillRect(cx + this.curve.b * 120 - 3, cy - 9, 6, 18);
+      }
+    }
   }
+
+  private get hasStops(): boolean { return this.cfg.spots.some((s) => s.kind === 'stop'); }
 
   private toast(s: string, color = '#fff4e0'): void {
     this.tweens.killTweensOf(this.toastT);
@@ -256,7 +310,11 @@ export class MotoLevel extends Phaser.Scene {
     const lines: [string, string][] = [
       [`${this.names[0]} pilota`, `${KEY_LABELS[0].move}: desvia, acelera e freia · ${KEY_LABELS[0].ability}: pula buracos e cones`],
       [`${this.names[1]} na garupa`, `${KEY_LABELS[1].ability}: magia explode pedras · ${KEY_LABELS[1].action}: buzina p/ ${this.cfg.animal === 'cow' ? 'vacas' : 'capivaras'}${this.cfg.bread ? ' e segura o pão' : ''}`],
-      ['Fotos do casal', `Quando passar uma placa de câmera, ${this.names[1]} aperta ${KEY_LABELS[1].action}!`],
+      this.hasStops
+        ? ['Paradas', `Na padaria e na casa da família a moto para: ${this.names[1]} aperta ${KEY_LABELS[1].action}!`]
+        : this.cfg.gates
+          ? ['Porteiras e curvas', `Porteira: ${this.names[1]} abre e fecha (${KEY_LABELS[1].action}) · Curva: ela se inclina junto (← →)`]
+          : ['Fotos do casal', `Quando passar uma placa de câmera, ${this.names[1]} aperta ${KEY_LABELS[1].action}!`],
     ];
     lines.forEach(([a, b], i) => {
       add(txt(this, GAME_W / 2, y0 + 110 + i * 50, a, 17, { color: i === 0 ? '#bfe6ff' : i === 1 ? '#ffd6e4' : '#ffd25e' }));
@@ -284,6 +342,15 @@ export class MotoLevel extends Phaser.Scene {
 
   // ------------------------------------------------------------------ geração
   private spawnDecor(x: number): void {
+    if (this.cfg.night && Math.random() < 0.3) {
+      // poste com luz amarelada iluminando a estrada
+      const post = this.add.image(x, ROAD_TOP - 2, 'lamp_post').setOrigin(0.5, 1).setDepth(ROAD_TOP - 2);
+      const glow = this.add.ellipse(x + 4, ROAD_TOP + 22, 90, 50, 0xffc860, 0.16).setDepth(8001).setBlendMode(Phaser.BlendModes.ADD);
+      this.world.add([post, glow]);
+      this.objs.push({ kind: 'coin', img: post, x, y: ROAD_TOP - 2, w: 0, h: 0, vy: 0, dead: false, label: 'decor' });
+      this.objs.push({ kind: 'coin', img: glow, x: x + 4, y: ROAD_TOP + 22, w: 0, h: 0, vy: 0, dead: false, label: 'decor' });
+      return;
+    }
     const top = Math.random() < 0.5;
     const y = top ? Phaser.Math.Between(16, ROAD_TOP - 16) : Phaser.Math.Between(ROAD_BOT + 22, H - 6);
     const key = Phaser.Utils.Array.GetRandom(['tree_big', 'tree_big', 'tree_pink', 'tree_ipe', 'bush', 'bush', 'rock_small']);
@@ -357,9 +424,12 @@ export class MotoLevel extends Phaser.Scene {
     this.boltCd = Math.max(0, this.boltCd - dt);
     this.hornCd = Math.max(0, this.hornCd - dt);
 
+    // paradas obrigatórias e porteiras seguram a moto
+    const halt = this.updateHalts(dt);
     // piloto
-    const target = 170 + p1.x * 70 + (this.dist / this.cfg.total) * 40;
-    this.speed += (target - this.speed) * Math.min(1, dt * 3);
+    const target = halt ? 0 : 170 + p1.x * 70 + (this.dist / this.cfg.total) * 40;
+    this.speed += (target - this.speed) * Math.min(1, dt * (halt ? 6 : 3));
+    if (halt && this.speed < 4) this.speed = 0;
     this.my = Phaser.Math.Clamp(this.my + p1.y * 120 * dt, ROAD_TOP + 12, ROAD_BOT - 8);
     this.mx += ((95 + (this.speed - 100) * 0.4) - this.mx) * Math.min(1, dt * 2);
     if (p1.abilityPressed && this.jumpCd <= 0 && this.air <= 0) {
@@ -372,17 +442,24 @@ export class MotoLevel extends Phaser.Scene {
     if (p2.abilityPressed && this.boltCd <= 0) this.castBolt();
     if (p2.actionPressed) {
       if (this.catchT > 0) this.catchBread(true);
+      else if (this.gateAction()) { /* porteira */ }
       else if (!this.tryPhoto() && this.hornCd <= 0) this.honk();
     }
     this.updateBread(dt);
+    if (!halt) this.updateCurve(dt, p2.x);
 
     this.air = Math.max(0, this.air - dt);
     const hop = this.air > 0 ? Math.sin((1 - this.air / 0.6) * Math.PI) * 14 : 0;
     this.moto.setPosition(this.mx, this.my - hop + (this.air > 0 ? 0 : Math.sin(time / 60) * 0.4));
-    this.moto.setAngle(this.air > 0 ? -6 : p1.y * 4);
+    this.moto.setAngle((this.air > 0 ? -6 : p1.y * 4) + (this.curve ? this.curve.b * 14 : 0));
     this.moto.setDepth(this.my + 4);
     this.moto.setAlpha(this.invuln > 0 && Math.floor(this.invuln * 12) % 2 ? 0.4 : 1);
     this.shadow.setPosition(this.mx, this.my + 12).setScale(1 - hop / 40).setDepth(this.my - 1);
+    if (this.headlight) {
+      const hy = this.my - hop - 6;
+      this.headlight.clear().fillStyle(0xffe08a, 0.13).fillTriangle(this.mx + 14, hy, this.mx + 160, hy - 36, this.mx + 160, hy + 30)
+        .fillStyle(0xfff1a8, 0.3).fillCircle(this.mx + 15, hy, 4);
+    }
     if (Math.random() < dt * 20) {
       const d = this.add.image(this.mx - 20, this.my + 8, 'fx_dust').setDepth(this.my);
       this.world.add(d);
@@ -397,7 +474,9 @@ export class MotoLevel extends Phaser.Scene {
     if (Math.random() < dt * 2.2) this.spawnDecor(W + 30);
     this.spawnT -= dt;
     const gap = Phaser.Math.Linear(1.25, 0.75, this.dist / this.cfg.total);
-    if (this.spawnT <= 0 && this.dist < this.cfg.total - 900) { this.spawnT = gap * Phaser.Math.FloatBetween(0.8, 1.2); this.spawnWave(); }
+    const gateNear = this.gate && this.gate.state !== 'done';
+    if (this.spawnT <= 0 && this.dist < this.cfg.total - 900 && !gateNear && !this.stopWait) { this.spawnT = gap * Phaser.Math.FloatBetween(0.8, 1.2); this.spawnWave(); }
+    if (this.cfg.gates && this.gateIdx < this.cfg.gates.length && !this.gate && this.dist / this.cfg.total >= this.cfg.gates[this.gateIdx]) { this.gateIdx++; this.spawnGate(); }
     if (this.spotIdx < this.cfg.spots.length && this.dist / this.cfg.total >= this.cfg.spots[this.spotIdx].at) this.spawnSpot(this.cfg.spots[this.spotIdx++]);
 
     this.updateObjs(dt, dx);
@@ -457,7 +536,7 @@ export class MotoLevel extends Phaser.Scene {
     this.scene.pause();
   }
 
-  private spawnSpot(s: { label: string; decor: string }): void {
+  private spawnSpot(s: MotoSpot): void {
     const x = W + 40;
     const decor = this.add.image(x + 20, ROAD_TOP - 10, s.decor, 0).setOrigin(0.5, 1).setDepth(ROAD_TOP - 10);
     if (s.decor === 'big_rock') decor.setScale(0.7);
@@ -466,9 +545,17 @@ export class MotoLevel extends Phaser.Scene {
     const o = this.add_('spot', x, ROAD_TOP - 4, 'photo_spot', 0, 0);
     o.label = s.label;
     o.decor = s.decor;
+    o.spot = s;
+    if (this.cfg.night) {
+      // a padaria e a casa ficam com a luz acesa
+      const glow = this.add.ellipse(x + 20, ROAD_TOP - 24, 110, 70, 0xffe8a0, 0.25).setDepth(8001).setBlendMode(Phaser.BlendModes.ADD);
+      this.world.add(glow);
+      this.objs.push({ kind: 'coin', img: glow, x: x + 20, y: ROAD_TOP - 24, w: 0, h: 0, vy: 0, dead: false, label: 'decor' });
+    }
     o.img.setOrigin(0.5, 1);
     this.tweens.add({ targets: o.img, scale: 1.2, yoyo: true, repeat: -1, duration: 300 });
-    this.toast(`Foto: ${s.label} chegando! ${this.names[1]}, prepara a foto (${KEY_LABELS[1].action})!`, '#ffd6e4');
+    if (s.kind === 'stop') this.toast(`Parada: ${s.label}! ${this.names[1]}, aperte ${KEY_LABELS[1].action} quando chegar.`, '#ffd23a');
+    else this.toast(`Foto: ${s.label} chegando! ${this.names[1]}, prepara a foto (${KEY_LABELS[1].action})!`, '#ffd6e4');
   }
 
   private tryPhoto(): boolean {
@@ -476,6 +563,7 @@ export class MotoLevel extends Phaser.Scene {
     if (!spot) return false;
     spot.shot = true;
     this.photos++;
+    if (spot.spot?.kind === 'stop') { this.completeStop(spot.spot); return true; }
     Audio.play('camera');
     this.flash.setAlpha(0.8);
     this.tweens.add({ targets: this.flash, alpha: 0, duration: 350 });
@@ -505,9 +593,137 @@ export class MotoLevel extends Phaser.Scene {
     this.tweens.add({ targets: c, alpha: 0, y: c.y + 40, delay: 1800, duration: 400, onComplete: () => c.destroy() });
   }
 
+  /** Parada concluída: pega o item (pão, carne de lata...) e segue viagem. */
+  private completeStop(s: MotoSpot): void {
+    this.stopWait = null;
+    Audio.play('coin');
+    this.toast(s.doneText ?? s.label, '#ffd23a');
+    if (s.task) this.tasks?.done(s.task);
+    if (s.task === 'padaria' && this.cfg.bread) { this.breadOn = true; this.warmth = 100; }
+    this.riders.forEach((r) => this.tweens.add({ targets: r, y: r.y - 4, yoyo: true, duration: 140 }));
+    // o item aparece grande na tela por um instante
+    const c = this.add.container(GAME_W / 2, GAME_H / 2 - 20);
+    const g = this.add.graphics();
+    g.fillStyle(0x1b1424, 0.85).fillRoundedRect(-110, -70, 220, 140, 14);
+    g.lineStyle(3, 0xffd23a, 1).strokeRoundedRect(-110, -70, 220, 140, 14);
+    c.add([g, this.add.image(0, -14, s.item ?? 'item_bread').setScale(5), txt(this, 0, 46, s.label, 18, { color: '#ffd23a' })]);
+    c.setScale(0.3).setAlpha(0);
+    this.ui.add(c);
+    this.tweens.add({ targets: c, scale: 1, alpha: 1, duration: 260, ease: 'Back.Out' });
+    this.tweens.add({ targets: c, alpha: 0, delay: 1500, duration: 300, onComplete: () => c.destroy() });
+  }
+
+  /** Moto parada: parada obrigatória à frente ou porteira fechada. */
+  private updateHalts(dt: number): boolean {
+    if (!this.stopWait) {
+      const st = this.objs.find((o) => o.kind === 'spot' && o.spot?.kind === 'stop' && !o.shot && !o.dead && o.x <= this.mx + 26);
+      if (st) {
+        this.stopWait = st;
+        this.toast(`${st.label}! ${this.names[1]}, aperte ${KEY_LABELS[1].action}!`, '#ffd23a');
+      }
+    } else if (this.stopWait.shot || this.stopWait.dead) this.stopWait = null;
+    let gateHalt = false;
+    const g = this.gate;
+    if (g) {
+      if (g.state === 'closed' && g.o.x - this.mx < 50) {
+        gateHalt = true;
+        if (!g.warned) { g.warned = true; this.toast(`Porteira! ${this.names[1]}, desce e abre (${KEY_LABELS[1].action})!`, '#ffd23a'); }
+      }
+      if (g.state === 'open' && g.o.x < this.mx - 28) {
+        g.state = 'closing';
+        g.t = 3;
+        this.toast(`Porteira aberta, porteira fechada! Fecha (${KEY_LABELS[1].action})!`, '#ffd23a');
+      }
+      if (g.state === 'closing') {
+        g.t -= dt;
+        if (g.t <= 0) { g.state = 'done'; this.toast('Ih, a porteira ficou aberta... as vacas vão fugir!', '#d8c8e8'); }
+      }
+      if (g.o.dead || g.o.x < -30) this.gate = null;
+    }
+    return !!this.stopWait || gateHalt;
+  }
+
+  private spawnGate(): void {
+    const o = this.add_('gate', W + 30, ROAD_TOP - 6, 'porteira', 12, 124);
+    o.img.setOrigin(0.5, 0);
+    for (const x of this.objs) if (x !== o && x.label !== 'decor' && x.kind !== 'spot' && x.x > this.mx + 40) x.dead = true;
+    this.gate = { o, state: 'closed', t: 0, warned: false };
+  }
+
+  /** Ela desce e abre a porteira; depois que a moto passa, fecha. */
+  private gateAction(): boolean {
+    const g = this.gate;
+    if (!g) return false;
+    const img = g.o.img as Phaser.GameObjects.Image;
+    if (g.state === 'closed' && g.o.x - this.mx < 90) {
+      g.state = 'open';
+      Audio.play('gate');
+      this.tweens.add({ targets: img, angle: -82, duration: 500, ease: 'Sine.Out' });
+      this.tweens.add({ targets: this.riders[0], y: this.riders[0].y - 6, yoyo: true, duration: 160, repeat: 1 });
+      this.toast('Porteira aberta! Passa, amor!', '#8be07a');
+      return true;
+    }
+    if (g.state === 'closing') {
+      g.state = 'done';
+      Audio.play('gate');
+      this.tweens.add({ targets: img, angle: 0, duration: 400, ease: 'Sine.In' });
+      this.gatesDone++;
+      this.tasks?.progress('gates', this.gatesDone);
+      this.toast('Porteira fechada! Regra da roça ♥', '#8be07a');
+      return true;
+    }
+    return false;
+  }
+
+  /** Curvas na terra: a moto quer escapar para fora; ela se inclina junto (setas). */
+  private updateCurve(dt: number, lean: number): void {
+    if (!this.cfg.curves) return;
+    const cam = this.cameras.main;
+    if (!this.curve) {
+      this.camRot *= 0.9;
+      cam.setRotation(this.camRot);
+      this.curveT -= dt;
+      if (this.curveT <= 0 && !this.gate && !this.stopWait) {
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        this.curve = { dir, t: 3.6, b: 0, failed: false };
+        const sign = this.add.image(W + 10, ROAD_TOP - 2, 'curve_sign').setOrigin(0.5, 1).setFlipX(dir < 0).setDepth(ROAD_TOP);
+        this.world.add(sign);
+        this.objs.push({ kind: 'coin', img: sign, x: W + 10, y: ROAD_TOP - 2, w: 0, h: 0, vy: 0, dead: false, label: 'decor' });
+        this.toast(dir > 0 ? `Curva à direita! ${this.names[1]}, incline junto (→)` : `Curva à esquerda! ${this.names[1]}, incline junto (←)`, '#ffd23a');
+      }
+      return;
+    }
+    const c = this.curve;
+    c.t -= dt;
+    const jitter = Math.sin(this.time.now / 170) * 0.35 + Math.sin(this.time.now / 53) * 0.2;
+    c.b = Phaser.Math.Clamp(c.b + (-c.dir * 0.85 + jitter) * dt + lean * 1.6 * dt, -1.05, 1.05);
+    this.camRot = Phaser.Math.Linear(this.camRot, c.dir * 0.035, 0.08);
+    cam.setRotation(this.camRot);
+    if (Math.abs(c.b) >= 1 && !c.failed) {
+      c.failed = true;
+      c.b = 0;
+      this.hp--;
+      this.hits++;
+      this.invuln = 1;
+      Audio.play('hurt');
+      this.cameras.main.shake(200, 0.008);
+      this.toast('Quase caímos! Inclina junto, amor!', '#ff9c9c');
+      if (this.hp <= 0) { this.finish(false); return; }
+    }
+    if (c.t <= 0) {
+      if (!c.failed) {
+        this.curvesOk++;
+        this.tasks?.progress('curves', this.curvesOk);
+        this.toast('Curva perfeita! Dupla sincronizada ♥', '#8be07a');
+      }
+      this.curve = null;
+      this.curveT = Phaser.Math.Between(8, 12);
+    }
+  }
+
   /** Pão quentinho: esfria aos poucos; depois de um pulo, pode escapar da sacola. */
   private updateBread(dt: number): void {
-    if (!this.cfg.bread) return;
+    if (!this.cfg.bread || !this.breadOn) return;
     this.warmth = Math.max(0, this.warmth - 0.55 * dt);
     const inAir = this.air > 0;
     if (this.wasAir && !inAir && this.catchT <= 0 && Math.random() < 0.55) {
@@ -612,7 +828,7 @@ export class MotoLevel extends Phaser.Scene {
       o.img.setPosition(o.x, o.y);
       if (o.label !== 'decor') o.img.setDepth(o.y);
       if (o.x < -60) { o.dead = true; continue; }
-      if (o.kind === 'spot' || o.label === 'decor') continue;
+      if (o.kind === 'spot' || o.kind === 'gate' || o.label === 'decor') continue;
       // colisão com a moto
       const hitX = Math.abs(o.x - this.mx) < (o.w + 26) / 2;
       const hitY = Math.abs(o.y - this.my) < (o.h + 10) / 2;
@@ -671,7 +887,10 @@ export class MotoLevel extends Phaser.Scene {
     this.ended = true;
     Audio.music(null);
     Audio.play(win ? 'win' : 'lose');
-    const stars = win ? 1 + (this.photos >= 3 ? 1 : 0) + (this.hits <= 1 ? 1 : 0) : 0;
+    const n = this.cfg.spots.length;
+    // pão: a 2ª estrela é chegar com ele quentinho; nas outras, todas as fotos
+    const second = this.cfg.bread ? this.warmth >= 50 : this.photos >= n;
+    const stars = win ? 1 + (second ? 1 : 0) + (this.hits <= 1 ? 1 : 0) : 0;
     const score = win ? this.coins * 5 + this.photos * 50 + this.hp * 30 : 0;
     this.time.delayedCall(1800, () => {
       this.cameras.main.fadeOut(400, 27, 20, 36);
@@ -679,9 +898,11 @@ export class MotoLevel extends Phaser.Scene {
         levelId: this.info.id, win, stars, score,
         title: win ? this.cfg.finishTitle : 'A moto precisou de conserto...',
         lines: [
-          `Fotos do casal: ${this.photos}/3 ${this.photos >= 3 ? '(estrela!)' : ''}`,
+          this.cfg.bread
+            ? `Pão: ${Math.round(this.warmth)}% quentinho ${this.warmth >= 50 ? '(estrela!)' : '(meta: 50%)'}`
+            : `Fotos do casal: ${this.photos}/${n} ${this.photos >= n ? '(estrela!)' : ''}`,
           `Batidas: ${this.hits} ${this.hits <= 1 ? '(estrela!)' : '(meta: no máximo 1)'}`,
-          this.cfg.bread ? `Pão: ${Math.round(this.warmth)}% quentinho` : win ? this.cfg.memory : `Moedas na estrada: ${this.coins}`,
+          win ? this.cfg.memory : `Moedas na estrada: ${this.coins}`,
           this.tasks ? this.tasks.summary() : '',
         ].filter(Boolean),
         stats: { hugs: 0, faints: 0, revives: 0, crystals: 0, coins: this.coins * 2 },
