@@ -7,6 +7,7 @@ import type { HUDScene } from '../HUDScene';
 import { GAME_W, TILE, ZOOM, RES } from '../../config';
 import { txt } from '../../ui/text';
 import { TaskList } from '../../ui/TaskList';
+import { plaque } from './Scenery';
 import { Input, KEY_LABELS } from '../../systems/InputManager';
 import { Audio } from '../../systems/Audio';
 
@@ -273,6 +274,8 @@ export class FarmLevel extends PuzzleLevel {
 
   setup(): void {
     this.enemyColliders();
+    plaque(this, 4, 1, 'HOTEL FAZENDA');
+    plaque(this, 28, 9, 'PEDALINHO');
   }
 
   onHudReady(hud: HUDScene): void {

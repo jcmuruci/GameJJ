@@ -95,6 +95,55 @@ export function generateTrailTextures(scene: Phaser.Scene): void {
     pg.hline(4, 9, 1, '#b8b6c2'); pg.px(3, 2, '#b0aeb8');
     pg.hline(2, 11, 5, '#6e6c7a'); pg.px(10, 3, '#7a7886');
   });
+  // academia de escalada indoor
+  canvas(scene, 'crash_pad', 30, 10, (pg) => {
+    pg.rect(0, 2, 30, 8, '#2f5a98'); pg.rect(0, 0, 30, 3, '#5a88cc');
+    pg.vline(10, 2, 9, '#244a80'); pg.vline(20, 2, 9, '#244a80'); pg.hline(1, 28, 1, '#7aa4dc');
+  });
+  canvas(scene, 'chalk_bag', 7, 8, (pg) => {
+    pg.rect(1, 2, 5, 6, '#e8424a'); pg.rect(1, 1, 5, 2, '#ffffff'); pg.px(3, 0, '#ffffff'); pg.px(2, 4, '#ff7a80');
+  });
+  canvas(scene, 'gym_bench', 22, 9, (pg) => {
+    pg.rect(0, 1, 22, 4, '#c8915a'); pg.hline(0, 21, 1, '#e0b07a');
+    pg.rect(2, 5, 2, 4, '#5a5a6a'); pg.rect(18, 5, 2, 4, '#5a5a6a');
+  });
+  canvas(scene, 'hold_fall', 8, 7, (pg) => {
+    pg.ellipse(4, 3, 3, 3, '#ffd25e'); pg.px(3, 2, '#fff1a8'); pg.px(5, 4, '#c8a040'); pg.px(4, 3, '#8a8a8a');
+  });
+  // bloco de espuma da academia (empurrável, no lugar da pedra)
+  canvas(scene, 'foam_block', 16, 16, (pg) => {
+    pg.rect(1, 3, 14, 12, '#e8424a'); pg.rect(1, 1, 14, 4, '#ff7a80'); pg.hline(2, 13, 2, '#ffb0b4');
+    pg.rect(5, 7, 6, 5, '#ffd25e'); pg.px(6, 8, '#fff1a8');
+  });
+  canvas(scene, 'gym_light', 24, 6, (pg) => {
+    pg.rect(0, 0, 24, 3, '#5a5a6a'); pg.rect(1, 3, 22, 2, '#fff7d0');
+  });
+  // Topo do Mundo: rampa de decolagem e biruta
+  canvas(scene, 'takeoff_ramp', 44, 24, (pg) => {
+    for (let x = 0; x < 44; x++) {
+      const top = Math.round(4 + (x / 43) * 12);
+      pg.vline(x, top, 23, x % 6 === 0 ? '#8a5a34' : '#c8915a');
+      pg.px(x, top, '#e0b07a');
+    }
+    pg.vline(4, 6, 23, '#5a3a24'); pg.vline(20, 11, 23, '#5a3a24'); pg.vline(38, 15, 23, '#5a3a24');
+  });
+  canvas(scene, 'windsock', 18, 26, (pg) => {
+    pg.vline(2, 2, 25, '#8a8a96'); pg.px(2, 1, '#c8c8d0');
+    for (let i = 0; i < 4; i++) pg.rect(3 + i * 3, 3 + Math.floor(i / 2), 3, 5 - Math.floor(i / 2), i % 2 ? '#ffffff' : '#f08a3a');
+  });
+  // plaquinha de madeira genérica (o texto vai por cima)
+  canvas(scene, 'plaque', 60, 16, (pg) => {
+    pg.rect(0, 0, 60, 12, '#c8915a'); pg.hline(0, 59, 0, '#e0b07a'); pg.hline(0, 59, 11, '#8a5a34');
+    pg.vline(10, 12, 15, '#5a3a24'); pg.vline(49, 12, 15, '#5a3a24');
+  });
+  // bromélia (planta das pedras)
+  canvas(scene, 'bromelia', 10, 8, (pg) => {
+    [[1, 7, 3, 3], [8, 7, 6, 3], [4, 7, 3, 0], [6, 7, 5, 1], [2, 7, 4, 1]].forEach(([x0, y0, x1, y1]) => {
+      const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+      for (let i = 0; i <= n; i++) pg.px(Math.round(x0 + ((x1 - x0) * i) / n), Math.round(y0 + ((y1 - y0) * i) / n), i > n - 2 ? '#78b858' : '#3f8a3e');
+    });
+    pg.px(5, 2, '#e8424a');
+  });
   // folha do poema dobrada (com corações)
   canvas(scene, 'item_poem', 12, 13, (pg) => {
     pg.rect(1, 1, 10, 11, '#fff7e6');

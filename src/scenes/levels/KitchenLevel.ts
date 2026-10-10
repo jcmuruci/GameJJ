@@ -15,6 +15,7 @@ import { GAME_W, GAME_H, TILE, ZOOM, RES } from '../../config';
 import { txt, panel, fillNames } from '../../ui/text';
 import { TaskList } from '../../ui/TaskList';
 import { charFrame } from '../../art/CharacterArt';
+import { plaque } from './Scenery';
 
 interface Order {
   recipe: RecipeId;
@@ -621,6 +622,7 @@ export class KitchenLevel extends BaseLevel {
     this.rings = { state: 'wait', img: null };
     this.dance = { t: 0, pressed: [-1, -1], next: 30 };
     this.guestT = 8;
+    for (const pq of this.cfg.plaques ?? []) plaque(this, pq.tx, pq.ty, pq.text);
     this.guests = (this.cfg.guests ?? []).map((g) => {
       const c = this.tileCenter(g.tx, g.ty);
       this.addSolid(g.tx, g.ty);

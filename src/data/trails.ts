@@ -24,6 +24,17 @@ export interface TrailConfig {
    *  wind rajadas de vento (segurem AÇÃO) · photos parapentes para fotografar
    */
   event: 'rockfall' | 'swarm' | 'wind' | 'photos';
+  /** Terreno próprio do cenário (ex.: '#' vira parede da academia, '^' vira parede de escalada). */
+  terrain?: Record<string, number>;
+  /** Tile do paredão de rapel/escalada. */
+  cliff?: number;
+  /** Enfeites do cenário: academia indoor, cânion, montanha, Topo do Mundo. */
+  decor?: 'gym' | 'canyon' | 'mountain' | 'topo';
+  /** Plaquinhas com o nome dos lugares. */
+  plaques?: { tx: number; ty: number; text: string }[];
+  /** O que cai no evento de queda (pedra na rocha, agarra na academia). */
+  fallTex?: string;
+  fallLines?: string[];
   /**
    * Tarefas do capítulo. Ids reconhecidos: collect, climb, rappel, foes, dodge, gusts, finish.
    */
@@ -38,14 +49,20 @@ export interface TrailConfig {
 export const TRAILS: Record<string, TrailConfig> = {
   climb: {
     map: CLIMB_MAP,
-    floor: T.SAND,
+    floor: T.GYM_FLOOR,
     signs: [
-      'Escalada! Um SEGURA AÇÃO na ancoragem e o outro aperta AÇÃO na parede para subir. Pedra solta: fujam da sombra no chão!',
+      'Escalada! Um SEGURA AÇÃO na ancoragem e o outro aperta AÇÃO na parede para subir. Agarra solta: fujam da sombra no chão!',
       'Quem subiu primeiro faz a segurança lá de cima para o outro.',
       'Pedra grande na placa = portão aberto pra sempre. Só {p1} empurra!',
     ],
     collect: { tex: 'item_carabiner', name: 'Mosquetão dourado', plural: 'mosquetões' },
-    intro: 'Janeiro de 2026: escalada de parede e, lá no alto, um mirante.',
+    intro: 'Janeiro de 2026: escalada indoor na academia e, depois, um mirante.',
+    terrain: { '#': T.INDOOR_WALL, '^': T.CLIMB_WALL, h: T.HEDGE, ';': T.GRASS },
+    cliff: T.CLIMB_WALL,
+    decor: 'gym',
+    plaques: [{ tx: 5, ty: 27, text: 'ACADEMIA DE ESCALADA' }, { tx: 20, ty: 2, text: 'MIRANTE' }],
+    fallTex: 'hold_fall',
+    fallLines: ['Agarra solta!', 'Cuidado, caiu uma agarra!', 'Olha a agarra!'],
     finishTitle: 'Que vista do mirante!',
     ending: 'mirante',
     ambience: 'leaves',
@@ -54,7 +71,7 @@ export const TRAILS: Record<string, TrailConfig> = {
     tasks: [
       { id: 'climb', text: 'Escalar com segurança', goal: 3 },
       { id: 'collect', text: 'Mosquetões dourados', goal: 3 },
-      { id: 'dodge', text: 'Desviar das pedras soltas', goal: 5 },
+      { id: 'dodge', text: 'Desviar das agarras soltas', goal: 5 },
       { id: 'finish', text: 'Foto juntos no mirante' },
     ],
   },
@@ -72,6 +89,10 @@ export const TRAILS: Record<string, TrailConfig> = {
     intro: 'Fevereiro de 2026: um cânion de pedras, água corrente e quedas d\'água... e depois Lavras Novas!',
     finishTitle: 'Chegaram em Lavras Novas!',
     ambience: 'fireflies',
+    terrain: { '#': T.CANYON_WALL, '^': T.ROCK_FACE },
+    cliff: T.ROCK_FACE,
+    decor: 'canyon',
+    plaques: [{ tx: 11, ty: 5, text: 'TRILHA DO CÂNION' }, { tx: 6, ty: 26, text: 'LAVRAS NOVAS' }],
     foe: { tex: 'mosquito', name: 'Borrachudo', hp: 1, speed: 44, aggro: 85 },
     event: 'swarm',
     tasks: [
@@ -82,7 +103,7 @@ export const TRAILS: Record<string, TrailConfig> = {
   },
   itacolomi: {
     map: ITACOLOMI_MAP,
-    floor: T.GRASS,
+    floor: T.ROCKY_GRASS,
     signs: [
       'Trilha até o Pico do Itacolomi! Lá em cima venta forte: quando vier a rajada, SEGUREM AÇÃO pra não voar.',
       'Portão com duas placas: um segura de um lado, o outro passa e segura do outro.',
@@ -94,6 +115,10 @@ export const TRAILS: Record<string, TrailConfig> = {
     finishTitle: 'Ela disse SIM! ♥',
     ending: 'proposal',
     ambience: 'petals',
+    terrain: { '#': T.SHRUB_ROCK, '^': T.ROCK_FACE },
+    cliff: T.ROCK_FACE,
+    decor: 'mountain',
+    plaques: [{ tx: 35, ty: 8, text: 'PICO DO ITACOLOMI 1772 m' }],
     foe: { tex: 'crow', name: 'Gralha', hp: 1, speed: 48, aggro: 95 },
     event: 'wind',
     tasks: [
@@ -116,6 +141,10 @@ export const TRAILS: Record<string, TrailConfig> = {
     ending: 'cachoeira',
     ambience: 'paragliders',
     parTime: 300,
+    terrain: { '#': T.SHRUB_ROCK, '^': T.ROCK_FACE },
+    cliff: T.ROCK_FACE,
+    decor: 'topo',
+    plaques: [{ tx: 7, ty: 16, text: 'TOPO DO MUNDO' }, { tx: 31, ty: 15, text: 'CACHOEIRA DA LAPINHA' }],
     foe: { tex: 'quero', name: 'Quero-quero', hp: 2, speed: 52, aggro: 80 },
     event: 'photos',
     tasks: [

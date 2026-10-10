@@ -11,6 +11,9 @@ import { Audio } from '../../systems/Audio';
 import { Save } from '../../systems/SaveManager';
 import { charFrame } from '../../art/CharacterArt';
 import { TaskList } from '../../ui/TaskList';
+import { DEFAULT_TERRAIN } from './BaseLevel';
+import { T } from '../../art/tiles';
+import { plaque, scatter, cliffShadow } from './Scenery';
 import type { Player } from '../../entities/Player';
 
 /** Trilhas da linha do tempo: escalada, cânion, Itacolomi, Topo do Mundo (exploração e enigmas). */
@@ -47,6 +50,12 @@ export class TrailLevel extends PuzzleLevel {
     this.crystalTex = this.cfg.collect.tex;
     this.crystalName = this.cfg.collect.name;
     this.foe = this.cfg.foe;
+    // cenário do capítulo: paredes, paredão e chão próprios (academia, cânion, montanha...)
+    this.terrain = { ...DEFAULT_TERRAIN, ...(this.cfg.terrain ?? {}) };
+    this.cliffTile = this.cfg.cliff ?? T.CLIFF;
+    this.inferObjectFloor = true;
+    this.boulderTex = this.cfg.decor === 'gym' ? 'foam_block' : 'boulder';
+    this.climbSpots = [];
     this.tasks = null;
     this.kills = this.dodges = this.gustsOk = this.climbs = this.rappelsDone = this.photos = 0;
     this.eventT = { rockfall: 4, swarm: 25, wind: 16, photos: 6 }[this.cfg.event];
@@ -60,6 +69,7 @@ export class TrailLevel extends PuzzleLevel {
     // no Topo do Mundo as 3 fotos vêm dos parapentes; os cristais do mapa viram moedas
     if (ch === '*' && this.cfg.event === 'photos') { this.addPickup('coin', c.x, c.y); return true; }
     if (ch === 'm') { this.add.image(c.x, c.y + 4, 'mirante').setDepth(c.y - 6); return true; }
+    if (ch === 'U' || ch === 'R') this.climbSpots.push({ tx, ty });
     if (ch === 'I') {
       this.add.image(c.x, c.y + 24, 'itacolomi').setOrigin(0.5, 1).setDepth(c.y + 24);
       for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) this.addSolid(tx + dx, ty + dy);
@@ -76,6 +86,70 @@ export class TrailLevel extends PuzzleLevel {
       return true;
     }
     return this.spawnPuzzle(ch, tx, ty);
+  }
+
+  /** Pontos de escalada/rapel (para pôr colchões, cordas e magnésio em volta). */
+  private climbSpots: { tx: number; ty: number }[] = [];
+
+  /** Enfeites que deixam claro onde o capítulo acontece. */
+  private decorate(): void {
+    const rows = this.cfg.map;
+    for (const p of this.cfg.plaques ?? []) plaque(this, p.tx, p.ty, p.text);
+    // sombra embaixo de cada linha de paredão
+    rows.forEach((row, y) => {
+      let x0 = -1;
+      for (let x = 0; x <= row.length; x++) {
+        const cliff = x < row.length && (row[x] === '^' || row[x] === 'U' || row[x] === 'R');
+        if (cliff && x0 < 0) x0 = x;
+        if (!cliff && x0 >= 0) {
+          if (!'^UR'.includes(rows[y + 1]?.[x0] ?? '#')) cliffShadow(this, y, x0, x - 1);
+          x0 = -1;
+        }
+      }
+    });
+    const seed = this.info.id;
+    switch (this.cfg.decor) {
+      case 'gym': {
+        // academia: colchões de queda e magnésio embaixo das vias, bancos e luz do teto
+        const r = new Phaser.Math.RandomDataGenerator([seed]);
+        for (const s of this.climbSpots) {
+          const c = this.tileCenter(s.tx, s.ty + 1);
+          this.add.image(c.x, c.y + 2, 'crash_pad').setDepth(-6);
+          this.add.image(c.x + 18, c.y - 2, 'chalk_bag').setDepth(c.y);
+        }
+        rows.forEach((row, y) => {
+          if (!row.includes('^')) return;
+          for (let x = 3; x < row.length - 3; x += 7) {
+            const below = rows[y + 2]?.[x];
+            if (below === '.') this.add.ellipse(x * TILE + 8, (y + 3) * TILE, 70, 34, 0xfff7d0, 0.07).setDepth(-8);
+          }
+          let benches = 0;
+          for (let x = 2; x < row.length - 3 && benches < 2; x++) {
+            const free = [0, 1].every((d) => rows[y + 1]?.[x + d] === '.' && rows[y + 2]?.[x + d] === '.');
+            const nearClimb = this.climbSpots.some((s) => Math.abs(s.tx - x) < 4 && s.ty === y);
+            if (free && !nearClimb && r.frac() < 0.12) {
+              this.add.image(x * TILE + 16, (y + 1) * TILE + 6, 'gym_bench').setDepth((y + 1) * TILE + 6);
+              benches++;
+              x += 6;
+            }
+          }
+        });
+        break;
+      }
+      case 'canyon':
+        scatter(this, rows, ['rock_small', 'rock_small', 'bromelia'], 0.06, seed);
+        break;
+      case 'mountain':
+        scatter(this, rows, ['rock_small', 'bromelia', 'bromelia'], 0.05, seed);
+        break;
+      case 'topo': {
+        scatter(this, rows, ['bromelia', 'rock_small'], 0.03, seed);
+        // rampa de decolagem dos parapentes e a biruta, perto de onde o casal começa
+        this.add.image(3 * TILE, 18 * TILE, 'takeoff_ramp').setOrigin(0, 0).setDepth(18 * TILE + 24);
+        this.add.image(10 * TILE + 8, 18 * TILE, 'windsock').setOrigin(0.15, 1).setDepth(18 * TILE);
+        break;
+      }
+    }
   }
 
   /** Pedras do arco onde os dois se sentam no pedido. */
@@ -99,6 +173,7 @@ export class TrailLevel extends PuzzleLevel {
 
   setup(): void {
     this.enemyColliders();
+    this.decorate();
     const W = this.cols * TILE;
     const H = this.rows * TILE;
     switch (this.cfg.ambience) {
@@ -188,8 +263,8 @@ export class TrailLevel extends PuzzleLevel {
     const y = p.y + Phaser.Math.Between(-14, 14);
     const shadow = this.add.ellipse(x, y + 2, 6, 3, 0x000000, 0.35).setDepth(y - 2);
     this.tweens.add({ targets: shadow, scaleX: 2.2, scaleY: 2.2, alpha: 0.55, duration: 1100 });
-    if (Math.random() < 0.35) this.say(p, Phaser.Utils.Array.GetRandom(['Pedra!', 'Olha a pedra!', 'Cuidado aí!']), 900);
-    const rock = this.add.image(x, y - 140, 'rock_fall').setDepth(9600);
+    if (Math.random() < 0.35) this.say(p, Phaser.Utils.Array.GetRandom(this.cfg.fallLines ?? ['Pedra!', 'Olha a pedra!', 'Cuidado aí!']), 900);
+    const rock = this.add.image(x, y - 140, this.cfg.fallTex ?? 'rock_fall').setDepth(9600);
     this.tweens.add({
       targets: rock, y, delay: 850, duration: 260, ease: 'Quad.In',
       onComplete: () => {

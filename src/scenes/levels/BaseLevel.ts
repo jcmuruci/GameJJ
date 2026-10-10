@@ -74,6 +74,8 @@ export abstract class BaseLevel extends Phaser.Scene {
   defaultFloor: number = T.GRASS;
   objectFloor: number = T.GRASS;
   terrain: Record<string, number> = DEFAULT_TERRAIN;
+  /** Objetos do mapa usam o chão do vizinho (ex.: âncora no granito fica sobre granito). */
+  inferObjectFloor = false;
   /** Fase maior que a tela? Então a câmera segue e os jogadores ficam "amarrados". */
   scrolling = false;
   private heartT = 0;
@@ -81,6 +83,18 @@ export abstract class BaseLevel extends Phaser.Scene {
   private hugCd = 0;
   private medalUsed = false;
   protected levelData: Record<string, unknown> = {};
+
+  /** Chão de um objeto do mapa: o terreno de chão mais próximo na mesma linha (ou acima/abaixo). */
+  private neighborFloor(rows: string[], x: number, y: number): number {
+    for (let d = 1; d <= 3; d++) {
+      for (const [nx, ny] of [[x - d, y], [x + d, y], [x, y - d], [x, y + d]]) {
+        const t = this.terrain[rows[ny]?.[nx] ?? '#'];
+        if (t === -1) return this.defaultFloor;
+        if (t !== undefined && !SOLID_TILES.includes(t) && t !== T.WATER) return t;
+      }
+    }
+    return this.objectFloor;
+  }
 
   abstract mapRows(): string[];
   /** Cria um objeto para o caractere do mapa. Retorna false se não reconhecido. */
@@ -134,7 +148,7 @@ export abstract class BaseLevel extends Phaser.Scene {
         let t = this.terrain[ch];
         if (t === undefined) {
           spawns.push([ch, x, y]);
-          t = this.objectFloor;
+          t = this.inferObjectFloor ? this.neighborFloor(rows, x, y) : this.objectFloor;
         }
         if (t === -1) t = this.defaultFloor;
         if (t === T.GRASS) {
@@ -608,6 +622,7 @@ export abstract class BaseLevel extends Phaser.Scene {
       return;
     }
     this.reviveProgress[p.id] = 0;
+    if (p.id === 0 && inp.secretPressed) this.squeeze(p, o);
     p.target = this.findTarget(p);
     if (inp.actionPressed) {
       if (p.target?.interact?.(p)) { /* tratado */ }
@@ -620,6 +635,39 @@ export abstract class BaseLevel extends Phaser.Scene {
     }
     if (inp.abilityPressed && p.abilityCd <= 0) this.useAbility(p);
   }
+
+  /** Comando secreto do João (B): um apertãozinho no bumbum dela... e ela fica com vergonha. */
+  private squeezeCd = 0;
+  squeeze(j: Player, ju: Player): void {
+    const now = this.time.now;
+    if (now < this.squeezeCd || ju.fainted || ju.locked || j.locked) return;
+    if (this.dist(j, ju) > 24) {
+      this.squeezeCd = now + 800;
+      this.say(j, Phaser.Utils.Array.GetRandom(['Hmm... longe demais.', 'Cadê ela?', '(chega mais perto...)']), 1000);
+      return;
+    }
+    this.squeezeCd = now + 1600;
+    this.squeezes++;
+    // ele chega por trás, ela dá um pulinho e fica vermelha
+    j.face = { x: Math.sign(ju.x - j.x) || 1, y: 0 };
+    j.actTimer = 0.3;
+    ju.face = { x: -j.face.x, y: 0 };
+    this.sfx('pick');
+    this.time.delayedCall(120, () => this.sfx('hug'));
+    this.tweens.add({ targets: ju.sprite, y: ju.sprite.y - 6, duration: 110, yoyo: true, ease: 'Quad.Out' });
+    ju.sprite.setTint(0xffb0c0);
+    this.time.delayedCall(900, () => ju.sprite.clearTint());
+    const blush = this.add.text(ju.x, ju.y - 30, '>///<', { fontFamily: 'monospace', fontSize: '8px', color: '#ff5c8a', stroke: '#fff4e0', strokeThickness: 2, fontStyle: 'bold' })
+      .setOrigin(0.5).setDepth(9800).setResolution(ZOOM * RES + 1);
+    this.tweens.add({ targets: blush, y: blush.y - 10, alpha: 0, delay: 500, duration: 700, onComplete: () => blush.destroy() });
+    const lines = this.squeezes === 1
+      ? [`${this.names[0]}!! Aqui não! >///<`]
+      : ['Ei!! >///<', `${this.names[0]}!!! Tem gente olhando!`, 'Seu safado... ♥', 'Hihi, para! >///<', 'Depois a gente conversa... ♥', 'Foco na missão, amor!'];
+    this.time.delayedCall(150, () => this.say(ju, Phaser.Utils.Array.GetRandom(lines), 1800, '#ffd6e4'));
+    this.time.delayedCall(900, () => this.say(j, Phaser.Utils.Array.GetRandom(['Hehe', 'Foi sem querer!', 'Escorregou a mão...', '(assobia)']), 1400));
+    for (let i = 0; i < 4; i++) this.time.delayedCall(200 + i * 90, () => this.floatHeart(ju.x + Phaser.Math.Between(-6, 6), ju.y - 24));
+  }
+  squeezes = 0;
 
   drawBar(x: number, y: number, t: number, color = 0x8be07a): void {
     const g = this.reviveBars;
@@ -708,6 +756,6 @@ export abstract class BaseLevel extends Phaser.Scene {
 }
 
 const NO_INPUT = {
-  x: 0, y: 0, action: false, actionPressed: false, ability: false, abilityPressed: false,
+  x: 0, y: 0, action: false, actionPressed: false, ability: false, abilityPressed: false, secretPressed: false,
   upPressed: false, downPressed: false, leftPressed: false, rightPressed: false, usingPad: false,
 };

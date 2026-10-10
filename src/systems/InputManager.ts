@@ -15,6 +15,8 @@ export interface Binding {
   right: string[];
   action: string[];
   ability: string[];
+  /** Comando secreto (só o João tem). */
+  secret: string[];
 }
 
 export const BINDINGS: [Binding, Binding] = [
@@ -22,11 +24,13 @@ export const BINDINGS: [Binding, Binding] = [
     up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'],
     action: ['KeyF', 'Space', 'KeyC'],
     ability: ['KeyG', 'KeyV', 'KeyE'],
+    secret: ['KeyB'],
   },
   {
     up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'],
     action: ['KeyK', 'Numpad1', 'Period'],
     ability: ['KeyL', 'Numpad2', 'Slash'],
+    secret: [],
   },
 ];
 
@@ -47,6 +51,7 @@ export interface PlayerState {
   actionPressed: boolean;
   ability: boolean;
   abilityPressed: boolean;
+  secretPressed: boolean;
   /** Toques discretos de direção (para menus). */
   upPressed: boolean;
   downPressed: boolean;
@@ -57,7 +62,7 @@ export interface PlayerState {
 
 function emptyState(): PlayerState {
   return {
-    x: 0, y: 0, action: false, actionPressed: false, ability: false, abilityPressed: false,
+    x: 0, y: 0, action: false, actionPressed: false, ability: false, abilityPressed: false, secretPressed: false,
     upPressed: false, downPressed: false, leftPressed: false, rightPressed: false, usingPad: false,
   };
 }
@@ -132,6 +137,7 @@ class InputManagerImpl {
       st.ability = this.anyDown(b.ability);
       st.actionPressed = this.anyFresh(b.action);
       st.abilityPressed = this.anyFresh(b.ability);
+      st.secretPressed = this.anyFresh(b.secret);
       st.upPressed = this.anyFresh(b.up);
       st.downPressed = this.anyFresh(b.down);
       st.leftPressed = this.anyFresh(b.left);
