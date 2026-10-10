@@ -32,6 +32,8 @@ export interface MotoConfig {
   night?: boolean;
   /** Em que ponto da viagem o pneu fura (conserto cooperativo). */
   flatTireAt?: number;
+  /** Aviso depois do conserto do pneu. */
+  repairText?: string;
   /** Lembrete na tela de resultado. */
   memory: string;
   /** Bicho que senta na estrada (buzina para sair). */
@@ -77,51 +79,31 @@ export const MOTOS: Record<string, MotoConfig> = {
       { id: 'arrive', text: 'Entregar no condomínio dela' },
     ],
   },
-  tire: {
-    title: 'Pneu Furado',
-    subtitle: 'Rumo à Lapinha da Serra... e se o pneu furar, consertem juntos!',
-    total: 14000,
-    spots: [
-      { at: 0.16, label: 'Serra no horizonte', decor: 'big_rock' },
-      { at: 0.62, label: 'Ipê na beira da estrada', decor: 'tree_ipe' },
-      { at: 0.86, label: 'Placa: São José da Serra', decor: 'farmhouse' },
-    ],
-    goalIcon: 'farmhouse',
-    arriveText: 'Mudança de planos: São José da Serra!',
-    finishTitle: 'Pneu consertado, dupla imbatível!',
-    dirt: false,
-    flatTireAt: 0.42,
-    memory: 'O pneu furou, mas a dupla consertou junta.',
-    animal: 'capy',
-    tasks: [
-      { id: 'photos', text: 'Fotos da viagem', goal: 3 },
-      { id: 'honk', text: 'Buzinar pras capivaras', goal: 3 },
-      { id: 'repair', text: 'Consertar o pneu juntos' },
-      { id: 'arrive', text: 'Chegar em São José da Serra' },
-    ],
-  },
   roca: {
-    title: 'Estrada de Terra',
-    subtitle: 'Porteiras, curvas, lama e vacas até o restaurante de roça!',
-    total: 15000,
+    title: 'Pneu Furado e Roça',
+    subtitle: 'Rumo à Lapinha... o pneu fura! Consertem juntos e sigam pela terra até a roça.',
+    total: 16000,
+    flatTireAt: 0.2,
+    repairText: 'Mudança de planos: São José da Serra!',
     spots: [
-      { at: 0.2, label: 'Curral', decor: 'farmhouse' },
-      { at: 0.55, label: 'Estrada de terra', decor: 'tree_ipe' },
-      { at: 0.88, label: 'Lagoa com peixes', decor: 'big_rock' },
+      { at: 0.32, label: 'Placa: São José da Serra', decor: 'tree_ipe' },
+      { at: 0.6, label: 'Curral', decor: 'farmhouse' },
+      { at: 0.9, label: 'Lagoa com peixes', decor: 'big_rock' },
     ],
     goalIcon: 'farmhouse',
     arriveText: 'Restaurante da roça: lagoa, peixes e fogão a lenha!',
     finishTitle: 'Almoço na roça!',
     dirt: true,
-    memory: 'Estrada de terra, porteiras e um almoço na roça. ♥',
+    memory: 'O pneu furou, o caminho mudou e o dia acabou num almoço na roça. ♥',
     animal: 'cow',
     mud: true,
-    gates: [0.3, 0.52, 0.74],
+    gates: [0.44, 0.67, 0.8],
     curves: true,
     tasks: [
+      { id: 'repair', text: 'Consertar o pneu juntos' },
       { id: 'gates', text: 'Abrir e fechar as porteiras', goal: 3 },
       { id: 'curves', text: 'Equilibrar nas curvas', goal: 3 },
-      { id: 'photos', text: 'Fotos da roça', goal: 3 },
+      { id: 'photos', text: 'Fotos da viagem', goal: 3 },
       { id: 'arrive', text: 'Chegar no restaurante da roça' },
     ],
   },
