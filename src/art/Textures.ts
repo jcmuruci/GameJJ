@@ -132,6 +132,48 @@ function drawTiles(scene: Phaser.Scene): void {
     // 18 tapete / toalha
     pg.at(288, 0).rect(0, 0, 16, 16, '#fff7f0');
     for (let y = 0; y < 16; y += 4) for (let x = 0; x < 16; x += 4) if (((x + y) / 4) % 2 === 0) pg.rect(x, y, 4, 4, '#ff8fb1');
+    // 19 granito (topo da pedrona): cinza claro, grãos e manchas de líquen
+    pg.at(304, 0).rect(0, 0, 16, 16, '#b8b4b0');
+    for (let i = 0; i < 22; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), ['#a8a4a0', '#cac6c2', '#9a9690', '#d8d4cc'][i % 4]);
+    if (r() > 0.4) { const x = Math.floor(r() * 11); const y = Math.floor(r() * 11); pg.rect(x, y, 3, 2, '#c8c890'); pg.px(x + 1, y + 2, '#b0b878'); }
+    // 20 face de rocha: granito em placas verticais, com sombra e borda de cima clara
+    pg.at(320, 0).rect(0, 0, 16, 16, '#8e8a88');
+    pg.rect(0, 0, 16, 2, '#c4c0bc'); pg.hline(0, 15, 2, '#6e6a68');
+    for (let i = 0; i < 4; i++) { const x = 2 + Math.floor(r() * 12); pg.vline(x, 4 + Math.floor(r() * 3), 13 + Math.floor(r() * 3), '#76726f'); pg.vline(x + 1, 5, 12, '#a29e9a'); }
+    pg.hline(0, 15, 15, '#6e6a68');
+    // 21 piso de academia: colchonete azul com costuras
+    pg.at(336, 0).rect(0, 0, 16, 16, '#3f6fb8');
+    pg.hline(0, 15, 0, '#2f5a98'); pg.vline(0, 0, 15, '#2f5a98');
+    pg.px(4, 4, '#5a88cc'); pg.px(11, 10, '#5a88cc'); pg.px(8, 7, '#e8eef8');
+    // 22 parede de escalada indoor: compensado com agarras coloridas
+    pg.at(352, 0).rect(0, 0, 16, 16, '#d8b88a');
+    pg.hline(0, 15, 0, '#b8966a'); pg.vline(0, 0, 15, '#c8a87a');
+    [['#e8424a', 3, 3], ['#ffd25e', 11, 5], ['#3f9a48', 6, 9], ['#3f7fd6', 12, 12], ['#b25bd6', 2, 13]].forEach(([c, x, y]) => {
+      if (r() > 0.25) { pg.rect(x as number, y as number, 2, 2, c as string); pg.px((x as number) + 1, (y as number) + 2, '#7a5a3a'); }
+    });
+    pg.px(8, 2, '#8a8a8a'); pg.px(4, 8, '#8a8a8a');
+    // 23 parede interna pintada (rodapé escuro)
+    pg.at(368, 0).rect(0, 0, 16, 16, '#e8dcc8');
+    pg.rect(0, 12, 16, 4, '#6a5a7a'); pg.hline(0, 15, 11, '#c8bca8');
+    pg.vline(15, 0, 11, '#d8ccb8');
+    // 24 paredão do cânion: blocos de rocha irregulares (ocre/cinza) com sombra e musgo
+    pg.at(384, 0).rect(0, 0, 16, 16, '#9a7c60');
+    [[4, 4, 5, 4, '#b08e6c'], [12, 3, 4, 3, '#a8886a'], [3, 11, 4, 4, '#a4846a'], [11, 11, 5, 4, '#b4967a'], [8, 7, 3, 3, '#8e7058']].forEach(([x, y, rx, ry, c]) => {
+      pg.ellipse(x as number, y as number, rx as number, ry as number, c as string);
+      pg.hline((x as number) - (rx as number) + 2, (x as number) + 1, (y as number) - (ry as number) + 1, '#c8aa88');
+    });
+    pg.hline(0, 15, 7, '#6e5644'); pg.px(7, 6, '#6e5644'); pg.vline(8, 0, 2, '#6e5644'); pg.vline(6, 8, 15, '#6e5644');
+    for (let i = 0; i < 5; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), '#5e4838');
+    if (r() > 0.5) { pg.px(2, 0, '#5bbf4a'); pg.px(3, 0, '#3f9a48'); pg.px(13, 8, '#5bbf4a'); }
+    // 25 campo rupestre: grama baixa com pedrinhas
+    grass(400, '#8cbf5a', '#74a84a', '#a8d070');
+    pg.at(400, 0);
+    for (let i = 0; i < 3; i++) { const x = 1 + Math.floor(r() * 13); const y = 1 + Math.floor(r() * 13); pg.rect(x, y, 2, 1, '#b8b4b0'); pg.px(x, y + 1, '#8e8a88'); }
+    // 26 afloramento de rocha com arbusto
+    grass(416, '#8cbf5a', '#74a84a', '#a8d070');
+    pg.at(416, 0);
+    pg.ellipse(8, 10, 7, 5, '#9a9690'); pg.ellipse(7, 9, 5, 3, '#b8b4b0'); pg.hline(3, 12, 14, '#6e6a68');
+    pg.ellipse(11, 5, 4, 3, '#4a8a3a'); pg.ellipse(10, 4, 2, 2, '#62a848'); pg.px(13, 3, '#ffd25e');
   });
 }
 

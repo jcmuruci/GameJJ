@@ -33,6 +33,8 @@ export interface KitchenConfig {
   tasks: ChapterTask[];
   /** Momento especial do capítulo: alianças no Italiano, quadrilha na festa junina. */
   special?: 'rings' | 'quadrilha';
+  /** Plaquinhas com o nome do lugar. */
+  plaques?: { tx: number; ty: number; text: string }[];
   /** Convidados que assistem e comentam (ex.: os pais do João). */
   guests?: { npc: string; tx: number; ty: number; lines: string[] }[];
 }
@@ -89,6 +91,7 @@ export const KITCHENS: Record<string, KitchenConfig> = {
       { id: 'rings', text: 'Entregar as alianças (abraço!)' },
     ],
     special: 'rings',
+    plaques: [{ tx: 22, ty: 1, text: 'RISTORANTE O ITALIANO' }],
   },
   junina: {
     map: [
@@ -136,6 +139,7 @@ export const KITCHENS: Record<string, KitchenConfig> = {
       { id: 'dance', text: 'Dançar a quadrilha', goal: 2 },
     ],
     special: 'quadrilha',
+    plaques: [{ tx: 9, ty: 2, text: 'ARRAIÁ DE BH' }],
     guests: [
       { npc: 'pai', tx: 22, ty: 3, lines: ['Esse peixe tá no ponto, filho!', 'Aprendeu a pescar rapidinho, hein, {p2}!', 'Capricha na canjica!'] },
       { npc: 'mae', tx: 24, ty: 3, lines: ['Que moça boa de cozinha!', 'Canjica igual à da vó!', 'Vocês dois juntos dão gosto de ver.'] },
@@ -185,5 +189,6 @@ export const KITCHENS: Record<string, KitchenConfig> = {
       { id: 'recipe:tropeiro', text: 'Fazer um tropeiro' },
       { id: 'orders', text: 'Servir pedidos', goal: 5 },
     ],
+    plaques: [{ tx: 6, ty: 13, text: 'RESTAURANTE DA ROÇA' }],
   },
 };

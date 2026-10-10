@@ -7,9 +7,12 @@ import { GAME_W } from '../../config';
 import { txt, fillNames } from '../../ui/text';
 import { KEY_LABELS } from '../../systems/InputManager';
 import { Audio } from '../../systems/Audio';
+import { DEFAULT_TERRAIN } from './BaseLevel';
+import { T } from '../../art/tiles';
+import { rockTop, cliffShadow, plaque } from './Scenery';
 
 /**
- * Tutorial interativo no quintal de casa.
+ * Tutorial interativo ao pé da Pedra Grande; o rapel desce do topo da pedra.
  * Legenda extra: < bandeira azul, > bandeira rosa, L tronco, c fogueira, H casa (decoração).
  */
 
@@ -40,6 +43,10 @@ export class TutorialLevel extends PuzzleLevel {
     this.hugged = false;
     this.flags = [];
     this.logCut = false;
+    // a sala da direita é o topo da Pedra Grande: granito, com a face de rocha para o rapel
+    this.terrain = { ...DEFAULT_TERRAIN, '"': T.GRANITE, '|': T.ROCK_FACE, '^': T.ROCK_FACE };
+    this.cliffTile = T.ROCK_FACE;
+    this.inferObjectFloor = true;
     this.signTexts = ['A Pedra Grande: foi descendo de rapel aqui que {p1} e {p2} se conheceram. Se alguém desmaiar, o outro fica perto e SEGURA AÇÃO para reviver. Nunca deixe seu amor pra trás!'];
     return TUTORIAL_MAP;
   }
@@ -123,12 +130,16 @@ export class TutorialLevel extends PuzzleLevel {
       { text: `Peguem a lenha com AÇÃO (${k[0].action} / ${k[1].action}) e coloquem na fogueira.`, done: () => this.fuel },
       { text: `{p2}: acenda a fogueira com MAGIA (${k[1].ability}). Só a maga faz fogo!`, done: () => this.lit },
       { text: 'Só {p1} tem força para empurrar pedras: leve a pedra até a placa amarela.', done: () => this.gates.some((g) => g.letter === 'A' && g.open) },
-      { text: '{p2} pisa na runa rosa para abrir o portão. {p1} passa e segura a placa do outro lado!', done: () => this.players.every((p) => p.x > 34 * 16) },
+      { text: '{p2} pisa na runa rosa para abrir a passagem. {p1} sobe e segura a placa lá em cima da Pedra Grande!', done: () => this.players.every((p) => p.x > 34 * 16) },
       { text: `Abraço! Fiquem juntinhos, mãos vazias, e apertem AÇÃO quase juntos.`, done: () => this.hugged },
-      { text: 'Rapel, como no dia em que se conheceram! Um SEGURA AÇÃO na ancoragem e o outro aperta AÇÃO na corda vermelha.', done: () => this.players.every((p) => p.y > 10 * 16) },
+      { text: 'No topo da pedrona! Rapel, como no dia em que se conheceram: um SEGURA AÇÃO na ancoragem e o outro aperta AÇÃO na corda.', done: () => this.players.every((p) => p.y > 11 * 16) },
       { text: 'Perfeito! Agora pisem juntos no coração para terminar.', done: () => false },
     ];
     if (!this.anims.exists('fire-anim')) this.anims.create({ key: 'fire-anim', frames: this.anims.generateFrameNumbers('fire', { start: 0, end: 1 }), frameRate: 8, repeat: -1 });
+    // o topo da Pedra Grande, de onde sai o rapel
+    rockTop(this, 34, 1, 42, 8, 'pedra-grande');
+    cliffShadow(this, 10, 33, 42);
+    plaque(this, 37, 1, 'PEDRA GRANDE');
   }
 
   onHudReady(hud: HUDScene): void {

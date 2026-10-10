@@ -54,12 +54,14 @@ describe('mapas', () => {
   it('tutorial: penhasco só se atravessa pela corda de rapel', () => {
     const find = (c: string) => { let k = ''; TUTORIAL_MAP.forEach((row, y) => { const x = row.indexOf(c); if (x >= 0) k = `${x},${y}`; }); return k; };
     const [rx, ry] = find('R').split(',').map(Number);
-    const top = reachable(TUTORIAL_MAP, '#h^R', 'P');
+    const top = reachable(TUTORIAL_MAP, '#h^R|', 'P');
     expect(top.has(find('X'))).toBe(false);
     expect(top.has(`${rx},${ry - 1}`)).toBe(true);
     // a partir do pé da corda, a saída e uma ancoragem são alcançáveis
-    const below = TUTORIAL_MAP.map((r, y) => (y === ry + 1 ? r.slice(0, rx) + 'P' + r.slice(rx + 1) : r.replace('P', '.')));
-    const bot = reachable(below, '#h^R', 'P');
+    let by = ry + 1;
+    while (TUTORIAL_MAP[by][rx] === '^') by++;
+    const below = TUTORIAL_MAP.map((r, y) => (y === by ? r.slice(0, rx) + 'P' + r.slice(rx + 1) : r.replace('P', '.')));
+    const bot = reachable(below, '#h^R|', 'P');
     expect(bot.has(find('X'))).toBe(true);
     const anchors: string[] = [];
     TUTORIAL_MAP.forEach((row, y) => [...row].forEach((c, x) => { if (c === 'S') anchors.push(`${x},${y}`); }));

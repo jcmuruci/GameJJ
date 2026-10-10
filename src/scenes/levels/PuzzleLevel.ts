@@ -5,7 +5,7 @@ import { Slime } from '../../entities/Enemy';
 import { Input } from '../../systems/InputManager';
 import { TILE } from '../../config';
 import { fillNames } from '../../ui/text';
-import { T } from '../../art/tiles';
+import { T, CLIFF_TILES } from '../../art/tiles';
 
 /** Gatilhos: caractere do mapa -> tipo e portão que controla. */
 export const TRIGGERS: Record<string, { type: 'plate' | 'rune'; gate: string }> = {
@@ -135,6 +135,8 @@ export abstract class PuzzleLevel extends BaseLevel {
   rappels = 0;
   boulderTex = 'boulder';
   boulderFillsWater = false;
+  /** Tile da parede de rapel/escalada desta fase (terra, rocha, parede indoor...). */
+  cliffTile: number = T.CLIFF;
   /** Bicho que aparece nos 's' do mapa (null = nenhum). */
   foe: FoeConfig | null = DEFAULT_FOE;
   private belayCd = 0;
@@ -158,6 +160,7 @@ export abstract class PuzzleLevel extends BaseLevel {
     this.belayCd = 0;
     this.rope = null;
     this.foe = DEFAULT_FOE;
+    this.cliffTile = T.CLIFF;
   }
 
   /** Objetos comuns de enigma. Subclasses chamam isto no seu spawn(). */
@@ -187,15 +190,21 @@ export abstract class PuzzleLevel extends BaseLevel {
       }
       case 'S': this.add.image(c.x, c.y, 'anchor').setDepth(-4); this.anchors.push({ x: c.x, y: c.y }); return true;
       case 'R':
-        this.layer.putTileAt(T.CLIFF, tx, ty);
+        this.layer.putTileAt(this.cliffTile, tx, ty);
         this.add.image(c.x, c.y, 'rope_top').setDepth(c.y + 1);
+        // corda pendurada pela face da rocha até o chão
+        this.time.delayedCall(0, () => {
+          let b = ty;
+          while (CLIFF_TILES.includes(this.layer.getTileAt(tx, b + 1)?.index ?? -1)) b++;
+          if (b > ty) this.add.graphics().setDepth(c.y + 1).lineStyle(1, 0xe8424a, 0.9).lineBetween(c.x + 3, c.y + 4, c.x + 3, (b + 1) * TILE);
+        });
         this.interactables.push({ x: c.x, y: c.y, priority: 3, reach: 2, interact: (p) => this.tryRappel(p, tx, ty) });
         return true;
       case 'W': this.spawnWaterfall(tx, ty); return true;
       case 'V': this.spawnVines(tx, ty); return true;
       case 'U':
         // rota de escalada: parede com agarras; sobe com o parceiro na segurança
-        this.layer.putTileAt(T.CLIFF, tx, ty);
+        this.layer.putTileAt(this.cliffTile, tx, ty);
         this.add.image(c.x, c.y, 'holds').setDepth(c.y + 1);
         this.interactables.push({ x: c.x, y: c.y, priority: 3, reach: 2, interact: (p) => this.tryClimb(p, tx, ty) });
         return true;
@@ -366,7 +375,7 @@ export abstract class PuzzleLevel extends BaseLevel {
     }
     // topo da parede: primeira linha acima que não é penhasco
     let top = ty;
-    while (top > 0 && this.layer.getTileAt(tx, top - 1)?.index === T.CLIFF) top--;
+    while (top > 0 && CLIFF_TILES.includes(this.layer.getTileAt(tx, top - 1)?.index ?? -1)) top--;
     const x = tx * TILE + 8;
     const y0 = (ty + 1) * TILE + 6;
     const y1 = (top - 1) * TILE + 6;
@@ -422,7 +431,10 @@ export abstract class PuzzleLevel extends BaseLevel {
     }
     const x = tx * TILE + 8;
     const y0 = top - 6;
-    const y1 = (ty + 1) * TILE + 9;
+    // desce até o primeiro chão abaixo do paredão (a pedra pode ter várias linhas de altura)
+    let bot = ty;
+    while (CLIFF_TILES.includes(this.layer.getTileAt(tx, bot + 1)?.index ?? -1)) bot++;
+    const y1 = (bot + 1) * TILE + 9;
     p.locked = true;
     p.face = { x: 0, y: 1 };
     p.body.checkCollision.none = true;

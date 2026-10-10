@@ -149,6 +149,13 @@ try {
   await wait(300);
   const hugs = await evalG(() => window.__game.scene.getScene('TutorialLevel').stats.hugs);
   check('Abraço com AÇÃO simultânea', hugs >= 1, `abraços=${hugs}`);
+  // comando secreto do João (B)
+  await evalG(() => { const s = window.__game.scene.getScene('TutorialLevel'); s.players[1].teleport(s.players[0].x + 14, s.players[0].y); });
+  await wait(100);
+  await press('KeyB');
+  await wait(400);
+  await shot('07b-segredo');
+  check('Comando secreto do João (B)', (await evalG(() => window.__game.scene.getScene('TutorialLevel').squeezes)) === 1);
   await shot('07-tutorial-hug');
 
   // rapel: J2 dá segurança na ancoragem de cima, J1 desce pela corda
@@ -245,7 +252,7 @@ try {
   const pot = await evalG(() => window.__game.scene.getScene('KitchenLevel').cookers[0].contents);
   check('Massa vai para a panela', JSON.stringify(pot) === '["pasta"]', JSON.stringify(pot));
   await place(0, 2, 12, 0, 1, K);
-  await wait(7800);
+  await page.waitForFunction(() => window.__game.scene.getScene('KitchenLevel').cookers[0].done, null, { timeout: 16000 }).catch(() => undefined);
   const done = await evalG(() => window.__game.scene.getScene('KitchenLevel').cookers[0].done);
   check('Macarrão cozinha com o fogo aceso', done === 'pasta_cooked', String(done));
   if (orders.includes('sugo')) {
@@ -605,9 +612,9 @@ try {
     const o = (x) => ({ pointerId: 3, pointerType: 'touch', clientX: x, clientY: r.y + r.height / 2, bubbles: true, cancelable: true });
     z.dispatchEvent(new PointerEvent('pointerdown', o(r.x + 40)));
     z.dispatchEvent(new PointerEvent('pointermove', o(r.x + 120)));
-    setTimeout(() => z.dispatchEvent(new PointerEvent('pointerup', o(r.x + 120))), 600);
+    setTimeout(() => z.dispatchEvent(new PointerEvent('pointerup', o(r.x + 120))), 1400);
   });
-  await mp.waitForTimeout(800);
+  await mp.waitForTimeout(1600);
   const ax2 = await mp.evaluate(() => window.__game.scene.getScene('TutorialLevel').players[0].x);
   check('Celular: joystick move o João', ax2 > bx + 10, `${bx.toFixed(0)} -> ${ax2.toFixed(0)}`);
   await mp.evaluate(() => { const s = window.__game.scene.getScene('TutorialLevel'); const p = s.players[1]; p.teleport(8 * 16 + 8, 10 * 16 + 8); p.face = { x: 0, y: 1 }; s.fuel = true; });
