@@ -47,7 +47,7 @@ export class TutorialLevel extends PuzzleLevel {
     this.terrain = { ...DEFAULT_TERRAIN, '"': T.GRANITE, '|': T.ROCK_FACE, '^': T.ROCK_FACE };
     this.cliffTile = T.ROCK_FACE;
     this.inferObjectFloor = true;
-    this.signTexts = ['A Pedra Grande: foi descendo de rapel aqui que {p1} e {p2} se conheceram. Se alguém desmaiar, o outro fica perto e SEGURA AÇÃO para reviver. Nunca deixe seu amor pra trás!'];
+    this.signTexts = ['A Pedra Grande, em Caeté: foi descendo de rapel aqui que {p1} e {p2} se conheceram. Se alguém desmaiar, o outro fica perto e SEGURA AÇÃO para reviver. Nunca deixe seu amor pra trás!'];
     return TUTORIAL_MAP;
   }
 
@@ -139,7 +139,7 @@ export class TutorialLevel extends PuzzleLevel {
     // o topo da Pedra Grande, de onde sai o rapel
     rockTop(this, 34, 1, 42, 8, 'pedra-grande');
     cliffShadow(this, 10, 33, 42);
-    plaque(this, 37, 1, 'PEDRA GRANDE');
+    plaque(this, 37, 1, 'PEDRA GRANDE · CAETÉ');
   }
 
   onHudReady(hud: HUDScene): void {
@@ -180,6 +180,6 @@ export class TutorialLevel extends PuzzleLevel {
       this.say(this.players[0], 'Falta terminar o treino!', 1500);
       return;
     }
-    this.finish({ win: true, stars: 3, score: 0, title: 'Treino completo!', lines: ['Vocês já sabem tudo o que precisam.', `Abraços: ${this.stats.hugs}`, 'Agora... rumo ao piquenique!'] });
+    this.finish({ win: true, stars: 3, score: 0, title: 'Treino completo!', lines: ['Vocês já sabem tudo o que precisam.', `Abraços: ${this.stats.hugs}`, 'Agora... rumo às próximas lembranças!'] });
   }
 }

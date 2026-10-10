@@ -22,6 +22,7 @@ import { TutorialLevel } from './scenes/levels/TutorialLevel';
 import { MotoLevel } from './scenes/levels/MotoLevel';
 import { AmazonLevel } from './scenes/levels/AmazonLevel';
 import { FarmLevel } from './scenes/levels/FarmLevel';
+import { FishingLevel } from './scenes/levels/FishingLevel';
 
 async function boot(): Promise<void> {
   // espera a fonte pixel (com tempo limite, para nunca travar)
@@ -63,7 +64,7 @@ async function boot(): Promise<void> {
     fps: { target: 60 },
     scene: [
       BootScene, MenuScene, MapScene, StoryScene, CustomizeScene,
-      TutorialLevel, KitchenLevel, TrailLevel, BossLevel, MotoLevel, AmazonLevel, FarmLevel,
+      TutorialLevel, KitchenLevel, TrailLevel, BossLevel, MotoLevel, AmazonLevel, FarmLevel, FishingLevel,
       HUDScene, PauseScene, ResultScene,
     ],
   });

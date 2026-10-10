@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { TUTORIAL_MAP, CANYON_MAP, BOSS_MAP, AMAZON_MAP, CLIMB_MAP, ITACOLOMI_MAP, TOPO_MAP, FARM_MAP } from '../src/data/maps';
+import { TUTORIAL_MAP, CANYON_MAP, BOSS_MAP, AMAZON_MAP, CLIMB_MAP, ITACOLOMI_MAP, TOPO_MAP, FARM_MAP, LAPINHA_MAP } from '../src/data/maps';
 import { KITCHENS } from '../src/data/kitchens';
 
-const all: Record<string, string[]> = { tutorial: TUTORIAL_MAP, canyon: CANYON_MAP, boss: BOSS_MAP, amazon: AMAZON_MAP, climb: CLIMB_MAP, itacolomi: ITACOLOMI_MAP, topo: TOPO_MAP, farm: FARM_MAP, ...Object.fromEntries(Object.entries(KITCHENS).map(([k, v]) => [k, v.map])) };
+const all: Record<string, string[]> = { tutorial: TUTORIAL_MAP, canyon: CANYON_MAP, boss: BOSS_MAP, amazon: AMAZON_MAP, climb: CLIMB_MAP, itacolomi: ITACOLOMI_MAP, topo: TOPO_MAP, farm: FARM_MAP, lapinha: LAPINHA_MAP, ...Object.fromEntries(Object.entries(KITCHENS).map(([k, v]) => [k, v.map])) };
 
 /** Busca em largura: paredes bloqueiam; obstáculos que os jogadores conseguem remover não. */
 function reachable(map: string[], walls: string, from: string): Set<string> {
@@ -81,6 +81,17 @@ describe('mapas', () => {
     let nest = [0, 0];
     m.forEach((row, y) => { const x = row.indexOf('N'); if (x >= 0) nest = [x, y]; });
     expect([[0, -1], [0, 1]].some(([dx, dy]) => r.has(`${nest[0] + dx},${nest[1] + dy}`))).toBe(true);
+  });
+
+  it('lapinha: rio só se atravessa pelas pedras e a cachoeira fica atrás do portão', () => {
+    const find = (c: string) => { let k = ''; LAPINHA_MAP.forEach((row, y) => { const x = row.indexOf(c); if (x >= 0) k = `${x},${y}`; }); return k; };
+    // sem as pedras, não dá pra atravessar
+    const noStones = LAPINHA_MAP.map((r) => r.replace(/[pq]/g, '~'));
+    expect(reachable(noStones, '#~A', 'P').has(find('1'))).toBe(false);
+    // com as pedras, chega na placa; com o portão aberto, chega na cachoeira
+    expect(reachable(LAPINHA_MAP, '#~A', 'P').has(find('1'))).toBe(true);
+    expect(reachable(LAPINHA_MAP, '#~A', 'P').has(find('X'))).toBe(false);
+    expect(reachable(LAPINHA_MAP, '#~', 'P').has(find('X'))).toBe(true);
   });
 
   it('cozinhas: têm entrega, pratos e fontes', () => {

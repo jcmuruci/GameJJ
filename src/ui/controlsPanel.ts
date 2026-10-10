@@ -30,7 +30,7 @@ export function controlsPanel(scene: Phaser.Scene): Phaser.GameObjects.Container
   const tips = [
     'AÇÃO: pegar, largar, usar. Segure AÇÃO para cortar ou para reviver o parceiro.',
     'Abraço: juntinhos e de mãos vazias, apertem AÇÃO quase ao mesmo tempo (+1 coração).',
-    'Controles: botão A = ação, B/X = habilidade, Start = pausa. Esc ou P pausa no teclado.',
+    'Controles: botão A = ação, B/X = habilidade, Start = pausa. Esc pausa no teclado.',
   ];
   tips.forEach((t, i) => c.add(txt(scene, GAME_W / 2, y0 + 330 + i * 26, t, 14, { wrap: 760, bold: false, color: '#e8d8f0' })));
   c.add(txt(scene, GAME_W / 2, y0 + h - 22, 'Aperte AÇÃO ou Esc para voltar', 13, { color: '#ffd25e', bold: false }));

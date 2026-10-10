@@ -144,6 +144,13 @@ export function generateTrailTextures(scene: Phaser.Scene): void {
     });
     pg.px(5, 2, '#e8424a');
   });
+  // pedras do rio da Lapinha: clara = firme, escura com musgo = afunda
+  canvas(scene, 'step_stone', 16, 14, (pg) => {
+    pg.ellipse(8, 7, 7, 6, '#b8b4b0'); pg.ellipse(7, 6, 5, 4, '#cac6c2'); pg.px(5, 4, '#e0dcd8'); pg.hline(3, 12, 12, '#8e8a88');
+  });
+  canvas(scene, 'step_stone_wet', 16, 14, (pg) => {
+    pg.ellipse(8, 7, 7, 6, '#6e6a68'); pg.ellipse(7, 6, 5, 4, '#7e7a76'); pg.px(4, 5, '#5f9a4a'); pg.px(10, 4, '#5f9a4a'); pg.px(11, 5, '#4a8a3a'); pg.hline(3, 12, 12, '#4e4a48');
+  });
   // folha do poema dobrada (com corações)
   canvas(scene, 'item_poem', 12, 13, (pg) => {
     pg.rect(1, 1, 10, 11, '#fff7e6');

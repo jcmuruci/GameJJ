@@ -15,7 +15,7 @@ export interface Binding {
   right: string[];
   action: string[];
   ability: string[];
-  /** Comando secreto (só o João tem). */
+  /** Comando secreto (João: B · Juliana: P). */
   secret: string[];
 }
 
@@ -30,7 +30,7 @@ export const BINDINGS: [Binding, Binding] = [
     up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'],
     action: ['KeyK', 'Numpad1', 'Period'],
     ability: ['KeyL', 'Numpad2', 'Slash'],
-    secret: [],
+    secret: ['KeyP'],
   },
 ];
 
@@ -39,7 +39,7 @@ export const KEY_LABELS: [{ move: string; action: string; ability: string }, { m
   { move: 'Setas', action: 'K', ability: 'L' },
 ];
 
-const PAUSE_KEYS = ['Escape', 'KeyP'];
+const PAUSE_KEYS = ['Escape'];
 const BLOCK_DEFAULT = new Set([
   'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Slash', 'Period', 'Tab',
 ]);

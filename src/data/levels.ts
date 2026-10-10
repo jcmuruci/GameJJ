@@ -8,7 +8,7 @@ export interface LevelInfo {
   /** Nome curto para o mapa. */
   short: string;
   subtitle: string;
-  scene: 'TutorialLevel' | 'KitchenLevel' | 'TrailLevel' | 'BossLevel' | 'MotoLevel' | 'AmazonLevel' | 'FarmLevel';
+  scene: 'TutorialLevel' | 'KitchenLevel' | 'TrailLevel' | 'BossLevel' | 'MotoLevel' | 'AmazonLevel' | 'FarmLevel' | 'FishingLevel';
   story: string;
   /** História exibida depois de vencer. */
   endStory?: string;
@@ -32,10 +32,10 @@ const R3 = 340;
 export const LEVELS: LevelInfo[] = [
   {
     id: 'tutorial', month: 'Jul 2025', name: 'O Rapel', short: 'O Rapel', subtitle: 'Onde tudo começou (tutorial)', scene: 'TutorialLevel', story: 'tutorial', music: 'map',
-    map: { x: 110, y: R1 }, icon: { key: 'big_rock', scale: 0.45 }, coinsPerStar: 10, goal: 'Aprendam a jogar juntos e desçam de rapel na pedra grande.',
+    map: { x: 110, y: R1 }, icon: { key: 'big_rock', scale: 0.45 }, coinsPerStar: 10, goal: 'Aprendam a jogar juntos e desçam de rapel na Pedra Grande, em Caeté.',
   },
   {
-    id: 'climb', month: 'Jan 2026', name: 'Escalada e Mirante', short: 'Escalada', subtitle: 'Parede de escalada com segurança', scene: 'TrailLevel', story: 'climb', music: 'forest',
+    id: 'climb', month: 'Jan 2026', name: 'Escalada e Mirante', short: 'Escalada', subtitle: 'Escalada indoor com segurança', scene: 'TrailLevel', story: 'climb', music: 'forest',
     map: { x: 255, y: R1 }, icon: { key: 'holds', scale: 1.4 }, coinsPerStar: 15, goal: 'Subam a parede revezando a segurança e tirem a foto no mirante.',
   },
   {
@@ -43,8 +43,8 @@ export const LEVELS: LevelInfo[] = [
     map: { x: 400, y: R1 }, icon: { key: 'house_c0', scale: 0.5 }, coinsPerStar: 15, goal: 'Atravessem o cânion e cheguem em Lavras Novas.',
   },
   {
-    id: 'bread', month: 'Mar 2026', name: 'O Pão de Moto', short: 'Pão de Moto', subtitle: 'A medalha de São Bento e um pão quentinho', scene: 'MotoLevel', story: 'bread', music: 'road',
-    map: { x: 545, y: R1 }, icon: { key: 'bakery', scale: 0.45 }, coinsPerStar: 15, goal: 'Levem o pão quentinho de moto até o condomínio dela.', reward: 'medalha',
+    id: 'bread', month: 'Mar 2026', name: 'O Pão de Moto', short: 'Pão de Moto', subtitle: 'Uma noite, um pão e a carne de lata da família', scene: 'MotoLevel', story: 'bread', endStory: 'bread_end', music: 'road',
+    map: { x: 545, y: R1 }, icon: { key: 'bakery', scale: 0.45 }, coinsPerStar: 15, goal: 'À noite, de moto: pão da padaria, carne de lata da família e direto pro condomínio dela.', reward: 'medalha',
   },
   {
     id: 'itacolomi', month: 'Abr 2026', name: 'Pico do Itacolomi', short: 'Itacolomi', subtitle: 'Trilha a pé... e o pedido de namoro', scene: 'TrailLevel', story: 'itacolomi', endStory: 'itacolomi_end', music: 'forest',
@@ -55,32 +55,36 @@ export const LEVELS: LevelInfo[] = [
     map: { x: 835, y: R1 }, icon: { key: 'flag_italy', scale: 1 }, coinsPerStar: 20, goal: 'Salvem a cozinha do restaurante O Italiano.', reward: 'aliancas',
   },
   {
-    id: 'junina', month: 'Jun 2026', name: 'Juiz de Fora e Festa Junina', short: 'Festa Junina', subtitle: 'Os pais do João, a pescaria e o arraiá', scene: 'KitchenLevel', story: 'junina', music: 'festival',
-    map: { x: 835, y: R2 }, icon: { key: 'bunting_j', scale: 0.5 }, coinsPerStar: 20, goal: 'Milho, canjica e o peixe que a Juliana pescar!',
+    id: 'junina', month: 'Jun 2026', name: 'Juiz de Fora e Festa Junina', short: 'Pescaria', subtitle: 'Os pais do João, a pescaria e o arraiá', scene: 'FishingLevel', story: 'junina', music: 'festival',
+    map: { x: 835, y: R2 }, icon: { key: 'bobber', scale: 2 }, coinsPerStar: 20, goal: 'A Juliana aprende a pescar com o João... e de noite tem quadrilha!',
   },
   {
-    id: 'tire', month: 'Jul 2026', name: 'Pneu Furado', short: 'Pneu Furado', subtitle: 'Estrada de terra rumo à serra', scene: 'MotoLevel', story: 'tire', music: 'road',
+    id: 'tire', month: 'Jul 2026', name: 'Pneu Furado', short: 'Pneu Furado', subtitle: 'De moto rumo à Lapinha... e o pneu furou', scene: 'MotoLevel', story: 'tire', music: 'road',
     map: { x: 690, y: R2 }, icon: { key: 'moto_map', scale: 1.4 }, coinsPerStar: 20, goal: 'Consertem o pneu juntos e cheguem em São José da Serra.',
   },
   {
-    id: 'roca', month: 'Jul 2026', name: 'Restaurante da Roça', short: 'Roça', subtitle: 'Lagoa, peixes e fogão a lenha', scene: 'KitchenLevel', story: 'roca', music: 'kitchen',
-    map: { x: 545, y: R2 }, icon: { key: 'farmhouse', scale: 0.45 }, coinsPerStar: 20, goal: 'Almoço na roça: tilápia, tropeiro e salada.',
+    id: 'roca', month: 'Jul 2026', name: 'Estrada de Terra e Roça', short: 'Roça', subtitle: 'Porteiras, curvas e almoço na roça', scene: 'MotoLevel', story: 'roca', endStory: 'roca_end', music: 'road',
+    map: { x: 545, y: R2 }, icon: { key: 'farmhouse', scale: 0.45 }, coinsPerStar: 20, goal: 'Estrada de terra em São José da Serra até o restaurante de roça.',
   },
   {
-    id: 'topo', month: 'Ago 2026', name: 'Topo do Mundo e Lapinha', short: 'Topo do Mundo', subtitle: 'Parapentes e a cachoeira da Lapinha', scene: 'TrailLevel', story: 'topo', music: 'forest',
-    map: { x: 400, y: R2 }, icon: { key: 'paraglider', scale: 0.8 }, coinsPerStar: 25, goal: 'Vejam os parapentes e desçam até a Lapinha da Serra.',
+    id: 'topo', month: 'Ago 2026', name: 'Topo do Mundo', short: 'Topo do Mundo', subtitle: 'As decolagens de parapente', scene: 'TrailLevel', story: 'topo', music: 'forest',
+    map: { x: 400, y: R2 }, icon: { key: 'paraglider', scale: 0.8 }, coinsPerStar: 25, goal: 'Fotografem os parapentes e vejam uma decolagem de pertinho.',
+  },
+  {
+    id: 'lapinha', month: 'Ago 2026', name: 'Lapinha da Serra', short: 'Lapinha', subtitle: 'Trilha, rio de pedra em pedra e cachoeira', scene: 'TrailLevel', story: 'lapinha', music: 'forest',
+    map: { x: 255, y: R2 }, icon: { key: 'waterfall', scale: 0.5 }, coinsPerStar: 25, goal: 'Atravessem o rio pelas pedras e curtam a cachoeira.',
   },
   {
     id: 'farm', month: 'Set 2026', name: 'Hotel Fazenda', short: 'Hotel Fazenda', subtitle: 'A avestruz brava e o pedalinho', scene: 'FarmLevel', story: 'farm', endStory: 'farm_end', music: 'map',
-    map: { x: 255, y: R2 }, icon: { key: 'ostrich', scale: 0.8 }, coinsPerStar: 25, goal: 'Carinho nos bichos, fuja da avestruz e mandem bem no pedalinho.',
+    map: { x: 110, y: R2 }, icon: { key: 'ostrich', scale: 0.8 }, coinsPerStar: 25, goal: 'Carinho nos bichos, fuja da avestruz e mandem bem no pedalinho.',
   },
   {
     id: 'storm', month: 'Em breve', name: 'Próximo capítulo', short: '???', subtitle: 'Ainda vai acontecer...', scene: 'BossLevel', story: 'storm', endStory: 'ending', music: 'boss',
-    map: { x: 255, y: R3 }, icon: { key: 'boss', scale: 0.4 }, coinsPerStar: 40, goal: 'Este capítulo ainda está sendo vivido.', soon: true,
+    map: { x: 110, y: R3 }, icon: { key: 'boss', scale: 0.4 }, coinsPerStar: 40, goal: 'Este capítulo ainda está sendo vivido.', soon: true,
   },
   {
     id: 'amazon', month: 'Em breve', name: 'Amazônia', short: 'Amazônia', subtitle: 'O sonho dos jacarés', scene: 'AmazonLevel', story: 'amazon', endStory: 'amazon_end', music: 'jungle',
-    map: { x: 400, y: R3 }, icon: { key: 'gator', scale: 1.4 }, coinsPerStar: 40, goal: 'A viagem dos sonhos da Juliana. Em breve!', soon: true,
+    map: { x: 255, y: R3 }, icon: { key: 'gator', scale: 1.4 }, coinsPerStar: 40, goal: 'A viagem dos sonhos da Juliana. Em breve!', soon: true,
   },
 ];
 

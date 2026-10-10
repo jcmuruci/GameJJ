@@ -56,7 +56,7 @@ try {
 
   // navegação de menu com teclado: Jogar -> intro
   await press('Enter');
-  await wait(1300);
+  await page.waitForFunction(() => window.__game.scene.isActive('Story'), null, { timeout: 6000 }).catch(() => undefined);
   check('Jogar leva à história de introdução', (await activeScenes()).includes('Story'));
   await wait(1500);
   await shot('02-story');
@@ -156,6 +156,12 @@ try {
   await wait(400);
   await shot('07b-segredo');
   check('Comando secreto do João (B)', (await evalG(() => window.__game.scene.getScene('TutorialLevel').squeezes)) === 1);
+  await wait(1800);
+  await press('KeyP');
+  await wait(400);
+  await shot('07c-segredo-juliana');
+  check('Comando secreto da Juliana (P)', (await evalG(() => window.__game.scene.getScene('TutorialLevel').grabs)) === 1);
+  check('P não pausa mais o jogo', !(await activeScenes()).includes('Pause'));
   await shot('07-tutorial-hug');
 
   // rapel: J2 dá segurança na ancoragem de cima, J1 desce pela corda
@@ -308,44 +314,6 @@ try {
   await page.waitForFunction(() => window.__game.scene.isActive('Menu'), null, { timeout: 4000 }).catch(() => undefined);
   check('Resultado: "Menu principal" volta ao menu', (await activeScenes()).includes('Menu'));
 
-  // ---------------------------------------------------------------- FESTA JUNINA (pesca)
-  await startScene(K, { levelId: 'junina' });
-  await press('KeyF');
-  await press('KeyK');
-  await wait(2600);
-  await place(0, 6, 10, 0, 1, K); await wait(80); await press('KeyF');
-  const joaoFish = await evalG(() => window.__game.scene.getScene('KitchenLevel').fishing[1].state);
-  check('Só a Juliana pesca (João não lança)', joaoFish === 'idle', joaoFish);
-  await place(1, 3, 10, 0, 1, K); await wait(80); await press('KeyK');
-  await evalG(() => { window.__game.scene.getScene('KitchenLevel').fishing[0].t = 0.01; });
-  await page.waitForFunction(() => window.__game.scene.getScene('KitchenLevel').fishing[0].state === 'bite', null, { timeout: 3000 }).catch(() => undefined);
-  await press('KeyK');
-  const fish = await evalG(() => window.__game.scene.getScene('KitchenLevel').players[1].held?.kind);
-  check('Juliana pesca um peixe', fish === 'fish', String(fish));
-  await evalG(() => { const s = window.__game.scene.getScene('KitchenLevel'); s.cartT = 0.1; s.crowT = 0.1; });
-  await wait(1200);
-  await shot('12-junina');
-  check('Festa junina roda sem erros', (await activeScenes()).includes('KitchenLevel'));
-  // quadrilha: no "Anarriê!", os dois usam a HABILIDADE juntos
-  await evalG(() => { window.__game.scene.getScene('KitchenLevel').dance.next = 0; });
-  await wait(500);
-  await shot('12a-quadrilha');
-  await page.keyboard.down('KeyG'); await page.keyboard.down('KeyL');
-  await wait(80);
-  await page.keyboard.up('KeyG'); await page.keyboard.up('KeyL');
-  await wait(300);
-  check('Quadrilha: dançam juntos', (await evalG(() => window.__game.scene.getScene('KitchenLevel').dances)) === 1);
-
-  // ---------------------------------------------------------------- ROÇA
-  await startScene(K, { levelId: 'roca' });
-  await press('KeyF');
-  await press('KeyK');
-  await wait(2600);
-  await evalG(() => { const s = window.__game.scene.getScene('KitchenLevel'); s.crowT = 0.1; });
-  await wait(1200);
-  await shot('12b-roca');
-  check('Restaurante da roça roda sem erros', (await activeScenes()).includes('KitchenLevel'));
-
   // ---------------------------------------------------------------- CÂNION
   const TL = 'TrailLevel';
   await startScene(TL, { levelId: 'canyon' });
@@ -455,13 +423,13 @@ try {
   await press('KeyK');
   await wait(200);
   const photos = await evalG(() => window.__game.scene.getScene('MotoLevel').photos);
-  check('Garupa tira foto na placa', photos === 1, `fotos=${photos}`);
+  check('Parada na padaria: Juliana compra o pão', photos === 1 && (await evalG(() => window.__game.scene.getScene('MotoLevel').breadOn)), `paradas=${photos}`);
   await evalG(() => { window.__game.scene.getScene('MotoLevel').catchT = 1.2; });
   await press('KeyK');
   check('Juliana segura o pão que pulou', (await evalG(() => window.__game.scene.getScene('MotoLevel').catches)) === 1);
   await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = s.cfg.total; });
   await wait(3200);
-  check('Entregar o pão leva ao resultado', (await activeScenes()).includes('Result'));
+  check('Entregar o pão à noite leva ao resultado', (await activeScenes()).includes('Result'));
 
   // ---------------------------------------------------------------- MOTO (pneu furado)
   await startScene(M, { levelId: 'tire' });
@@ -479,6 +447,74 @@ try {
   await wait(200);
   const fixed = await evalG(() => window.__game.scene.getScene('MotoLevel').flatDone);
   check('Conserto do pneu em dupla', fixed === true);
+
+  // ---------------------------------------------------------------- ROÇA (moto na terra)
+  await startScene(M, { levelId: 'roca' });
+  await press('KeyF');
+  await press('KeyK');
+  await page.waitForFunction(() => window.__game.scene.getScene('MotoLevel').started, null, { timeout: 5000 }).catch(() => undefined);
+  await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = s.cfg.total * 0.3; s.invuln = 99; s.curveT = 99; });
+  await page.waitForFunction(() => { const s = window.__game.scene.getScene('MotoLevel'); return s.gate && s.gate.warned; }, null, { timeout: 30000 }).catch(() => undefined);
+  await shot('22b-porteira');
+  await press('KeyK');
+  await page.waitForFunction(() => window.__game.scene.getScene('MotoLevel').gate?.state === 'closing', null, { timeout: 30000 }).catch(() => undefined);
+  await press('KeyK');
+  await wait(200);
+  check('Porteira: ela abre e fecha', (await evalG(() => window.__game.scene.getScene('MotoLevel').gatesDone)) === 1);
+  await evalG(() => { window.__game.scene.getScene('MotoLevel').curveT = 0.01; });
+  await page.waitForFunction(() => !!window.__game.scene.getScene('MotoLevel').curve, null, { timeout: 8000 }).catch(() => undefined);
+  await wait(400);
+  await shot('22c-curva');
+  check('Curva na estrada de terra', !!(await evalG(() => window.__game.scene.getScene('MotoLevel').curve)));
+
+  // ---------------------------------------------------------------- PESCARIA (Juiz de Fora) + ARRAIÁ
+  const FI = 'FishingLevel';
+  const fs_ = (f) => evalG(f);
+  await startScene(FI, { levelId: 'junina' });
+  await shot('12-pescaria-intro');
+  await press('KeyF');
+  await press('KeyK');
+  await page.waitForFunction(() => window.__game.scene.getScene('FishingLevel').state === 'aim', null, { timeout: 5000 }).catch(() => undefined);
+  await wait(700);
+  check('Pescaria: o "pronto" não lança a linha sozinho', (await fs_(() => window.__game.scene.getScene('FishingLevel').state)) === 'aim');
+  await press('KeyK');
+  await page.waitForFunction(() => window.__game.scene.getScene('FishingLevel').state === 'wait', null, { timeout: 8000 }).catch(() => undefined);
+  await fs_(() => { window.__game.scene.getScene('FishingLevel').t = 0.01; });
+  await page.waitForFunction(() => window.__game.scene.getScene('FishingLevel').state === 'bite', null, { timeout: 8000 }).catch(() => undefined);
+  await press('KeyK');
+  check('Juliana fisga quando a boia afunda', (await fs_(() => window.__game.scene.getScene('FishingLevel').state)) === 'reel');
+  for (let i = 0; i < 4; i++) await press('KeyK', 40);
+  await shot('12a-pescaria-recolher');
+  await fs_(() => { window.__game.scene.getScene('FishingLevel').dist = -0.01; });
+  await page.waitForFunction(() => { const s = window.__game.scene.getScene('FishingLevel'); return s.state === 'land' && s.ringT < 0.4; }, null, { timeout: 8000 }).catch(() => undefined);
+  await press('KeyF', 30);
+  await wait(300);
+  await shot('12b-pescaria-peixe');
+  check('João pega o peixe com o puçá', (await fs_(() => window.__game.scene.getScene('FishingLevel').caught)) === 1);
+  await fs_(() => { const s = window.__game.scene.getScene('FishingLevel'); s.state = 'aim'; s.timeLeft = 0.05; });
+  await page.waitForFunction(() => { const s = window.__game.scene.getScene('FishingLevel'); return s.state === 'party' && s.callWin > 0.6; }, null, { timeout: 15000 }).catch(() => undefined);
+  await page.keyboard.down('KeyF'); await page.keyboard.down('KeyK');
+  await wait(80);
+  await page.keyboard.up('KeyF'); await page.keyboard.up('KeyK');
+  await wait(300);
+  await shot('12c-arraia');
+  check('Quadrilha no arraiá: BALANCÊ com os dois', (await fs_(() => window.__game.scene.getScene('FishingLevel').dances)) === 1);
+
+  // ---------------------------------------------------------------- LAPINHA DA SERRA
+  await startScene(TL, { levelId: 'lapinha' });
+  await wait(400);
+  const sink = await evalG(() => {
+    const s = window.__game.scene.getScene('TrailLevel');
+    const st = s.stones.find((x) => x.sinks);
+    s.players[0].teleport(st.tx * 16 + 8, st.ty * 16 + 8);
+    return { tx: st.tx };
+  });
+  await page.waitForFunction(() => window.__game.scene.getScene('TrailLevel').splashes > 0, null, { timeout: 8000 }).catch(() => undefined);
+  await shot('16c-lapinha-pedra');
+  check('Lapinha: pedra escura afunda e devolve pra margem', (await evalG(() => window.__game.scene.getScene('TrailLevel').splashes)) === 1, JSON.stringify(sink));
+  await evalG(() => { const s = window.__game.scene.getScene('TrailLevel'); s.players.forEach((p, i) => p.teleport(26 * 16 + i * 16, 15 * 16 + 8)); });
+  await wait(500);
+  check('Lapinha: atravessar o rio marca a tarefa', !!(await evalG(() => window.__game.scene.getScene('TrailLevel').tasks?.isDone('river'))));
 
   // ---------------------------------------------------------------- HOTEL FAZENDA
   const F = 'FarmLevel';

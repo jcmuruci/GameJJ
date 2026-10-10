@@ -1,5 +1,5 @@
 import { T } from '../art/tiles';
-import { CANYON_MAP, CLIMB_MAP, ITACOLOMI_MAP, TOPO_MAP } from './maps';
+import { CANYON_MAP, CLIMB_MAP, ITACOLOMI_MAP, TOPO_MAP, LAPINHA_MAP } from './maps';
 import type { FoeConfig } from '../scenes/levels/PuzzleLevel';
 import type { ChapterTask } from '../ui/TaskList';
 
@@ -12,7 +12,7 @@ export interface TrailConfig {
   intro: string;
   finishTitle: string;
   /** Final especial ao chegar na saída. */
-  ending?: 'proposal' | 'mirante' | 'cachoeira';
+  ending?: 'proposal' | 'mirante' | 'cachoeira' | 'decolagem';
   ambience: 'fireflies' | 'leaves' | 'paragliders' | 'petals';
   /** Tempo (s) para a estrela de rapidez; sem isso, a estrela é por não desmaiar. */
   parTime?: number;
@@ -22,8 +22,9 @@ export interface TrailConfig {
    * Acontecimento dinâmico do capítulo:
    *  rockfall pedras soltas caem na escalada · swarm nuvens de borrachudos
    *  wind rajadas de vento (segurem AÇÃO) · photos parapentes para fotografar
+   *  stones pedras do rio: as escuras afundam (Lapinha)
    */
-  event: 'rockfall' | 'swarm' | 'wind' | 'photos';
+  event: 'rockfall' | 'swarm' | 'wind' | 'photos' | 'stones';
   /** Terreno próprio do cenário (ex.: '#' vira parede da academia, '^' vira parede de escalada). */
   terrain?: Record<string, number>;
   /** Tile do paredão de rapel/escalada. */
@@ -36,7 +37,7 @@ export interface TrailConfig {
   fallTex?: string;
   fallLines?: string[];
   /**
-   * Tarefas do capítulo. Ids reconhecidos: collect, climb, rappel, foes, dodge, gusts, finish.
+   * Tarefas do capítulo. Ids reconhecidos: collect, climb, rappel, foes, dodge, gusts, river, dry, finish.
    */
   tasks: ChapterTask[];
 }
@@ -45,6 +46,7 @@ export interface TrailConfig {
  * Legenda (além dos objetos de enigma do PuzzleLevel):
  *  U parede de escalada (sobe com segurança) · R corda de rapel (desce) · S ancoragem
  *  V cipó · k pedra grande · n casinha colorida · m mirante · I Pedra do Itacolomi · W cachoeira
+ *  @ arco de pedra (pedido) · p pedra firme no rio · q pedra que afunda
  */
 export const TRAILS: Record<string, TrailConfig> = {
   climb: {
@@ -133,24 +135,48 @@ export const TRAILS: Record<string, TrailConfig> = {
     signs: [
       'Topo do Mundo! Quando um parapente passar com a câmera piscando, {p2} usa a HABILIDADE para fotografar!',
       'Pedra grande na placa abre o portão de vez. Força, {p1}!',
-      'Desçam de rapel até a Lapinha da Serra: um segura, o outro desce.',
+      'A área de decolagem fica logo ali. Cuidado com os quero-queros: eles protegem o ninho!',
     ],
     collect: { tex: 'paraglider', name: 'Foto de parapente', plural: 'fotos' },
-    intro: 'Agosto de 2026: decolagens de parapente no Topo do Mundo e, finalmente, a Lapinha da Serra.',
-    finishTitle: 'Cachoeira da Lapinha!',
-    ending: 'cachoeira',
+    intro: 'Agosto de 2026: as decolagens de parapente no Topo do Mundo.',
+    finishTitle: 'Decolagem de pertinho!',
+    ending: 'decolagem',
     ambience: 'paragliders',
-    parTime: 300,
+    parTime: 240,
     terrain: { '#': T.SHRUB_ROCK, '^': T.ROCK_FACE },
     cliff: T.ROCK_FACE,
     decor: 'topo',
-    plaques: [{ tx: 7, ty: 16, text: 'TOPO DO MUNDO' }, { tx: 31, ty: 15, text: 'CACHOEIRA DA LAPINHA' }],
+    plaques: [{ tx: 7, ty: 16, text: 'TOPO DO MUNDO' }, { tx: 31, ty: 15, text: 'ÁREA DE DECOLAGEM' }],
     foe: { tex: 'quero', name: 'Quero-quero', hp: 2, speed: 52, aggro: 80 },
     event: 'photos',
     tasks: [
       { id: 'collect', text: 'Fotografar parapentes', goal: 3 },
       { id: 'foes', text: 'Fugir dos quero-queros', goal: 3 },
-      { id: 'rappel', text: 'Rapel até a Lapinha', goal: 1 },
+      { id: 'finish', text: 'Ver uma decolagem de pertinho' },
+    ],
+  },
+  lapinha: {
+    map: LAPINHA_MAP,
+    floor: T.ROCKY_GRASS,
+    signs: [
+      'Lapinha da Serra! Atravessem o rio de pedra em pedra. As pedras escuras afundam: não parem nelas!',
+      'Pedra na placa abre a passagem pra cachoeira. Força, {p1}!',
+    ],
+    collect: { tex: 'photo_spot', name: 'Foto da Lapinha', plural: 'fotos' },
+    intro: 'Agosto de 2026: finalmente, a Lapinha da Serra... e uma cachoeira!',
+    finishTitle: 'Cachoeira da Lapinha!',
+    ending: 'cachoeira',
+    ambience: 'leaves',
+    terrain: { '#': T.SHRUB_ROCK, '^': T.ROCK_FACE },
+    cliff: T.ROCK_FACE,
+    decor: 'mountain',
+    plaques: [{ tx: 8, ty: 9, text: 'LAPINHA DA SERRA' }, { tx: 27, ty: 5, text: 'CACHOEIRA' }],
+    foe: null,
+    event: 'stones',
+    tasks: [
+      { id: 'river', text: 'Atravessar o rio pelas pedras' },
+      { id: 'dry', text: 'Sem cair na água' },
+      { id: 'collect', text: 'Fotos da Lapinha', goal: 3 },
       { id: 'finish', text: 'Banho de cachoeira' },
     ],
   },

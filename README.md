@@ -11,7 +11,7 @@ sem instalar nada para jogar.
 | Mover | `W A S D` | `Setas` |
 | Ação (pegar, largar, usar, segurar p/ cortar) | `F` (ou `Espaço`) | `K` (ou `Numpad 1`) |
 | Habilidade | `G` — Espada | `L` — Magia |
-| Pausa | `Esc` ou `P` | `Esc` ou `P` |
+| Pausa | `Esc` | `Esc` |
 
 **Celular / tablet:** abram o link com o aparelho na horizontal. A tela se divide ao meio: João à
 esquerda e Juliana à direita, cada um com joystick + botões **Ação** e **Espada/Magia**. Há botões de
@@ -33,17 +33,18 @@ O mapa é uma linha do tempo, mês a mês. Cada capítulo abre com uma cena de h
 
 | Mês | Capítulo | Jogo |
 |---|---|---|
-| Jul 2025 | **O Rapel** | tutorial; rapel em dupla (um dá segurança na ancoragem, o outro desce) |
-| Jan 2026 | **Escalada e Mirante** | escalar com segurança, mosquetões dourados e **pedras soltas** caindo (fujam da sombra!); foto no mirante |
-| Fev 2026 | **Cânion e Lavras Novas** | fotos das quedas d'água, **nuvens de borrachudos** (a magia dela é o repelente) e as casinhas coloridas |
-| Mar 2026 | **O Pão de Moto** | o **pão esfria** e pula da sacola nos saltos (ela segura!); ganha a **medalha de São Bento** |
-| Abr 2026 | **Pico do Itacolomi** | flores do campo, gralhas e **rajadas de vento** (segurem AÇÃO); sob o arco de pedra, o resto do poema e o **pedido de namoro** (versos em `src/data/poem.ts`) |
-| Mai 2026 | **O Italiano** | bruschetta, sugo e pizza; garçom apressado; no meio do jantar, **ele entrega as alianças com um abraço** |
-| Jun 2026 | **Juiz de Fora e Festa Junina** | os pais dele comentam tudo; **só ela pesca**; no "Anarriê!" os dois **dançam a quadrilha** juntos |
-| Jul 2026 | **Pneu Furado** | estrada de terra com **vacas** (buzina!) e **lama**; pneu fura: ele segura a moto e ela conserta |
-| Jul 2026 | **Restaurante da Roça** | tilápia pescada na lagoa, tropeiro e **galinhas ladras** |
-| Ago 2026 | **Topo do Mundo e Lapinha** | ela **fotografa os parapentes** (HABILIDADE), fujam dos **quero-queros**, rapel e cachoeira |
-| Set 2026 | **Hotel Fazenda** | carinho nos bichos, espantem a **avestruz** e pedalinho (pedalem juntos!) |
+| Jul 2025 | **O Rapel** | tutorial ao pé da **Pedra Grande, em Caeté**; o rapel desce do topo da pedrona |
+| Jan 2026 | **Escalada e Mirante** | academia de escalada **indoor** (segurança em dupla, agarras soltas caindo) e depois o mirante |
+| Fev 2026 | **Cânion e Lavras Novas** | paredões de rocha, quedas d'água, **borrachudos** (a magia dela é o repelente) e as casinhas coloridas |
+| Mar 2026 | **O Pão de Moto** | **à noite**: pão na padaria, **carne de lata da família** e direto pro condomínio dela; o pão esfria e pula da sacola. Ganha a **medalha de São Bento** |
+| Abr 2026 | **Pico do Itacolomi** | rajadas de vento e gralhas; sentados no **arco de pedra**, o resto do poema e o **pedido de namoro** |
+| Mai 2026 | **O Italiano** | cozinha do restaurante; no meio do jantar, **as alianças entregues com um abraço** |
+| Jun 2026 | **Juiz de Fora e Festa Junina** | **pescaria**: ela lança, fisga e recolhe; ele afrouxa a linha e pega com o puçá; os pais comentam. À noite, **quadrilha** no arraiá de BH |
+| Jul 2026 | **Pneu Furado** | de moto rumo à Lapinha; o pneu fura e os dois consertam juntos; mudança de planos: São José da Serra |
+| Jul 2026 | **Estrada de Terra e Roça** | moto na terra: **porteiras** (ela abre e fecha), **curvas** (ela se inclina junto), vacas e lama, até o restaurante de roça |
+| Ago 2026 | **Topo do Mundo** | ela **fotografa os parapentes**, quero-queros e uma decolagem de pertinho |
+| Ago 2026 | **Lapinha da Serra** | rio de **pedra em pedra** (as escuras afundam) e a cachoeira |
+| Set 2026 | **Hotel Fazenda** | carinho nos bichos, a **avestruz** brava e o pedalinho em dupla |
 | em breve | próximos capítulos | bloqueados por enquanto |
 
 Estrelas e moedas ficam salvas no navegador (localStorage); moedas compram melhorias na

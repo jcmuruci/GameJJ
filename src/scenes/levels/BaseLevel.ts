@@ -622,7 +622,7 @@ export abstract class BaseLevel extends Phaser.Scene {
       return;
     }
     this.reviveProgress[p.id] = 0;
-    if (p.id === 0 && inp.secretPressed) this.squeeze(p, o);
+    if (inp.secretPressed) this.secretTouch(p, o);
     p.target = this.findTarget(p);
     if (inp.actionPressed) {
       if (p.target?.interact?.(p)) { /* tratado */ }
@@ -636,38 +636,47 @@ export abstract class BaseLevel extends Phaser.Scene {
     if (inp.abilityPressed && p.abilityCd <= 0) this.useAbility(p);
   }
 
-  /** Comando secreto do João (B): um apertãozinho no bumbum dela... e ela fica com vergonha. */
+  /**
+   * Comandos secretos: João (B) dá um apertãozinho no bumbum dela;
+   * Juliana (P) dá o troco com uma pegada atrevida. Quem recebe fica com vergonha.
+   */
   private squeezeCd = 0;
-  squeeze(j: Player, ju: Player): void {
+  squeezes = 0;
+  grabs = 0;
+  secretTouch(from: Player, to: Player): void {
     const now = this.time.now;
-    if (now < this.squeezeCd || ju.fainted || ju.locked || j.locked) return;
-    if (this.dist(j, ju) > 24) {
+    if (now < this.squeezeCd || to.fainted || to.locked || from.locked || from.fainted) return;
+    const joao = from.id === 0;
+    if (this.dist(from, to) > 24) {
       this.squeezeCd = now + 800;
-      this.say(j, Phaser.Utils.Array.GetRandom(['Hmm... longe demais.', 'Cadê ela?', '(chega mais perto...)']), 1000);
+      this.say(from, Phaser.Utils.Array.GetRandom(joao ? ['Hmm... longe demais.', 'Cadê ela?', '(chega mais perto...)'] : ['Hmm... cadê ele?', '(chega mais perto...)', 'Vem cá, amor...']), 1000);
       return;
     }
     this.squeezeCd = now + 1600;
-    this.squeezes++;
-    // ele chega por trás, ela dá um pulinho e fica vermelha
-    j.face = { x: Math.sign(ju.x - j.x) || 1, y: 0 };
-    j.actTimer = 0.3;
-    ju.face = { x: -j.face.x, y: 0 };
+    const n = joao ? ++this.squeezes : ++this.grabs;
+    // chega pertinho, quem recebe dá um pulinho e fica vermelho
+    from.face = { x: Math.sign(to.x - from.x) || 1, y: 0 };
+    from.actTimer = 0.3;
+    to.face = { x: -from.face.x, y: 0 };
     this.sfx('pick');
     this.time.delayedCall(120, () => this.sfx('hug'));
-    this.tweens.add({ targets: ju.sprite, y: ju.sprite.y - 6, duration: 110, yoyo: true, ease: 'Quad.Out' });
-    ju.sprite.setTint(0xffb0c0);
-    this.time.delayedCall(900, () => ju.sprite.clearTint());
-    const blush = this.add.text(ju.x, ju.y - 30, '>///<', { fontFamily: 'monospace', fontSize: '8px', color: '#ff5c8a', stroke: '#fff4e0', strokeThickness: 2, fontStyle: 'bold' })
+    this.tweens.add({ targets: to.sprite, y: to.sprite.y - 6, duration: 110, yoyo: true, ease: 'Quad.Out' });
+    to.sprite.setTint(0xffb0c0);
+    this.time.delayedCall(900, () => to.sprite.clearTint());
+    const blush = this.add.text(to.x, to.y - 30, '>///<', { fontFamily: 'monospace', fontSize: '8px', color: '#ff5c8a', stroke: '#fff4e0', strokeThickness: 2, fontStyle: 'bold' })
       .setOrigin(0.5).setDepth(9800).setResolution(ZOOM * RES + 1);
     this.tweens.add({ targets: blush, y: blush.y - 10, alpha: 0, delay: 500, duration: 700, onComplete: () => blush.destroy() });
-    const lines = this.squeezes === 1
-      ? [`${this.names[0]}!! Aqui não! >///<`]
-      : ['Ei!! >///<', `${this.names[0]}!!! Tem gente olhando!`, 'Seu safado... ♥', 'Hihi, para! >///<', 'Depois a gente conversa... ♥', 'Foco na missão, amor!'];
-    this.time.delayedCall(150, () => this.say(ju, Phaser.Utils.Array.GetRandom(lines), 1800, '#ffd6e4'));
-    this.time.delayedCall(900, () => this.say(j, Phaser.Utils.Array.GetRandom(['Hehe', 'Foi sem querer!', 'Escorregou a mão...', '(assobia)']), 1400));
-    for (let i = 0; i < 4; i++) this.time.delayedCall(200 + i * 90, () => this.floatHeart(ju.x + Phaser.Math.Between(-6, 6), ju.y - 24));
+    const [nameFrom] = [this.names[from.id]];
+    const reaction = joao
+      ? (n === 1 ? [`${nameFrom}!! Aqui não! >///<`] : ['Ei!! >///<', `${nameFrom}!!! Tem gente olhando!`, 'Seu safado... ♥', 'Hihi, para! >///<', 'Depois a gente conversa... ♥', 'Foco na missão, amor!'])
+      : (n === 1 ? [`${nameFrom}!!! >///<`] : ['Ei! Olha essa mão boba! >///<', 'Aqui não, amor! Tem gente olhando!', 'Assim eu perco a concentração...', 'Sua safada... ♥', 'Depois a gente conversa... ♥', 'Calma, mulher! >///<']);
+    const reply = joao
+      ? ['Hehe', 'Foi sem querer!', 'Escorregou a mão...', '(assobia)']
+      : ['Hihi', 'Foi sem querer!', 'Ops, escorregou...', '(assobia)', 'Troco! ♥'];
+    this.time.delayedCall(150, () => this.say(to, Phaser.Utils.Array.GetRandom(reaction), 1800, to.id === 1 ? '#ffd6e4' : '#bfe6ff'));
+    this.time.delayedCall(900, () => this.say(from, Phaser.Utils.Array.GetRandom(reply), 1400, from.id === 1 ? '#ffd6e4' : '#bfe6ff'));
+    for (let i = 0; i < 4; i++) this.time.delayedCall(200 + i * 90, () => this.floatHeart(to.x + Phaser.Math.Between(-6, 6), to.y - 24));
   }
-  squeezes = 0;
 
   drawBar(x: number, y: number, t: number, color = 0x8be07a): void {
     const g = this.reviveBars;

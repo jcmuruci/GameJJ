@@ -58,7 +58,10 @@ export class TrailLevel extends PuzzleLevel {
     this.climbSpots = [];
     this.tasks = null;
     this.kills = this.dodges = this.gustsOk = this.climbs = this.rappelsDone = this.photos = 0;
-    this.eventT = { rockfall: 4, swarm: 25, wind: 16, photos: 6 }[this.cfg.event];
+    this.eventT = { rockfall: 4, swarm: 25, wind: 16, photos: 6, stones: 0 }[this.cfg.event];
+    this.stones = [];
+    this.splashes = 0;
+    this.lastSafe = [];
     this.gust = null;
     this.photoTarget = null;
     return this.cfg.map;
@@ -70,6 +73,15 @@ export class TrailLevel extends PuzzleLevel {
     if (ch === '*' && this.cfg.event === 'photos') { this.addPickup('coin', c.x, c.y); return true; }
     if (ch === 'm') { this.add.image(c.x, c.y + 4, 'mirante').setDepth(c.y - 6); return true; }
     if (ch === 'U' || ch === 'R') this.climbSpots.push({ tx, ty });
+    if (ch === 'p' || ch === 'q') {
+      // pedra no meio do rio: dá pra pisar; as escuras afundam se alguém parar nelas
+      const tile = this.layer.putTileAt(T.WATER, tx, ty);
+      tile.setCollision(false, false, false, false);
+      this.layer.calculateFacesAt(tx, ty);
+      const img = this.add.image(c.x, c.y + 1, ch === 'p' ? 'step_stone' : 'step_stone_wet').setDepth(-6);
+      this.stones.push({ tx, ty, img, sinks: ch === 'q', t: -1, down: 0 });
+      return true;
+    }
     if (ch === 'I') {
       this.add.image(c.x, c.y + 24, 'itacolomi').setOrigin(0.5, 1).setDepth(c.y + 24);
       for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) this.addSolid(tx + dx, ty + dy);
@@ -86,6 +98,67 @@ export class TrailLevel extends PuzzleLevel {
       return true;
     }
     return this.spawnPuzzle(ch, tx, ty);
+  }
+
+  /** Pedras do rio (Lapinha). */
+  stones: { tx: number; ty: number; img: Phaser.GameObjects.Image; sinks: boolean; t: number; down: number }[] = [];
+  splashes = 0;
+  private lastSafe: { x: number; y: number }[] = [];
+
+  /** Pedras do rio: quem para numa pedra escura afunda e volta pra margem. */
+  private updateStones(dt: number): void {
+    this.players.forEach((p, i) => {
+      const tx = Math.floor(p.x / TILE);
+      const ty = Math.floor(p.y / TILE);
+      const onWater = this.layer.getTileAt(tx, ty)?.index === T.WATER;
+      if (!onWater && !p.locked) this.lastSafe[i] = { x: p.x, y: p.y };
+    });
+    for (const s of this.stones) {
+      if (!s.sinks) continue;
+      if (s.down > 0) {
+        s.down -= dt;
+        if (s.down <= 0) {
+          // a pedra volta a aparecer
+          this.layer.getTileAt(s.tx, s.ty)?.setCollision(false, false, false, false);
+          this.layer.calculateFacesAt(s.tx, s.ty);
+          this.tweens.add({ targets: s.img, alpha: 1, scale: 1, duration: 300 });
+        }
+        continue;
+      }
+      const on = this.players.filter((p) => !p.locked && Math.floor(p.x / TILE) === s.tx && Math.floor(p.y / TILE) === s.ty);
+      if (on.length && s.t < 0) {
+        s.t = 0.9;
+        this.tweens.add({ targets: s.img, angle: { from: -6, to: 6 }, yoyo: true, repeat: 3, duration: 110, onComplete: () => s.img.setAngle(0) });
+      }
+      if (s.t >= 0) {
+        s.t -= dt;
+        if (s.t <= 0) {
+          s.t = -1;
+          s.down = 2.6;
+          this.tweens.add({ targets: s.img, alpha: 0.15, scale: 0.7, duration: 200 });
+          this.burst(s.tx * TILE + 8, s.ty * TILE + 8, 'fx_pixel', 10, { speed: 50, tint: 0xbfe9ff });
+          this.sfx('splash');
+          for (const p of this.players) {
+            if (Math.floor(p.x / TILE) !== s.tx || Math.floor(p.y / TILE) !== s.ty) continue;
+            const back = this.lastSafe[p.id] ?? { x: 4 * TILE, y: 10 * TILE };
+            p.teleport(back.x, back.y);
+            this.splashes++;
+            this.say(p, Phaser.Utils.Array.GetRandom(['Que água gelada!', 'Splash! Caí!', 'Brrr! Essa pedra afundou!']), 1600);
+            this.hud?.toast('As pedras escuras afundam: não parem nelas!', '#bfe6ff', 1800);
+          }
+          // enquanto está no fundo, ali é só água
+          this.layer.getTileAt(s.tx, s.ty)?.setCollision(true, true, true, true);
+          this.layer.calculateFacesAt(s.tx, s.ty);
+        }
+      }
+    }
+    // atravessou o rio: os dois do outro lado
+    const riverEnd = Math.max(...this.stones.map((s) => s.tx), 0) + 1;
+    if (riverEnd > 1 && !this.tasks?.isDone('river') && this.players.every((p) => p.x > riverEnd * TILE)) {
+      this.tasks?.done('river');
+      if (this.splashes === 0) this.tasks?.done('dry');
+      this.say(this.players[1], 'Atravessamos! Agora, cachoeira!', 1600, '#ffd6e4');
+    }
   }
 
   /** Pontos de escalada/rapel (para pôr colchões, cordas e magnésio em volta). */
@@ -251,6 +324,9 @@ export class TrailLevel extends PuzzleLevel {
         if (this.photoTarget) this.updatePhotoTarget();
         else if (this.eventT <= 0) this.spawnPhotoTarget();
         break;
+      case 'stones':
+        this.updateStones(dt);
+        break;
     }
   }
 
@@ -414,7 +490,7 @@ export class TrailLevel extends PuzzleLevel {
     this.tasks?.done('finish');
     if (this.gust) { this.players.forEach((p) => (p.drift = { x: 0, y: 0 })); this.gust.fx?.destroy(); this.gust = null; }
     if (this.cfg.ending === 'proposal') this.proposal();
-    else if (this.cfg.ending === 'mirante' || this.cfg.ending === 'cachoeira') this.photoMoment();
+    else if (this.cfg.ending === 'mirante' || this.cfg.ending === 'cachoeira' || this.cfg.ending === 'decolagem') this.photoMoment();
     else this.complete();
   }
 
@@ -445,11 +521,25 @@ export class TrailLevel extends PuzzleLevel {
     b.face = { x: 0, y: -1 };
     Audio.play('camera');
     this.cameras.main.flash(300, 255, 255, 255);
+    const end = this.cfg.ending;
+    if (end === 'decolagem') {
+      // um parapente decola bem na frente deles
+      const cam = this.cameras.main.worldView;
+      const pg = this.add.image(a.x + 30, a.y - 10, 'paraglider').setScale(1.8).setDepth(9700);
+      this.tweens.add({ targets: pg, x: cam.right + 60, y: cam.y - 30, duration: 3200, ease: 'Sine.In' });
+    }
+    const lines: Record<string, [string, string, string]> = {
+      mirante: ['Olha essa vista, amor!', 'Mais linda é a companhia.', 'Foto no mirante: guardada ♥'],
+      cachoeira: ['Finalmente, a Lapinha!', 'Bora pra água? Tá gelada!', 'Banho de cachoeira: garantido ♥'],
+      decolagem: ['Olha ele decolando! Que coragem!', 'Um dia a gente voa junto. De mãos dadas.', 'Decolagem vista de pertinho ♥'],
+    };
+    const [l1, l2, extra] = lines[end ?? 'mirante'];
     this.time.delayedCall(400, () => {
-      this.say(b, this.cfg.ending === 'mirante' ? 'Olha essa vista, amor!' : 'Finalmente, a Lapinha!', 1800);
-      this.time.delayedCall(900, () => this.say(a, 'Mais linda é a companhia.', 1800));
+      this.say(b, l1, 1800);
+      this.time.delayedCall(900, () => this.say(a, l2, 1800));
     });
-    this.time.delayedCall(2600, () => this.complete([this.cfg.ending === 'mirante' ? 'Foto no mirante: guardada ♥' : 'Banho de cachoeira: garantido ♥']));
+    if (end === 'decolagem') this.tasks?.done('finish');
+    this.time.delayedCall(2600, () => this.complete([extra]));
   }
 
   /** Pico do Itacolomi: o pedido de namoro. */
@@ -493,7 +583,14 @@ export class TrailLevel extends PuzzleLevel {
         Audio.play('pick');
         const card = this.poemCard(hud);
         let i = 0;
+        // sem versos ainda (o poema de verdade entra depois): ela lê a folha em silêncio
+        let reading = card.verses.length === 0;
         const nextVerse = () => {
+          if (reading) {
+            reading = false;
+            this.time.delayedCall(3000, nextVerse);
+            return;
+          }
           if (i < card.verses.length) {
             hud.tweens.add({ targets: card.verses[i++], alpha: 1, duration: 500 });
             Audio.play('blip');
@@ -502,6 +599,7 @@ export class TrailLevel extends PuzzleLevel {
           }
           // o último verso: a pergunta
           paper.destroy();
+          card.reading?.destroy();
           if (this.seated.length) this.tweens.add({ targets: this.seated[0], x: this.seated[0].x + 2, duration: 300, ease: 'Sine.Out' });
           else { joao.actTimer = 999; joao.sprite.setFrame(charFrame('side', 3)); }
           hud.tweens.add({ targets: card.question, alpha: 1, scale: { from: 1.3, to: 1 }, duration: 500, ease: 'Back.Out' });
@@ -519,7 +617,7 @@ export class TrailLevel extends PuzzleLevel {
               ev.remove();
               this.awaitingYes = false;
               prompt.destroy();
-              hud.tweens.add({ targets: card.all, alpha: 0, duration: 400, onComplete: () => card.all.forEach((o) => o.destroy()) });
+              hud.tweens.add({ targets: card.all.filter((o) => o.active), alpha: 0, duration: 400, onComplete: () => card.all.forEach((o) => o.destroy()) });
               joao.actTimer = 0;
               hud.clearBubbles();
               // ela pula no abraço
@@ -540,23 +638,26 @@ export class TrailLevel extends PuzzleLevel {
   }
 
   /** Folha com o resto do poema, desenhada na interface. */
-  private poemCard(hud: HUDScene): { all: Phaser.GameObjects.GameObject[]; verses: Phaser.GameObjects.Text[]; question: Phaser.GameObjects.Text } {
+  private poemCard(hud: HUDScene): { all: Phaser.GameObjects.GameObject[]; verses: Phaser.GameObjects.Text[]; question: Phaser.GameObjects.Text; reading: Phaser.GameObjects.Text | null } {
     const w = this.seated.length ? 520 : 600;
-    const h = 64 + POEM_REST.length * 26 + 50 + (this.seated.length ? 26 : 0);
+    const lines = Math.max(POEM_REST.length, 3);
+    const h = 64 + lines * 26 + 50 + (this.seated.length ? 26 : 0);
     const x = GAME_W / 2 - w / 2;
     const y = this.seated.length ? GAME_H - h - 28 : 24;
     const g = hud.add.graphics();
     g.fillStyle(0x000000, 0.25).fillRoundedRect(x + 5, y + 6, w, h, 10);
     g.fillStyle(0xfff7e6, 1).fillRoundedRect(x, y, w, h, 10);
     g.lineStyle(3, 0xc9a87a, 1).strokeRoundedRect(x, y, w, h, 10);
-    for (let k = 0; k < POEM_REST.length + 1; k++) g.lineStyle(1, 0xe8d8c0, 1).lineBetween(x + 24, y + 70 + k * 26, x + w - 24, y + 70 + k * 26);
+    for (let k = 0; k < lines + 1; k++) g.lineStyle(1, 0xe8d8c0, 1).lineBetween(x + 24, y + 70 + k * 26, x + w - 24, y + 70 + k * 26);
     const title = txt(hud, GAME_W / 2, y + 26, 'O resto do poema', 20, { color: '#c94a7a', stroke: '#fff7e6', strokeW: 0 });
     const verses = POEM_REST.map((v, k) => txt(hud, GAME_W / 2, y + 58 + k * 26, v, 16, { color: '#3a2a3e', stroke: '#fff7e6', strokeW: 0, bold: false }).setAlpha(0));
-    const question = txt(hud, GAME_W / 2, y + 58 + POEM_REST.length * 26 + 16, `${this.names[1]}, quer namorar comigo? ♥`, 22, { color: '#c94a7a', stroke: '#fff7e6', strokeW: 0 }).setAlpha(0);
-    const all: Phaser.GameObjects.GameObject[] = [g, title, ...verses, question];
+    const reading = POEM_REST.length ? null : txt(hud, GAME_W / 2, y + 58 + 26, `(${this.names[1]} lê o resto do poema...)`, 15, { color: '#a08aa8', stroke: '#fff7e6', strokeW: 0, bold: false }).setFontStyle('italic');
+    if (reading) hud.tweens.add({ targets: reading, alpha: 0.4, yoyo: true, repeat: -1, duration: 700 });
+    const question = txt(hud, GAME_W / 2, y + 58 + lines * 26 + 16, `${this.names[1]}, quer namorar comigo? ♥`, 22, { color: '#c94a7a', stroke: '#fff7e6', strokeW: 0 }).setAlpha(0);
+    const all: Phaser.GameObjects.GameObject[] = [g, title, ...verses, question, ...(reading ? [reading] : [])];
     [g, title].forEach((o) => o.setAlpha(0));
     hud.tweens.add({ targets: [g, title], alpha: 1, duration: 400 });
-    return { all, verses, question };
+    return { all, verses, question, reading };
   }
 
   private fireworks(): void {
