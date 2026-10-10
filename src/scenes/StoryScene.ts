@@ -39,7 +39,6 @@ const DECOR: Record<string, [string, number, number, number][]> = {
   italiano: [['table', 480, 330, 5], ['flag_italy', 600, 140, 3]],
   italiano_end: [['table', 480, 330, 5]],
   junina: [['bunting_j', 330, 60, 4], ['bunting_j', 630, 60, 4], ['dock', 480, 200, 5], ['rod', 560, 190, 4]],
-  tire: [['moto', 480, 340, 4], ['big_rock', 680, 140, 2]],
   roca: [['porteira', 300, 200, 1.2], ['moto', 480, 340, 4], ['cow', 680, 330, 4]],
   roca_end: [['farmhouse', 480, 160, 3], ['duck', 640, 330, 4]],
   topo: [['paraglider', 360, 100, 3], ['paraglider', 620, 70, 2.4], ['takeoff_ramp', 480, 250, 4], ['windsock', 680, 240, 3]],
@@ -142,7 +141,7 @@ export class StoryScene extends Phaser.Scene {
     if (id === 'storm') return 'boss';
     if (id === 'ending' || id.endsWith('_end')) return 'ending';
     if (id.startsWith('amazon')) return 'jungle';
-    if (id === 'bread' || id === 'tire' || id === 'roca') return 'road';
+    if (id === 'bread' || id === 'roca') return 'road';
     if (id === 'junina') return 'festival';
     if (id === 'italiano') return 'kitchen';
     return 'map';

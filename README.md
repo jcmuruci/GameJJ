@@ -40,8 +40,7 @@ O mapa é uma linha do tempo, mês a mês. Cada capítulo abre com uma cena de h
 | Abr 2026 | **Pico do Itacolomi** | rajadas de vento e gralhas; sentados no **arco de pedra**, o resto do poema e o **pedido de namoro** |
 | Mai 2026 | **O Italiano** | cozinha do restaurante; no meio do jantar, **as alianças entregues com um abraço** |
 | Jun 2026 | **Juiz de Fora e Festa Junina** | **pescaria**: ela lança, fisga e recolhe; ele afrouxa a linha e pega com o puçá; os pais comentam. À noite, **quadrilha** no arraiá de BH |
-| Jul 2026 | **Pneu Furado** | de moto rumo à Lapinha; o pneu fura e os dois consertam juntos; mudança de planos: São José da Serra |
-| Jul 2026 | **Estrada de Terra e Roça** | moto na terra: **porteiras** (ela abre e fecha), **curvas** (ela se inclina junto), vacas e lama, até o restaurante de roça |
+| Jul 2026 | **Pneu Furado e Roça** | de moto rumo à Lapinha, o **pneu fura** e os dois consertam juntos; mudança de planos para São José da Serra: **porteiras** (ela abre e fecha), **curvas** (ela se inclina junto), vacas e lama, até o restaurante de roça |
 | Ago 2026 | **Topo do Mundo** | ela **fotografa os parapentes**, quero-queros e uma decolagem de pertinho |
 | Ago 2026 | **Lapinha da Serra** | rio de **pedra em pedra** (as escuras afundam) e a cachoeira |
 | Set 2026 | **Hotel Fazenda** | carinho nos bichos, a **avestruz** brava e o pedalinho em dupla |

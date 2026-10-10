@@ -431,29 +431,22 @@ try {
   await wait(3200);
   check('Entregar o pão à noite leva ao resultado', (await activeScenes()).includes('Result'));
 
-  // ---------------------------------------------------------------- MOTO (pneu furado)
-  await startScene(M, { levelId: 'tire' });
+  // ---------------------------------------------------------------- PNEU FURADO E ROÇA (moto na terra)
+  await startScene(M, { levelId: 'roca' });
   await press('KeyF');
   await press('KeyK');
   await page.waitForFunction(() => window.__game.scene.getScene('MotoLevel').started, null, { timeout: 5000 }).catch(() => undefined);
-  await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = s.cfg.total * 0.43; s.invuln = 99; });
-  await wait(400);
+  await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = s.cfg.total * 0.21; s.invuln = 99; s.curveT = 99; });
+  await page.waitForFunction(() => window.__game.scene.getScene('MotoLevel').repair >= 0, null, { timeout: 8000 }).catch(() => undefined);
   const flat = await evalG(() => window.__game.scene.getScene('MotoLevel').repair);
-  check('Pneu fura no caminho', flat >= 0, `repair=${flat}`);
+  check('Pneu fura antes da roça', flat >= 0, `repair=${flat}`);
   await shot('22-flat-tire');
   await page.keyboard.down('KeyF');
   for (let i = 0; i < 14; i++) await press('KeyK', 40);
   await page.keyboard.up('KeyF');
   await wait(200);
-  const fixed = await evalG(() => window.__game.scene.getScene('MotoLevel').flatDone);
-  check('Conserto do pneu em dupla', fixed === true);
-
-  // ---------------------------------------------------------------- ROÇA (moto na terra)
-  await startScene(M, { levelId: 'roca' });
-  await press('KeyF');
-  await press('KeyK');
-  await page.waitForFunction(() => window.__game.scene.getScene('MotoLevel').started, null, { timeout: 5000 }).catch(() => undefined);
-  await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = s.cfg.total * 0.3; s.invuln = 99; s.curveT = 99; });
+  check('Conserto do pneu em dupla', (await evalG(() => window.__game.scene.getScene('MotoLevel').flatDone)) === true);
+  await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = s.cfg.total * 0.43; s.curveT = 99; });
   await page.waitForFunction(() => { const s = window.__game.scene.getScene('MotoLevel'); return s.gate && s.gate.warned; }, null, { timeout: 30000 }).catch(() => undefined);
   await shot('22b-porteira');
   await press('KeyK');

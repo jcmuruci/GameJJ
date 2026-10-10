@@ -59,32 +59,28 @@ export const LEVELS: LevelInfo[] = [
     map: { x: 835, y: R2 }, icon: { key: 'bobber', scale: 2 }, coinsPerStar: 20, goal: 'A Juliana aprende a pescar com o João... e de noite tem quadrilha!',
   },
   {
-    id: 'tire', month: 'Jul 2026', name: 'Pneu Furado', short: 'Pneu Furado', subtitle: 'De moto rumo à Lapinha... e o pneu furou', scene: 'MotoLevel', story: 'tire', music: 'road',
-    map: { x: 690, y: R2 }, icon: { key: 'moto_map', scale: 1.4 }, coinsPerStar: 20, goal: 'Consertem o pneu juntos e cheguem em São José da Serra.',
-  },
-  {
-    id: 'roca', month: 'Jul 2026', name: 'Estrada de Terra e Roça', short: 'Roça', subtitle: 'Porteiras, curvas e almoço na roça', scene: 'MotoLevel', story: 'roca', endStory: 'roca_end', music: 'road',
-    map: { x: 545, y: R2 }, icon: { key: 'farmhouse', scale: 0.45 }, coinsPerStar: 20, goal: 'Estrada de terra em São José da Serra até o restaurante de roça.',
+    id: 'roca', month: 'Jul 2026', name: 'Pneu Furado e Roça', short: 'Pneu e Roça', subtitle: 'O pneu fura, o caminho muda e o almoço é na roça', scene: 'MotoLevel', story: 'roca', endStory: 'roca_end', music: 'road',
+    map: { x: 690, y: R2 }, icon: { key: 'moto_map', scale: 1.4 }, coinsPerStar: 20, goal: 'Consertem o pneu juntos e sigam pela estrada de terra até o restaurante de roça.',
   },
   {
     id: 'topo', month: 'Ago 2026', name: 'Topo do Mundo', short: 'Topo do Mundo', subtitle: 'As decolagens de parapente', scene: 'TrailLevel', story: 'topo', music: 'forest',
-    map: { x: 400, y: R2 }, icon: { key: 'paraglider', scale: 0.8 }, coinsPerStar: 25, goal: 'Fotografem os parapentes e vejam uma decolagem de pertinho.',
+    map: { x: 545, y: R2 }, icon: { key: 'paraglider', scale: 0.8 }, coinsPerStar: 25, goal: 'Fotografem os parapentes e vejam uma decolagem de pertinho.',
   },
   {
     id: 'lapinha', month: 'Ago 2026', name: 'Lapinha da Serra', short: 'Lapinha', subtitle: 'Trilha, rio de pedra em pedra e cachoeira', scene: 'TrailLevel', story: 'lapinha', music: 'forest',
-    map: { x: 255, y: R2 }, icon: { key: 'waterfall', scale: 0.5 }, coinsPerStar: 25, goal: 'Atravessem o rio pelas pedras e curtam a cachoeira.',
+    map: { x: 400, y: R2 }, icon: { key: 'waterfall', scale: 0.5 }, coinsPerStar: 25, goal: 'Atravessem o rio pelas pedras e curtam a cachoeira.',
   },
   {
     id: 'farm', month: 'Set 2026', name: 'Hotel Fazenda', short: 'Hotel Fazenda', subtitle: 'A avestruz brava e o pedalinho', scene: 'FarmLevel', story: 'farm', endStory: 'farm_end', music: 'map',
-    map: { x: 110, y: R2 }, icon: { key: 'ostrich', scale: 0.8 }, coinsPerStar: 25, goal: 'Carinho nos bichos, fuja da avestruz e mandem bem no pedalinho.',
+    map: { x: 255, y: R2 }, icon: { key: 'ostrich', scale: 0.8 }, coinsPerStar: 25, goal: 'Carinho nos bichos, fuja da avestruz e mandem bem no pedalinho.',
   },
   {
     id: 'storm', month: 'Em breve', name: 'Próximo capítulo', short: '???', subtitle: 'Ainda vai acontecer...', scene: 'BossLevel', story: 'storm', endStory: 'ending', music: 'boss',
-    map: { x: 110, y: R3 }, icon: { key: 'boss', scale: 0.4 }, coinsPerStar: 40, goal: 'Este capítulo ainda está sendo vivido.', soon: true,
+    map: { x: 110, y: R2 }, icon: { key: 'boss', scale: 0.4 }, coinsPerStar: 40, goal: 'Este capítulo ainda está sendo vivido.', soon: true,
   },
   {
     id: 'amazon', month: 'Em breve', name: 'Amazônia', short: 'Amazônia', subtitle: 'O sonho dos jacarés', scene: 'AmazonLevel', story: 'amazon', endStory: 'amazon_end', music: 'jungle',
-    map: { x: 255, y: R3 }, icon: { key: 'gator', scale: 1.4 }, coinsPerStar: 40, goal: 'A viagem dos sonhos da Juliana. Em breve!', soon: true,
+    map: { x: 110, y: R3 }, icon: { key: 'gator', scale: 1.4 }, coinsPerStar: 40, goal: 'A viagem dos sonhos da Juliana. Em breve!', soon: true,
   },
 ];
 

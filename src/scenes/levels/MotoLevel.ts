@@ -494,6 +494,11 @@ export class MotoLevel extends Phaser.Scene {
     this.cameras.main.shake(250, 0.01);
     this.toast('PSSSSS... o pneu furou!', '#ff9c9c');
     for (const o of this.objs) if (o.label !== 'decor') o.dead = true;
+    // para no acostamento: sem curva no meio do conserto
+    this.curve = null;
+    this.curveT = 6;
+    this.camRot = 0;
+    this.cameras.main.setRotation(0);
     const add = <T extends Phaser.GameObjects.GameObject>(o: T): T => { this.ui.add(o); this.repairUi.push(o); return o; };
     add(panel(this, GAME_W / 2 - 280, 150, 560, 170));
     add(txt(this, GAME_W / 2, 182, 'Consertem o pneu juntos!', 24, { color: '#ffd23a' }));
@@ -524,6 +529,8 @@ export class MotoLevel extends Phaser.Scene {
       Audio.play('revive');
       this.toast('Consertado! Dupla imbatível ♥', '#8be07a');
       this.tasks?.done('repair');
+      const next = this.cfg.repairText;
+      if (next) this.time.delayedCall(2100, () => this.toast(next, '#ffd23a'));
       this.burst(this.mx, this.my - 10, 'fx_heart', 12);
       this.spawnT = 1.5;
     }
