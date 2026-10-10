@@ -38,7 +38,9 @@ async function boot(): Promise<void> {
   Input.attach(window);
   Input.padSwap = Save.data.settings.padSwap;
   Audio.setVolumes(Save.data.settings.music, Save.data.settings.sfx);
-  Input.onFirstGesture = () => Audio.unlock();
+  Input.onFirstGesture = () => { if (!Audio.running) Audio.unlock(); };
+  // ao voltar para a aba/app, o navegador pode ter pausado o áudio
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && Audio.ctx) Audio.unlock(); });
   if (isTouchDevice()) {
     new TouchControls().mount();
     // textos de ajuda passam a citar os botões da tela
@@ -68,6 +70,7 @@ async function boot(): Promise<void> {
   game.events.on(Phaser.Core.Events.PRE_STEP, () => Input.update());
   (window as unknown as { __game: Phaser.Game; __input: typeof Input }).__game = game;
   (window as unknown as { __input: typeof Input }).__input = Input;
+  (window as unknown as { __audio: typeof Audio }).__audio = Audio;
   document.getElementById('loading')?.remove();
 }
 

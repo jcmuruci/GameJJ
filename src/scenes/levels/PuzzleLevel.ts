@@ -15,6 +15,9 @@ export const TRIGGERS: Record<string, { type: 'plate' | 'rune'; gate: string }> 
 };
 const GATE_LETTERS = 'ABCDEFGHM';
 
+export interface FoeConfig { tex: string; name: string; hp: number; speed: number; aggro: number }
+export const DEFAULT_FOE: FoeConfig = { tex: 'slime', name: 'Geleca', hp: 2, speed: 34, aggro: 90 };
+
 export class Boulder {
   img: Phaser.GameObjects.Image;
   zone: Phaser.GameObjects.Zone;
@@ -132,6 +135,8 @@ export abstract class PuzzleLevel extends BaseLevel {
   rappels = 0;
   boulderTex = 'boulder';
   boulderFillsWater = false;
+  /** Bicho que aparece nos 's' do mapa (null = nenhum). */
+  foe: FoeConfig | null = DEFAULT_FOE;
   private belayCd = 0;
   private rope: Phaser.GameObjects.Graphics | null = null;
 
@@ -152,6 +157,7 @@ export abstract class PuzzleLevel extends BaseLevel {
     this.rappels = 0;
     this.belayCd = 0;
     this.rope = null;
+    this.foe = DEFAULT_FOE;
   }
 
   /** Objetos comuns de enigma. Subclasses chamam isto no seu spawn(). */
@@ -176,8 +182,7 @@ export abstract class PuzzleLevel extends BaseLevel {
       case '$': this.addPickup('coin', c.x, c.y); return true;
       case 'v': this.addPickup('heart', c.x, c.y); return true;
       case 's': {
-        const e = new Slime(this, c.x, c.y);
-        this.enemies.push(e);
+        if (this.foe) this.enemies.push(new Slime(this, c.x, c.y, this.foe.tex, this.foe.hp, this.foe.speed, this.foe.aggro));
         return true;
       }
       case 'S': this.add.image(c.x, c.y, 'anchor').setDepth(-4); this.anchors.push({ x: c.x, y: c.y }); return true;
@@ -343,6 +348,10 @@ export abstract class PuzzleLevel extends BaseLevel {
   }
 
   /** Escalada: sobe pela parede com agarras se o parceiro estiver na segurança. */
+  /** Ganchos para as fases reagirem a uma escalada ou rapel concluídos. */
+  onClimbDone(_p: Player): void {}
+  onRappelDone(_p: Player): void {}
+
   tryClimb(p: Player, tx: number, ty: number): boolean {
     if (p.held) { this.say(p, 'Mãos livres pra escalar!', 1400); return true; }
     if (p.y < ty * TILE) { this.say(p, 'Pra descer, use a corda de rapel!', 1400); return true; }
@@ -383,6 +392,7 @@ export abstract class PuzzleLevel extends BaseLevel {
         p.locked = false;
         p.body.checkCollision.none = false;
         this.rappels++;
+        this.onClimbDone(p);
         this.sfx('revive');
         this.floatHeart(p.x, p.y - 26);
         this.say(p, Phaser.Utils.Array.GetRandom(['Cheguei!', 'Que braço!', 'Valeu pela segurança!', 'Uhuul!']), 1800);
@@ -435,6 +445,7 @@ export abstract class PuzzleLevel extends BaseLevel {
         p.locked = false;
         p.body.checkCollision.none = false;
         this.rappels++;
+        this.onRappelDone(p);
         this.sfx('revive');
         this.floatHeart(p.x, p.y - 26);
         this.say(p, Phaser.Utils.Array.GetRandom(['Uhuul!', 'Igualzinho ao dia em que a gente se conheceu!', 'Que vista!', 'Adrenalina!']), 2000);

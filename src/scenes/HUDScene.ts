@@ -29,6 +29,7 @@ export class HUDScene extends Phaser.Scene {
 
   init(data: { level: BaseLevel }): void {
     this.level = data.level;
+    this.lastBanner = [];
     this.ready = false;
     this.bubbles = [];
     this.hearts = [[], []];
@@ -151,17 +152,22 @@ export class HUDScene extends Phaser.Scene {
     this.toastTween = this.tweens.add({ targets: this.toastText, alpha: 0, delay: ms, duration: 400 });
   }
 
+  private lastBanner: Phaser.GameObjects.GameObject[] = [];
+
   banner(title: string, sub = '', ms = 1800): void {
     if (!this.ready) return;
+    // um aviso novo substitui o anterior (nada de textos sobrepostos)
+    this.lastBanner.forEach((o) => { this.tweens.killTweensOf(o); o.destroy(); });
     const g = this.add.graphics().setDepth(60);
     g.fillStyle(0x1b1424, 0.8).fillRect(0, GAME_H / 2 - 60, GAME_W, 120);
     g.fillStyle(0xff9cc2, 1).fillRect(0, GAME_H / 2 - 62, GAME_W, 3).fillRect(0, GAME_H / 2 + 59, GAME_W, 3);
     const t1 = txt(this, GAME_W / 2, GAME_H / 2 - 16, title, 40, { color: '#ffd6e4' }).setDepth(61);
     const t2 = txt(this, GAME_W / 2, GAME_H / 2 + 28, sub, 18, { color: '#fff4e0' }).setDepth(61);
     const all = [g, t1, t2];
+    this.lastBanner = all;
     all.forEach((o) => o.setAlpha(0));
     this.tweens.add({ targets: all, alpha: 1, duration: 200 });
     this.tweens.add({ targets: t1, scale: { from: 1.4, to: 1 }, duration: 300, ease: 'Back.Out' });
-    this.time.delayedCall(ms, () => this.tweens.add({ targets: all, alpha: 0, duration: 300, onComplete: () => all.forEach((o) => o.destroy()) }));
+    this.time.delayedCall(ms, () => { if (all[0].active) this.tweens.add({ targets: all, alpha: 0, duration: 300, onComplete: () => all.forEach((o) => o.destroy()) }); });
   }
 }

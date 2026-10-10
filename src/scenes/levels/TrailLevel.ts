@@ -10,12 +10,26 @@ import { Input, KEY_LABELS } from '../../systems/InputManager';
 import { Audio } from '../../systems/Audio';
 import { Save } from '../../systems/SaveManager';
 import { charFrame } from '../../art/CharacterArt';
+import { TaskList } from '../../ui/TaskList';
+import type { Player } from '../../entities/Player';
 
 /** Trilhas da linha do tempo: escalada, cânion, Itacolomi, Topo do Mundo (exploração e enigmas). */
 export class TrailLevel extends PuzzleLevel {
   cfg!: TrailConfig;
   private collectText: Phaser.GameObjects.Text | null = null;
   private cutscene = false;
+  tasks: TaskList | null = null;
+  // contadores das tarefas do capítulo
+  kills = 0;
+  dodges = 0;
+  gustsOk = 0;
+  climbs = 0;
+  rappelsDone = 0;
+  photos = 0;
+  // acontecimentos dinâmicos
+  private eventT = 0;
+  gust: { t: number; dir: number; slip: number[]; fx: Phaser.GameObjects.Particles.ParticleEmitter | null } | null = null;
+  photoTarget: { img: Phaser.GameObjects.Image; mark: Phaser.GameObjects.Text; taken: boolean } | null = null;
 
   constructor() {
     super('TrailLevel');
@@ -32,11 +46,19 @@ export class TrailLevel extends PuzzleLevel {
     this.signTexts = this.cfg.signs;
     this.crystalTex = this.cfg.collect.tex;
     this.crystalName = this.cfg.collect.name;
+    this.foe = this.cfg.foe;
+    this.tasks = null;
+    this.kills = this.dodges = this.gustsOk = this.climbs = this.rappelsDone = this.photos = 0;
+    this.eventT = { rockfall: 4, swarm: 25, wind: 16, photos: 6 }[this.cfg.event];
+    this.gust = null;
+    this.photoTarget = null;
     return this.cfg.map;
   }
 
   spawn(ch: string, tx: number, ty: number): boolean {
     const c = this.tileCenter(tx, ty);
+    // no Topo do Mundo as 3 fotos vêm dos parapentes; os cristais do mapa viram moedas
+    if (ch === '*' && this.cfg.event === 'photos') { this.addPickup('coin', c.x, c.y); return true; }
     if (ch === 'm') { this.add.image(c.x, c.y + 4, 'mirante').setDepth(c.y - 6); return true; }
     if (ch === 'I') {
       this.add.image(c.x, c.y + 24, 'itacolomi').setOrigin(0.5, 1).setDepth(c.y + 24);
@@ -117,23 +139,205 @@ export class TrailLevel extends PuzzleLevel {
     hud.add.image(GAME_W / 2 - 92, 28, this.cfg.collect.tex).setScale(2);
     this.collectText = txt(hud, GAME_W / 2 + 10, 28, `0 / 3 ${this.cfg.collect.plural}`, 18, { color: '#ffd6e4' });
     hud.toast(fillNames(this.cfg.intro, this.names), '#fff4e0', 3600);
+    this.tasks = new TaskList(hud, 12, 12, this.cfg.tasks.map((t) => ({ ...t, text: fillNames(t.text, this.names) })));
+  }
+
+  private refreshCollect(): void {
+    this.collectText?.setText(`${this.stats.crystals} / 3 ${this.cfg.collect.plural}`);
+    this.tasks?.progress('collect', this.stats.crystals);
+  }
+
+  onClimbDone(): void {
+    this.climbs++;
+    this.tasks?.progress('climb', this.climbs);
+  }
+
+  onRappelDone(): void {
+    this.rappelsDone++;
+    this.tasks?.progress('rappel', this.rappelsDone);
+  }
+
+  // ------------------------------------------------------------------ acontecimentos do capítulo
+  private updateEvent(dt: number): void {
+    if (this.ended) return;
+    this.eventT -= dt;
+    switch (this.cfg.event) {
+      case 'rockfall':
+        if (this.eventT <= 0) { this.eventT = Phaser.Math.FloatBetween(3.2, 5.5); this.rockfall(); }
+        break;
+      case 'swarm':
+        if (this.eventT <= 0) { this.eventT = Phaser.Math.Between(30, 40); this.swarm(); }
+        break;
+      case 'wind':
+        if (this.gust) this.updateGust(dt);
+        else if (this.eventT <= 0) this.startGust();
+        break;
+      case 'photos':
+        if (this.photoTarget) this.updatePhotoTarget();
+        else if (this.eventT <= 0) this.spawnPhotoTarget();
+        break;
+    }
+  }
+
+  /** Escalada: uma pedra solta cai perto de alguém. A sombra no chão avisa onde. */
+  private rockfall(): void {
+    const alive = this.players.filter((p) => !p.fainted && !p.locked);
+    if (!alive.length) return;
+    const p = Phaser.Utils.Array.GetRandom(alive);
+    const x = p.x + Phaser.Math.Between(-20, 20);
+    const y = p.y + Phaser.Math.Between(-14, 14);
+    const shadow = this.add.ellipse(x, y + 2, 6, 3, 0x000000, 0.35).setDepth(y - 2);
+    this.tweens.add({ targets: shadow, scaleX: 2.2, scaleY: 2.2, alpha: 0.55, duration: 1100 });
+    if (Math.random() < 0.35) this.say(p, Phaser.Utils.Array.GetRandom(['Pedra!', 'Olha a pedra!', 'Cuidado aí!']), 900);
+    const rock = this.add.image(x, y - 140, 'rock_fall').setDepth(9600);
+    this.tweens.add({
+      targets: rock, y, delay: 850, duration: 260, ease: 'Quad.In',
+      onComplete: () => {
+        shadow.destroy();
+        rock.destroy();
+        this.burst(x, y, 'fx_pixel', 10, { speed: 60, tint: 0x9a98a4 });
+        this.sfx('push');
+        this.cameras.main.shake(90, 0.004);
+        let hit = false;
+        for (const q of this.players) {
+          if (q.fainted || q.locked) continue;
+          const d = Phaser.Math.Distance.Between(q.x, q.y, x, y);
+          if (d < 11) { hit = true; this.damagePlayer(q, 1, x, y); }
+        }
+        if (!hit && this.players.some((q) => !q.fainted && Phaser.Math.Distance.Between(q.x, q.y, x, y) < 48)) {
+          this.dodges++;
+          this.tasks?.progress('dodge', this.dodges);
+          this.hud?.floatText(x, y - 14, 'Ufa!', '#bfe6ff');
+        }
+      },
+    });
+  }
+
+  /** Cânion: uma nuvem de borrachudos aparece; a magia dela é o repelente. */
+  private swarm(): void {
+    const alive = this.players.filter((p) => !p.fainted);
+    if (!alive.length || this.enemies.filter((e) => !e.dead).length > 10) return;
+    const p = Phaser.Utils.Array.GetRandom(alive);
+    this.hud?.toast(`Nuvem de borrachudos! ${this.names[1]}, repelente (MAGIA)! ${this.names[0]}, ESPADA!`, '#ffd6e4', 2600);
+    this.sfx('wind');
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * Math.PI * 2 + Math.random();
+      this.enemies.push(new Slime(this, p.x + Math.cos(a) * 70, p.y + Math.sin(a) * 50, 'mosquito', 1, 46, 160));
+    }
+  }
+
+  /** Itacolomi: rajada de vento. Quem segurar AÇÃO fica firme; quem soltar é empurrado. */
+  private startGust(): void {
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    this.hud?.toast('Rajada de vento chegando! SEGUREM AÇÃO!', '#bfe6ff', 1800);
+    this.sfx('wind');
+    this.gust = { t: 4.0, dir, slip: [0, 0], fx: null };
+  }
+
+  private updateGust(dt: number): void {
+    const g = this.gust!;
+    g.t -= dt;
+    const blowing = g.t <= 2.6; // 1,4 s de aviso, depois 2,6 s de vento
+    if (blowing && !g.fx) {
+      const cam = this.cameras.main.worldView;
+      // faixas brancas de vento + folhas voando
+      g.fx = this.add.particles(0, 0, 'fx_pixel', {
+        x: { min: cam.x - 20, max: cam.right + 20 }, y: { min: cam.y, max: cam.bottom }, lifespan: 500,
+        speedX: { min: g.dir * 320, max: g.dir * 420 }, scaleX: { min: 5, max: 9 }, scaleY: 0.5, alpha: { start: 0.7, end: 0 }, frequency: 12, tint: 0xffffff,
+      }).setDepth(9600);
+      const leaves = this.add.particles(0, 0, 'fx_leaf', {
+        x: { min: cam.x - 20, max: cam.right + 20 }, y: { min: cam.y, max: cam.bottom }, lifespan: 900,
+        speedX: { min: g.dir * 180, max: g.dir * 260 }, speedY: { min: -10, max: 10 }, rotate: { min: 0, max: 360 }, alpha: { start: 0.9, end: 0 }, frequency: 40,
+      }).setDepth(9600);
+      this.time.delayedCall(2600, () => leaves.destroy());
+      this.cameras.main.shake(2600, 0.0015);
+      this.hud?.banner(g.dir > 0 ? 'VENTO! >>>' : '<<< VENTO!', 'Segurem AÇÃO para ficar firmes!', 2200);
+    }
+    this.players.forEach((p, i) => {
+      const holding = Input.players[i].action;
+      if (!blowing || p.fainted || p.locked) { p.drift = { x: 0, y: 0 }; return; }
+      if (holding) { p.drift = { x: 0, y: 0 }; p.actTimer = 0.05; }
+      else { p.drift = { x: g.dir * 80, y: 0 }; g.slip[i] += dt; }
+    });
+    if (g.t <= 0) {
+      this.players.forEach((p) => (p.drift = { x: 0, y: 0 }));
+      g.fx?.destroy();
+      const ok = g.slip.every((s) => s < 0.5);
+      if (ok) {
+        this.gustsOk++;
+        this.tasks?.progress('gusts', this.gustsOk);
+        this.say(this.players[1], 'Seguramos firme!', 1400, '#ffd6e4');
+      } else this.say(this.players[g.slip[0] >= g.slip[1] ? 0 : 1], 'Uou! Quase voei!', 1400);
+      this.gust = null;
+      this.eventT = Phaser.Math.Between(16, 22);
+    }
+  }
+
+  /** Topo do Mundo: um parapente passa bem perto; ela fotografa com a HABILIDADE. */
+  private spawnPhotoTarget(): void {
+    const cam = this.cameras.main.worldView;
+    const fromLeft = Math.random() < 0.5;
+    const y = cam.y + Phaser.Math.Between(30, Math.max(40, cam.height / 2));
+    const img = this.add.image(fromLeft ? cam.x - 30 : cam.right + 30, y, 'paraglider').setScale(1.6).setDepth(9700).setFlipX(!fromLeft);
+    const mark = this.add.text(img.x, y - 26, 'FOTO!', { fontFamily: 'monospace', fontSize: '10px', color: '#ffd25e', stroke: '#2a1d2e', strokeThickness: 3, fontStyle: 'bold' })
+      .setOrigin(0.5).setDepth(9701).setResolution(ZOOM * RES + 1);
+    this.tweens.add({ targets: mark, alpha: 0.3, yoyo: true, repeat: -1, duration: 260 });
+    this.photoTarget = { img, mark, taken: false };
+    this.tweens.add({
+      targets: img, x: fromLeft ? cam.right + 40 : cam.x - 40, y: y + Phaser.Math.Between(-10, 20), duration: 7000,
+      onComplete: () => { img.destroy(); mark.destroy(); this.photoTarget = null; this.eventT = Phaser.Math.Between(6, 10); },
+    });
+    if (this.photos < 3) this.say(this.players[1], 'Parapente! Prepara a câmera!', 1400, '#ffd6e4');
+  }
+
+  private updatePhotoTarget(): void {
+    const t = this.photoTarget!;
+    t.img.angle = Math.sin(this.time.now / 600) * 6;
+    t.mark.setPosition(t.img.x, t.img.y - 26);
+  }
+
+  useAbility(p: Player): void {
+    const t = this.photoTarget;
+    if (p.id === 1 && t && !t.taken && this.cameras.main.worldView.contains(t.img.x, t.img.y)) {
+      // a habilidade dela vira a câmera fotográfica
+      p.abilityCd = 0.4;
+      p.actTimer = 0.25;
+      t.taken = true;
+      t.mark.setText('CLIQUE!');
+      this.cameras.main.flash(160, 255, 255, 255);
+      Audio.play('camera');
+      if (this.stats.crystals < 3) {
+        this.stats.crystals++;
+        this.photos++;
+        this.refreshCollect();
+        this.hud?.floatText(t.img.x, t.img.y - 10, `Foto ${this.stats.crystals}/3!`, '#ffd25e');
+      }
+      return;
+    }
+    super.useAbility(p);
   }
 
   onPickup(p: Parameters<PuzzleLevel['onPickup']>[0], kind: 'coin' | 'heart' | 'crystal'): void {
     super.onPickup(p, kind);
-    this.collectText?.setText(`${this.stats.crystals} / 3 ${this.cfg.collect.plural}`);
+    this.refreshCollect();
   }
 
   onEnemyKilled(e: Slime): void {
+    this.kills++;
+    this.tasks?.progress('foes', this.kills);
     if (Math.random() < 0.35) this.addPickup(Math.random() < 0.5 ? 'coin' : 'heart', e.x, e.y);
   }
 
   tick(dt: number): void {
-    if (!this.cutscene) this.updatePuzzle(dt);
+    if (this.cutscene) return;
+    this.updatePuzzle(dt);
+    this.updateEvent(dt);
   }
 
   onExit(): void {
     if (this.cutscene) return;
+    this.tasks?.done('finish');
+    if (this.gust) { this.players.forEach((p) => (p.drift = { x: 0, y: 0 })); this.gust.fx?.destroy(); this.gust = null; }
     if (this.cfg.ending === 'proposal') this.proposal();
     else if (this.cfg.ending === 'mirante' || this.cfg.ending === 'cachoeira') this.photoMoment();
     else this.complete();
@@ -152,7 +356,7 @@ export class TrailLevel extends PuzzleLevel {
         ...extra,
         `${this.cfg.collect.plural[0].toUpperCase()}${this.cfg.collect.plural.slice(1)}: ${c}/3 ${c >= 3 ? '(estrela!)' : ''}`,
         this.cfg.parTime ? `Tempo: ${mm}:${ss} ${third ? '(estrela!)' : `(meta: ${Math.floor(this.cfg.parTime / 60)}:00)`}` : `Desmaios: ${this.stats.faints} ${third ? '(estrela!)' : ''}`,
-        `Tempo: ${mm}:${ss} · Abraços: ${this.stats.hugs}`,
+        this.tasks ? this.tasks.summary() : `Tempo: ${mm}:${ss} · Abraços: ${this.stats.hugs}`,
       ].slice(0, 4),
     });
   }

@@ -13,6 +13,8 @@ import { Audio } from '../../systems/Audio';
 import type { HUDScene } from '../HUDScene';
 import { GAME_W, GAME_H, TILE, ZOOM, RES } from '../../config';
 import { txt, panel, fillNames } from '../../ui/text';
+import { TaskList } from '../../ui/TaskList';
+import { charFrame } from '../../art/CharacterArt';
 
 interface Order {
   recipe: RecipeId;
@@ -395,6 +397,7 @@ class FishingSpot implements Interactable {
     // fisgou!
     this.cancel();
     L.give(p, 'fish');
+    L.onFish();
     L.sfx('coin');
     L.burst(this.x, this.y, 'fx_pixel', 8, { speed: 50, tint: 0xbfe9ff });
     L.hud?.floatText(this.x, this.y - 14, 'Peixe!', '#9ce8ff');
@@ -487,6 +490,7 @@ class Crow implements Interactable {
 
   scare(): boolean {
     if (this.state === 'out') return false;
+    this.L.onScare();
     this.L.sfx('crow');
     this.L.burst(this.x, this.y - 6, 'fx_pixel', 8, { speed: 50, tint: 0x2a2a3a });
     this.L.hud?.floatText(this.x, this.y - 14, 'Xô!', '#fff4e0');
@@ -524,6 +528,16 @@ export class KitchenLevel extends BaseLevel {
   private unlockIdx = 0;
   private ui: { info?: Phaser.GameObjects.Text; scoreText?: Phaser.GameObjects.Text; starBar?: Phaser.GameObjects.Graphics } = {};
   private lastTick = 99;
+  // tarefas e momentos especiais do capítulo
+  tasks: TaskList | null = null;
+  fishCaught = 0;
+  scared = 0;
+  dances = 0;
+  private tables: { x: number; y: number }[] = [];
+  rings: { state: 'wait' | 'table' | 'carried' | 'done'; img: Phaser.GameObjects.Image | null } = { state: 'wait', img: null };
+  dance: { t: number; pressed: number[]; next: number } = { t: 0, pressed: [-1, -1], next: 30 };
+  private guests: { s: Phaser.GameObjects.Sprite; lines: string[] }[] = [];
+  private guestT = 8;
 
   constructor() {
     super('KitchenLevel');
@@ -534,6 +548,7 @@ export class KitchenLevel extends BaseLevel {
     this.surfaces = [];
     this.cookers = [];
     this.fishing = [];
+    this.tables = [];
     this.defaultFloor = this.cfg.floor;
     this.objectFloor = this.cfg.objectFloor;
     return this.cfg.map;
@@ -568,7 +583,7 @@ export class KitchenLevel extends BaseLevel {
         for (let dx = 0; dx <= 1; dx++) for (let dy = 0; dy <= 1; dy++) this.addSolid(tx + dx, ty + dy);
         return true;
       }
-      case 'E': this.add.image(c.x, c.y - 2, 'table').setDepth(c.y); this.addSolid(tx, ty); return true;
+      case 'E': this.add.image(c.x, c.y - 2, 'table').setDepth(c.y); this.addSolid(tx, ty); this.tables.push(c); return true;
       case 'L': this.add.image(c.x, c.y - 4, 'lantern').setDepth(c.y); this.addSolid(tx, ty); return true;
       default: {
         const kind = this.cfg.sources?.[ch];
@@ -601,6 +616,135 @@ export class KitchenLevel extends BaseLevel {
     if (!this.anims.exists('fire-anim')) this.anims.create({ key: 'fire-anim', frames: this.anims.generateFrameNumbers('fire', { start: 0, end: 1 }), frameRate: 8, repeat: -1 });
     // fogueiras começam acesas para ensinar
     this.cookers.forEach((c) => { if (c.type === 'pot') c.onMagic(this.players[1]); });
+    this.tasks = null;
+    this.fishCaught = this.scared = this.dances = 0;
+    this.rings = { state: 'wait', img: null };
+    this.dance = { t: 0, pressed: [-1, -1], next: 30 };
+    this.guestT = 8;
+    this.guests = (this.cfg.guests ?? []).map((g) => {
+      const c = this.tileCenter(g.tx, g.ty);
+      this.addSolid(g.tx, g.ty);
+      return { s: this.add.sprite(c.x, c.y - 8, `npc_${g.npc}`, charFrame('down', 0)).setDepth(c.y), lines: g.lines };
+    });
+  }
+
+  // ------------------------------------------------------------------ tarefas do capítulo
+  onFish(): void {
+    this.fishCaught++;
+    this.tasks?.progress('fish', this.fishCaught);
+  }
+
+  onScare(): void {
+    this.scared++;
+    this.tasks?.progress('scare', this.scared);
+  }
+
+  /** Momentos especiais: alianças (Italiano), quadrilha (festa junina) e comentários dos convidados. */
+  private specials(dt: number): void {
+    const elapsed = this.cfg.duration - this.timeLeft;
+    if (this.cfg.special === 'rings') this.updateRings(elapsed);
+    if (this.cfg.special === 'quadrilha') this.updateDance(dt, elapsed);
+    if (this.guests.length) {
+      this.guestT -= dt;
+      if (this.guestT <= 0) {
+        this.guestT = Phaser.Math.Between(12, 18);
+        const g = Phaser.Utils.Array.GetRandom(this.guests);
+        this.say({ x: g.s.x, y: g.s.y + 8 }, fillNames(Phaser.Utils.Array.GetRandom(g.lines), this.names), 2400, '#fff4e0');
+        this.tweens.add({ targets: g.s, y: g.s.y - 3, yoyo: true, duration: 120, repeat: 1 });
+      }
+    }
+  }
+
+  private updateRings(elapsed: number): void {
+    const R = this.rings;
+    if (R.state === 'wait' && elapsed >= 70 && this.tables.length) {
+      const t = this.tables[0];
+      R.state = 'table';
+      R.img = this.add.image(t.x, t.y - 10, 'item_rings').setDepth(t.y + 2);
+      this.tweens.add({ targets: R.img, y: t.y - 13, yoyo: true, repeat: -1, duration: 400, ease: 'Sine.InOut' });
+      this.hud?.banner('Hora das alianças! ♥', `${this.names[0]}: pegue a caixinha na mesa e dê um abraço na ${this.names[1]}`, 3000);
+      Audio.play('bell');
+      const box: Interactable = {
+        x: t.x, y: t.y, priority: 4, reach: 2,
+        selectable: () => R.state === 'table',
+        interact: (p: Player) => {
+          if (R.state !== 'table') return false;
+          if (p.id !== 0) { this.say(p, `Hmm... isso parece surpresa do ${this.names[0]}!`, 1800, '#ffd6e4'); return true; }
+          R.state = 'carried';
+          this.tweens.killTweensOf(R.img!);
+          this.sfx('pick');
+          this.say(p, `Agora... um abraço na ${this.names[1]}!`, 2000);
+          return true;
+        },
+      };
+      this.interactables.push(box);
+    }
+    if (R.state === 'carried' && R.img) {
+      const j = this.players[0];
+      R.img.setPosition(j.x + 8, j.y - 30 + Math.sin(this.time.now / 150) * 1.5).setDepth(j.y + 20);
+    }
+  }
+
+  onHug(): void {
+    if (this.rings.state !== 'carried') return;
+    this.rings.state = 'done';
+    const [j, ju] = this.players;
+    this.rings.img?.destroy();
+    this.score += 60;
+    this.players.forEach((p) => (p.hp = Math.min(p.maxHp, p.hp + 1)));
+    this.hud?.banner('Alianças entregues! ♥', 'Alinhamentos feitos, planos juntos. +60 moedas', 2600);
+    this.say(ju, 'São... alianças?! SIM, SIM! ♥', 2600, '#ffd6e4');
+    Audio.play('bell');
+    for (let i = 0; i < 14; i++) this.time.delayedCall(i * 80, () => this.floatHeart((j.x + ju.x) / 2 + Phaser.Math.Between(-16, 16), (j.y + ju.y) / 2 - 20));
+    this.tasks?.done('rings');
+  }
+
+  /** Quadrilha: no "Anarriê!", os dois apertam HABILIDADE juntos para dançar. */
+  private updateDance(dt: number, elapsed: number): void {
+    const D = this.dance;
+    if (D.t > 0) {
+      D.t -= dt;
+      if (D.t <= 0) this.endDance(false);
+      return;
+    }
+    if (elapsed >= D.next) {
+      D.t = 3;
+      D.pressed = [-1, -1];
+      const call = Phaser.Utils.Array.GetRandom(['ANARRIÊ!', 'BALANCÊ!', 'CAMINHO DA ROÇA!', 'OLHA A PONTE!']);
+      this.hud?.banner(call, `Quadrilha! Os dois: ${KEY_LABELS[0].ability} e ${KEY_LABELS[1].ability} JUNTOS para dançar!`, 2200);
+      Audio.play('bell');
+    }
+  }
+
+  private endDance(ok: boolean): void {
+    const D = this.dance;
+    D.t = 0;
+    D.next = this.cfg.duration - this.timeLeft + Phaser.Math.Between(24, 32);
+    const [a, b] = this.players;
+    if (ok) {
+      this.dances++;
+      this.score += 25;
+      this.tasks?.progress('dance', this.dances);
+      this.hud?.toast('Dançaram a quadrilha! +25 moedas', '#ffd25e', 1800);
+      this.sfx('hug');
+      [a, b].forEach((p) => this.tweens.add({ targets: p.sprite, angle: 360, duration: 500, onComplete: () => p.sprite.setAngle(0) }));
+      for (let i = 0; i < 8; i++) this.time.delayedCall(i * 70, () => this.floatHeart((a.x + b.x) / 2 + Phaser.Math.Between(-20, 20), (a.y + b.y) / 2 - 20));
+    } else {
+      this.hud?.toast('Perderam o passo... na próxima vai!', '#d8c8e8', 1600);
+    }
+  }
+
+  useAbility(p: Player): void {
+    const D = this.dance;
+    if (this.cfg.special === 'quadrilha' && D.t > 0) {
+      // durante a quadrilha, a habilidade vira passo de dança
+      p.abilityCd = 0.3;
+      p.actTimer = 0.3;
+      D.pressed[p.id] = this.time.now;
+      if (D.pressed.every((t) => t >= 0)) this.endDance(Math.abs(D.pressed[0] - D.pressed[1]) < 900);
+      return;
+    }
+    super.useAbility(p);
   }
 
   onHudReady(hud: HUDScene): void {
@@ -658,7 +802,11 @@ export class KitchenLevel extends BaseLevel {
         const t = txt(hud, GAME_W / 2, GAME_H / 2, s, 72, { color: i === 3 ? '#ffd25e' : '#fff4e0' });
         Audio.play(i === 3 ? 'confirm' : 'blip');
         hud.tweens.add({ targets: t, scale: { from: 1.6, to: 1 }, alpha: { from: 1, to: 0 }, duration: 580, onComplete: () => t.destroy() });
-        if (i === 3) this.started = true;
+        if (i === 3) {
+          this.started = true;
+          // painel de tarefas aparece quando a cozinha abre (sem cobrir o cardápio inicial)
+          if (!this.tasks) this.tasks = new TaskList(hud, 12, 92, this.cfg.tasks.map((t) => ({ ...t, text: fillNames(t.text, this.names) })));
+        }
       });
     });
   }
@@ -704,6 +852,8 @@ export class KitchenLevel extends BaseLevel {
     const { base, tip } = deliveryScore(r, o.timeLeft, o.total);
     this.score += base + tip;
     this.delivered++;
+    this.tasks?.progress('orders', this.delivered);
+    this.tasks?.done(`recipe:${r}`);
     this.removeOrder(o, true);
     held.destroy();
     p.held = null;
@@ -779,6 +929,7 @@ export class KitchenLevel extends BaseLevel {
     const sec = Math.ceil(this.timeLeft);
     if (sec <= 10 && sec !== this.lastTick && sec > 0) { this.lastTick = sec; Audio.play('blip'); }
     if (this.timeLeft <= 0) { this.timeLeft = 0; this.endLevel(); return; }
+    this.specials(dt);
 
     const elapsed = this.cfg.duration - this.timeLeft;
     while (this.unlockIdx < this.cfg.unlocks.length && elapsed >= this.cfg.unlocks[this.unlockIdx].at) {
@@ -946,7 +1097,7 @@ export class KitchenLevel extends BaseLevel {
     const lines = [
       `Pedidos entregues: ${this.delivered}`,
       `Pedidos perdidos: ${this.expired}`,
-      `Abraços: ${this.stats.hugs}`,
+      this.tasks ? this.tasks.summary() : `Abraços: ${this.stats.hugs}`,
     ];
     if (stars === 0) this.finish({ win: false, stars: 0, score: this.score, title: `Faltaram ${this.cfg.stars[0] - this.score} moedas`, lines });
     else this.finish({ win: true, stars, score: this.score, title: 'O tempo acabou!', lines });

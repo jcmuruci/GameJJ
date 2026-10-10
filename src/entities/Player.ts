@@ -47,6 +47,8 @@ export class Player {
   slowTimer = 0;
   private animT = 0;
   private knock = { x: 0, y: 0, t: 0 };
+  /** Empurrão contínuo de fora (ex.: rajada de vento). */
+  drift = { x: 0, y: 0 };
   private stepT = 0;
   moving = false;
   /** Travado por animação (ex.: descendo de rapel). */
@@ -109,6 +111,7 @@ export class Player {
     const mult = this.speedMult * (this.working ? 0 : 1) * (this.slowTimer > 0 ? 0.5 : 1) * (this.held ? 0.95 : 1);
     vx *= this.speed * mult;
     vy *= this.speed * mult;
+    if (!this.locked) { vx += this.drift.x; vy += this.drift.y; }
     [vx, vy] = canMove(this, vx, vy);
     if (this.knock.t > 0) {
       this.knock.t -= dt;

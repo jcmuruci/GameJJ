@@ -91,6 +91,22 @@ const TRACKS: Record<TrackName, Track> = {
 
 const midiHz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 
+/** WAV de meio segundo de silêncio (8 kHz, 8 bits, mono) como data URI. */
+function silentWav(): string {
+  const n = 4000;
+  const bytes = new Uint8Array(44 + n);
+  const v = new DataView(bytes.buffer);
+  const str = (o: number, t: string) => [...t].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVE'); str(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+  str(36, 'data'); v.setUint32(40, n, true);
+  bytes.fill(128, 44);
+  let bin = '';
+  bytes.forEach((b) => { bin += String.fromCharCode(b); });
+  return 'data:audio/wav;base64,' + btoa(bin);
+}
+
 class AudioImpl {
   ctx: AudioContext | null = null;
   private master!: GainNode;
@@ -125,8 +141,44 @@ class AudioImpl {
       const d = this.noiseBuf.getChannelData(0);
       for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     }
-    if (this.ctx.state === 'suspended') void this.ctx.resume();
+    const state = this.ctx.state as AudioContextState | 'interrupted';
+    if (state !== 'running') {
+      void this.ctx.resume().catch(() => undefined);
+      // iOS antigo só libera o áudio se algo tocar dentro do próprio toque
+      const b = this.ctx.createBuffer(1, 1, 22050);
+      const src = this.ctx.createBufferSource();
+      src.buffer = b;
+      src.connect(this.ctx.destination);
+      src.start(0);
+    }
+    this.iosPlayback();
     if (this.wanted && this.track !== this.wanted) this.music(this.wanted);
+  }
+
+  /** O áudio já está tocando de verdade (e, no iPhone, com a sessão de mídia ativa)? */
+  get running(): boolean {
+    return this.ctx?.state === 'running' && (!this.silentEl || !this.silentEl.paused);
+  }
+
+  private silentEl: HTMLAudioElement | null = null;
+
+  /**
+   * No iPhone/iPad, o som da Web fica mudo com a chave de silencioso ligada.
+   * Tocar um <audio> silencioso em loop muda a sessão para "reprodução de mídia",
+   * e aí o jogo toca mesmo no modo silencioso (como um vídeo).
+   */
+  private iosPlayback(): void {
+    const nav = navigator as Navigator & { audioSession?: { type: string } };
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+    if (!ios) return;
+    try { if (nav.audioSession) nav.audioSession.type = 'playback'; } catch { /* sem suporte */ }
+    if (!this.silentEl) {
+      this.silentEl = document.createElement('audio');
+      this.silentEl.setAttribute('playsinline', '');
+      this.silentEl.loop = true;
+      this.silentEl.src = silentWav();
+    }
+    if (this.silentEl.paused) void this.silentEl.play().catch(() => undefined);
   }
 
   setVolumes(music: number, sfx: number): void {
