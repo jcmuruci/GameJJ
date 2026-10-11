@@ -6,7 +6,8 @@ import { Input } from '../systems/InputManager';
 import { Audio } from '../systems/Audio';
 import { Save } from '../systems/SaveManager';
 import { controlsPanel } from '../ui/controlsPanel';
-import { charFrame } from '../art/CharacterArt';
+import { charFrame, WALK_CYCLE } from '../art/CharacterArt';
+import { irisOut } from './TransitionScene';
 
 /** Desenha um fundo aconchegante de grama com árvores (usado em várias telas). */
 export function cozyBackground(scene: Phaser.Scene, tint = 0xffffff): void {
@@ -89,8 +90,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private play(): void {
-    this.cameras.main.fadeOut(300, 27, 20, 36);
-    this.time.delayedCall(320, () => {
+    irisOut(this, () => {
       if (!Save.data.seenIntro) {
         Save.data.seenIntro = true;
         Save.save();
@@ -149,7 +149,7 @@ export class MenuScene extends Phaser.Scene {
 
   update(time: number): void {
     // personagens caminhando no lugar
-    const col = [1, 0, 2, 0][Math.floor(time / 140) % 4];
+    const col = WALK_CYCLE[Math.floor(time / 140) % 4];
     this.chars.forEach((c) => c.setFrame(charFrame('side', col)));
     if (this.sub) {
       this.sub.update();

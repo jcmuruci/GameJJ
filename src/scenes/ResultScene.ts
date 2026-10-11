@@ -9,6 +9,7 @@ import { cozyBackground } from './MenuScene';
 import { charFrame } from '../art/CharacterArt';
 import { refreshCharacters } from './BootScene';
 import { Admin } from '../systems/Admin';
+import { irisOut } from './TransitionScene';
 
 interface ResultData {
   levelId: string;
@@ -102,8 +103,7 @@ export class ResultScene extends Phaser.Scene {
 
   private go(scene: string, data: object): void {
     this.ready = false;
-    this.cameras.main.fadeOut(300, 27, 20, 36);
-    this.time.delayedCall(320, () => this.scene.start(scene, data));
+    irisOut(this, () => this.scene.start(scene, data));
   }
 
   update(): void {

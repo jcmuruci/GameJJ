@@ -5,20 +5,25 @@ import { PG, shade, mix, hexToRgb } from './pixel';
 /**
  * Gera a folha de sprites de um personagem a partir de um CharacterLook.
  * Cada quadro tem 16x24 px. Linhas: 0 = baixo, 1 = cima, 2 = lado (esquerda).
- * Colunas: 0 = parado, 1 = passo A, 2 = passo B, 3 = ação.
+ * Colunas: 0 = parado, 1 = passo A, 2 = passo B, 3 = ação,
+ * 4/5 = passagem depois do passo A/B (pés juntos, cabelo balançando),
+ * 6 = respirando (ombros descem), 7 = golpe (espada do João / magia da Juliana).
  * Para a direita o sprite é espelhado (flipX).
  */
 export const CHAR_W = 16;
 export const CHAR_H = 24;
+export const CHAR_COLS = 8;
+/** Ciclo de caminhada (colunas). */
+export const WALK_CYCLE = [1, 4, 2, 5];
 export type Dir = 'down' | 'up' | 'side';
 export const DIR_ROW: Record<Dir, number> = { down: 0, up: 1, side: 2 };
 
 export function charFrame(dir: Dir, col: number): number {
-  return DIR_ROW[dir] * 4 + col;
+  return DIR_ROW[dir] * CHAR_COLS + col;
 }
 
 export function generateCharacterTexture(scene: Phaser.Scene, key: string, look: CharacterLook, role: 0 | 1): void {
-  const tex = reuseCanvas(scene, key, CHAR_W * 4, CHAR_H * 3);
+  const tex = reuseCanvas(scene, key, CHAR_W * CHAR_COLS, CHAR_H * 3);
   if (!tex) return;
   const ctx = tex.getContext();
   ctx.imageSmoothingEnabled = false;
@@ -26,11 +31,11 @@ export function generateCharacterTexture(scene: Phaser.Scene, key: string, look:
   const pg = new PG(ctx);
   const dirs: Dir[] = ['down', 'up', 'side'];
   dirs.forEach((dir, row) => {
-    for (let col = 0; col < 4; col++) {
+    for (let col = 0; col < CHAR_COLS; col++) {
       pg.at(col * CHAR_W, row * CHAR_H);
       drawCharacter(pg, look, dir, col, role);
       pg.outline(0, 0, CHAR_W, CHAR_H);
-      if (fresh) tex.add(row * 4 + col, 0, col * CHAR_W, row * CHAR_H, CHAR_W, CHAR_H);
+      if (fresh) tex.add(row * CHAR_COLS + col, 0, col * CHAR_W, row * CHAR_H, CHAR_W, CHAR_H);
     }
   });
   tex.refresh();
@@ -68,9 +73,13 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
   const pantsD = shade(pants, -0.3);
   const shoes = L.shoes;
   const blush = mix(skin, '#ff6f8f', 0.45);
-  const walking = frame === 1 || frame === 2;
-  const act = frame === 3;
-  const oy = walking ? 1 : 0; // balanço do corpo ao andar
+  const stepA = frame === 1;
+  const stepB = frame === 2;
+  const walking = stepA || stepB;
+  const pass = frame === 4 || frame === 5;
+  const skill = frame === 7;
+  const act = frame === 3 || skill;
+  const oy = walking || frame === 6 ? 1 : 0; // balanço do corpo ao andar / respirar
   const long = L.hairStyle === 'longo' || L.hairStyle === 'ondulado';
   const [er, eg, eb] = hexToRgb(L.eyes);
   const lightEyes = er * 0.3 + eg * 0.59 + eb * 0.11 > 70;
@@ -101,17 +110,21 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
 
   // ---------- PERNAS ----------
   if (dir === 'side') {
-    if (frame === 1) {
-      pg.rect(4, 18, 3, 3, pants); pg.rect(9, 18, 3, 3, pantsD);
-      pg.rect(3, 21, 4, 2, shoes); pg.rect(9, 21, 4, 2, shade(shoes, -0.25));
+    if (walking) {
+      // pernas abertas; no passo B a outra perna vai na frente
+      const shoesD = shade(shoes, -0.25);
+      pg.rect(4, 18, 3, 3, stepA ? pants : pantsD); pg.rect(9, 18, 3, 3, stepA ? pantsD : pants);
+      pg.rect(3, 21, 4, 2, stepA ? shoes : shoesD); pg.rect(9, 21, 4, 2, stepA ? shoesD : shoes);
     } else {
       const lw = L.build === 'magro' ? 3 : 4;
       pg.rect(6, 18, lw, 4, pants);
       pg.rect(5, 21, lw + 1, 2, shoes);
+      // passagem: o calcanhar de trás sobe
+      if (pass) { pg.clear(5 + lw, 22); pg.px(6 + lw, 21, shade(shoes, -0.25)); }
     }
   } else {
-    const lUp = frame === 1 ? 1 : 0;
-    const rUp = frame === 2 ? 1 : 0;
+    const lUp = stepA ? 1 : 0;
+    const rUp = stepB ? 1 : 0;
     pg.rect(bx, 18, bw, 2, pants);
     pg.rect(8 - legW, 20, legW, 2 - lUp, pants);
     pg.rect(8, 20, legW, 2 - rUp, pantsD);
@@ -131,6 +144,8 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
     } else {
       pg.rect(8, 4, 6, 12, hairD);
       if (L.hairStyle === 'ondulado') { pg.px(14, 8, hairD); pg.px(14, 12, hairD); }
+      // as pontas ficam para trás no embalo do passo
+      if (pass) { pg.px(14, 13, hairD); pg.px(14, 14, hairD); pg.px(15, 15, hairD); }
     }
   }
   if (L.hairStyle === 'cacheado' && dir !== 'up') {
@@ -154,7 +169,7 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
       } else pg.rect(1, 13, 5, 2, shirtL);
       pg.px(0, 13, skin); pg.px(0, 14, skin);
     } else {
-      const sw = frame === 1 ? -1 : frame === 2 ? 1 : 0;
+      const sw = stepA ? -1 : stepB ? 1 : 0;
       if (short) {
         pg.rect(7 + sw, 12, 2, 1, shirtL);
         for (let k = 13; k <= 15; k++) {
@@ -188,8 +203,8 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
       up(aRx, shirtD, tatScreenRight);
       pg.px(aLx - 1, 10, skin); pg.px(aRx + 1, 10, skin);
     } else {
-      const aL = frame === 1 ? 1 : 0;
-      const aR = frame === 2 ? 1 : 0;
+      const aL = stepA ? 1 : 0;
+      const aR = stepB ? 1 : 0;
       arm(aLx, 12 + aL, shirtL, tatScreenLeft);
       arm(aRx, 12 + aR, shirtD, tatScreenRight);
     }
@@ -263,7 +278,7 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
   }
 
   // ---------- CABELO (frente) ----------
-  drawHairFront(pg, L, dir, hair, hairD, hairL, skin);
+  drawHairFront(pg, L, dir, hair, hairD, hairL, skin, pass);
 
   // ---------- MECHAS ----------
   if (L.highlights && (L.hairStyle === 'longo' || L.hairStyle === 'ondulado')) {
@@ -280,10 +295,29 @@ function drawCharacter(pg: PG, L: CharacterLook, dir: Dir, frame: number, role: 
   // ---------- ACESSÓRIO ----------
   drawAccessory(pg, L, dir);
 
+  // ---------- GOLPE ----------
+  if (skill) drawSkill(pg, dir, role, bx, bw);
+
   pg.oy -= oy;
 }
 
-function drawHairFront(pg: PG, L: CharacterLook, dir: Dir, hair: string, hairD: string, hairL: string, skin: string): void {
+/** Quadro de golpe: o João com a espada para a frente, a Juliana soltando magia pelas mãos. */
+function drawSkill(pg: PG, dir: Dir, role: 0 | 1, bx: number, bw: number): void {
+  const blade = '#e8e8f4';
+  const bladeD = '#a8a8b8';
+  const hilt = '#8a5a34';
+  const spark = ['#fff1a8', '#ffd6e4', '#ffffff'];
+  if (role === 0) {
+    if (dir === 'side') { pg.hline(0, 2, 12, blade); pg.px(0, 11, bladeD); pg.px(3, 12, hilt); pg.px(3, 11, '#ffd25e'); }
+    else if (dir === 'down') { pg.vline(bx + bw + 2, 4, 9, blade); pg.px(bx + bw + 3, 5, bladeD); pg.rect(bx + bw + 1, 10, 3, 1, '#ffd25e'); }
+    else { pg.vline(bx - 2, 3, 9, blade); pg.px(bx - 3, 4, bladeD); pg.rect(bx - 3, 10, 3, 1, '#ffd25e'); }
+    return;
+  }
+  if (dir === 'side') { pg.px(0, 11, spark[0]); pg.px(1, 10, spark[1]); pg.px(0, 15, spark[2]); pg.px(1, 16, spark[0]); }
+  else { pg.px(bx - 3, 8, spark[0]); pg.px(bx - 2, 7, spark[2]); pg.px(bx + bw + 2, 8, spark[1]); pg.px(bx + bw + 1, 7, spark[0]); pg.px(8, 1, spark[2]); }
+}
+
+function drawHairFront(pg: PG, L: CharacterLook, dir: Dir, hair: string, hairD: string, hairL: string, skin: string, sway = false): void {
   const st = L.hairStyle;
   const long = st === 'longo' || st === 'ondulado';
   if (st === 'careca') {
@@ -353,6 +387,7 @@ function drawHairFront(pg: PG, L: CharacterLook, dir: Dir, hair: string, hairD: 
             // mechas descendo nos ombros
             pg.rect(2, 9, 2, 6, hair); pg.rect(12, 9, 2, 6, hair);
             pg.px(2, 14, hairD); pg.px(13, 14, hairD);
+            if (sway) { pg.px(1, 14, hairD); pg.px(14, 13, hairD); }
             if (st === 'ondulado') { pg.px(1, 11, hair); pg.px(14, 12, hair); pg.px(2, 12, hairL); pg.px(13, 10, hairL); }
           }
         }
@@ -380,7 +415,12 @@ function drawHairFront(pg: PG, L: CharacterLook, dir: Dir, hair: string, hairD: 
       pg.rect(5, 1, 3, 1, hairL);
       if (st === 'topete') { pg.rect(3, 0, 5, 1, hair); pg.px(2, 1, hair); pg.px(2, 2, hair); }
       if (st === 'coque') { pg.ellipse(11, 1, 2, 2, hair); pg.px(10, 0, hairL); }
-      if (st === 'longo' || st === 'ondulado') { pg.rect(9, 10, 4, 5, hair); pg.px(12, 15, hairD); if (st === 'ondulado') { pg.px(13, 12, hair); pg.px(9, 14, hairL); } }
+      if (st === 'longo' || st === 'ondulado') {
+        pg.rect(9, 10, 4, 5, hair); pg.px(12, 15, hairD);
+        if (st === 'ondulado') { pg.px(13, 12, hair); pg.px(9, 14, hairL); }
+        if (sway) { pg.px(13, 13, hair); pg.px(13, 14, hair); pg.px(13, 15, hairD); }
+      }
+      if (st === 'rabo' && sway) { pg.px(13, 12, hair); }
       pg.rect(8, 7, 1, 2, shade(skin, -0.18)); // orelha visível
   }
 }

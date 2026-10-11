@@ -8,6 +8,7 @@ import { txt, panel, fillNames, uiButton } from '../ui/text';
 import { MenuList } from '../ui/MenuList';
 import { charFrame } from '../art/CharacterArt';
 import { Admin } from '../systems/Admin';
+import { irisOut } from './TransitionScene';
 
 /** Mapa-mundi: escolha de fases e loja de melhorias. */
 export class MapScene extends Phaser.Scene {
@@ -285,6 +286,11 @@ export class MapScene extends Phaser.Scene {
     this.scene.start('Menu');
   }
 
+  /** A íris fecha na motinho do mapa. */
+  irisPoint(): { x: number; y: number } {
+    return { x: this.moto.x, y: this.moto.y };
+  }
+
   private playSelected(): void {
     if (this.moving || this.leaving || this.shop) return;
     const l = LEVELS[this.sel];
@@ -293,7 +299,6 @@ export class MapScene extends Phaser.Scene {
     this.leaving = true;
     Audio.play('horn');
     this.tweens.add({ targets: this.moto, y: this.moto.y - 10, yoyo: true, duration: 150 });
-    this.cameras.main.fadeOut(350, 27, 20, 36);
-    this.time.delayedCall(370, () => this.scene.start('Story', { id: l.story, next: l.scene, nextData: { levelId: l.id } }));
+    irisOut(this, () => this.scene.start('Story', { id: l.story, next: l.scene, nextData: { levelId: l.id } }));
   }
 }

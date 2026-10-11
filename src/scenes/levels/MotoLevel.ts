@@ -12,7 +12,9 @@ import { TaskList } from '../../ui/TaskList';
 import { attachPilot } from '../../systems/autopilot';
 import { Admin } from '../../systems/Admin';
 import { Shadows } from '../../systems/Shadows';
+import { Darkness, Light } from '../../systems/NightLight';
 import { applyGrade } from '../../systems/Grade';
+import { irisOut } from '../TransitionScene';
 
 /**
  * Passeio de Moto Amarela — fase de estrada.
@@ -44,6 +46,8 @@ const W = GAME_W / ZOOM; // 480
 const H = GAME_H / ZOOM; // 270
 const ROAD_TOP = 92;
 const ROAD_BOT = 212;
+/** Altura da faixa do horizonte (céu e serra) no topo da tela. */
+const HORIZON = 34;
 const LANES = [112, 152, 192];
 
 export class MotoLevel extends Phaser.Scene {
@@ -58,6 +62,9 @@ export class MotoLevel extends Phaser.Scene {
   private ui!: Phaser.GameObjects.Layer;
   private uiCam!: Phaser.Cameras.Scene2D.Camera;
   private grass!: Phaser.GameObjects.TileSprite;
+  /** Serra (ou cidade, à noite) ao longe: rola mais devagar que a estrada. */
+  private horizon!: Phaser.GameObjects.TileSprite;
+  private cloudShadows: Phaser.GameObjects.Image[] = [];
   private dashes: Phaser.GameObjects.TileSprite[] = [];
   private moto!: Phaser.GameObjects.Container;
   private riders: Phaser.GameObjects.Sprite[] = [];
@@ -114,7 +121,10 @@ export class MotoLevel extends Phaser.Scene {
   private balanceUi: Phaser.GameObjects.Graphics | null = null;
   private camRot = 0;
   // noite
-  private headlight: Phaser.GameObjects.Graphics | null = null;
+  /** Noite: escuridão com luzes (farol, postes, padaria, portaria). */
+  private dark: Darkness | null = null;
+  private headLight: Light | null = null;
+  private hopY = 0;
 
   constructor() {
     super('MotoLevel');
@@ -176,7 +186,9 @@ export class MotoLevel extends Phaser.Scene {
     this.curvesOk = 0;
     this.balanceUi = null;
     this.camRot = 0;
-    this.headlight = null;
+    this.dark = null;
+    this.headLight = null;
+    this.hopY = 0;
     this.arriving = false;
 
     this.world = this.add.layer();
@@ -198,6 +210,22 @@ export class MotoLevel extends Phaser.Scene {
     road.fillStyle(dirt ? 0xa8743e : 0x4a4a58, 1).fillRect(0, ROAD_TOP + 2, W, 2).fillRect(0, ROAD_BOT - 4, W, 2);
     if (!dirt) road.fillStyle(0xffd25e, 1).fillRect(0, ROAD_TOP + 5, W, 1).fillRect(0, ROAD_BOT - 6, W, 1);
     this.world.add([this.grass, road]);
+    // horizonte: céu em faixas e a serra (ou a cidade acesa, à noite) lá longe
+    const night = !!this.cfg.night;
+    const sky = this.add.graphics();
+    const bands = night ? [0x0c0e2c, 0x12143a, 0x181a46, 0x1e2254] : [0x86c8f0, 0x9ad4f4, 0xaedef7, 0xc4e8f9];
+    bands.forEach((c, i) => sky.fillStyle(c, 1).fillRect(0, i * 7, W, i === bands.length - 1 ? HORIZON - i * 7 : 7));
+    this.horizon = this.add.tileSprite(W / 2, HORIZON / 2, W, HORIZON, night ? 'far_city' : 'far_hills');
+    this.world.add([sky, this.horizon]);
+    // sombras de nuvem passando por cima de tudo (de dia)
+    this.cloudShadows = [];
+    if (!night) {
+      for (let i = 0; i < 2; i++) {
+        const c = this.add.image(Phaser.Math.Between(0, W), Phaser.Math.Between(HORIZON + 30, H - 30), 'cloud_shadow').setScale(2.6).setAlpha(0.07).setDepth(2);
+        this.cloudShadows.push(c);
+        this.world.add(c);
+      }
+    }
     if (dirt) {
       // marcas de pneu na terra (rolam junto)
       const ruts = this.add.tileSprite(W / 2, 152, W, 80, 'fx_dust').setAlpha(0.18).setTint(0x6a4a2a);
@@ -222,12 +250,13 @@ export class MotoLevel extends Phaser.Scene {
     this.flash = this.add.rectangle(W / 2, H / 2, W, H, 0xffffff, 0);
     this.world.add(this.flash);
     if (this.cfg.night) {
-      // noite: tudo escurece; farol e postes iluminam
-      this.world.add(this.add.rectangle(W / 2, H / 2, W, H, 0x0a0a26, 0.62).setDepth(8000));
-      this.headlight = this.add.graphics().setDepth(8001).setBlendMode(Phaser.BlendModes.ADD);
-      this.world.add(this.headlight);
+      // noite: tudo escurece; o farol, os postes e as casas acesas iluminam
+      this.dark = new Darkness(this, W, H, { color: 0x0a0a26, alpha: 0.64, depth: 8000, layer: this.world });
+      this.headLight = this.dark.add(() => ({ x: this.mx + 14, y: this.my - this.hopY - 6 }), 150, { cone: true, glow: 0xffe08a, glowAlpha: 0.1 });
+      // a moto e quem está nela sempre aparecem
+      this.dark.add(() => ({ x: this.mx, y: this.my - this.hopY - 4 }), 28);
       for (let i = 0; i < 26; i++) {
-        const st = this.add.image(Phaser.Math.Between(0, W), Phaser.Math.Between(4, ROAD_TOP - 20), 'fx_spark').setScale(0.4).setDepth(8002).setAlpha(0.7);
+        const st = this.add.image(Phaser.Math.Between(0, W), Phaser.Math.Between(2, 16), 'fx_spark').setScale(0.4).setDepth(8002).setAlpha(0.7);
         this.world.add(st);
         this.tweens.add({ targets: st, alpha: 0.2, yoyo: true, repeat: -1, duration: Phaser.Math.Between(600, 1500) });
       }
@@ -375,20 +404,40 @@ export class MotoLevel extends Phaser.Scene {
     if (this.cfg.night && Math.random() < 0.3) {
       // poste com luz amarelada iluminando a estrada
       const post = this.add.image(x, ROAD_TOP - 2, 'lamp_post').setOrigin(0.5, 1).setDepth(ROAD_TOP - 2);
-      const glow = this.add.ellipse(x + 4, ROAD_TOP + 22, 90, 50, 0xffc860, 0.16).setDepth(8001).setBlendMode(Phaser.BlendModes.ADD);
+      const glow = this.add.ellipse(x + 4, ROAD_TOP + 22, 4, 4, 0xffc860, 0).setVisible(false);
       this.world.add([post, glow]);
+      this.dark?.add(glow, 40, { glow: 0xffc860, glowAlpha: 0.12, dy: -8 });
       this.objs.push({ kind: 'coin', img: post, x, y: ROAD_TOP - 2, w: 0, h: 0, vy: 0, dead: false, label: 'decor' });
       this.objs.push({ kind: 'coin', img: glow, x: x + 4, y: ROAD_TOP + 22, w: 0, h: 0, vy: 0, dead: false, label: 'decor' });
       return;
     }
     const top = Math.random() < 0.5;
-    const y = top ? Phaser.Math.Between(16, ROAD_TOP - 16) : Phaser.Math.Between(ROAD_BOT + 22, H - 6);
+    // em cima, a partir do horizonte (as árvores ficam na frente da serra)
+    const y = top ? Phaser.Math.Between(HORIZON + 14, ROAD_TOP - 16) : Phaser.Math.Between(ROAD_BOT + 22, H - 6);
     const key = Phaser.Utils.Array.GetRandom(['tree_big', 'tree_big', 'tree_pink', 'tree_ipe', 'bush', 'bush', 'rock_small']);
     const img = this.add.image(x, y, key).setOrigin(0.5, 1).setDepth(y);
     if (key.startsWith('tree') && top) img.setScale(0.9);
     this.world.add(img);
     this.shadows.add(img, key.startsWith('tree') ? 22 : 12, { layer: this.world });
     this.objs.push({ kind: 'coin', img, x, y, w: 0, h: 0, vy: 0, dead: false, label: 'decor' });
+  }
+
+  /** Onde a íris de transição fecha: na moto (coordenadas da tela). */
+  irisPoint(): { x: number; y: number } {
+    const cam = this.cameras.main;
+    const k = cam.zoom / RES;
+    return { x: (this.mx - cam.worldView.x) * k, y: (this.my - 10 - cam.worldView.y) * k };
+  }
+
+  /** Chão e estrada rolam junto com a moto; a serra ao longe, bem mais devagar (profundidade). */
+  private scrollBackground(dx: number, dt: number): void {
+    this.grass.tilePositionX += dx;
+    this.dashes.forEach((d) => { d.tilePositionX += dx; });
+    this.horizon.tilePositionX += dx * 0.3;
+    for (const c of this.cloudShadows) {
+      c.x -= dx + 5 * dt;
+      if (c.x < -c.displayWidth / 2) c.setPosition(W + c.displayWidth / 2, Phaser.Math.Between(HORIZON + 30, H - 30));
+    }
   }
 
   private add_(kind: Kind, x: number, y: number, key: string, w: number, h: number, vy = 0): Obj {
@@ -485,18 +534,20 @@ export class MotoLevel extends Phaser.Scene {
     this.updateBread(dt);
     if (!halt) this.updateCurve(dt, helper.x);
 
+    const wasAir = this.air > 0;
     this.air = Math.max(0, this.air - dt);
+    if (wasAir && this.air === 0) {
+      // pouso: a moto achata e levanta poeira
+      this.tweens.add({ targets: this.moto, scaleX: { from: 1.08, to: 1 }, scaleY: { from: 0.86, to: 1 }, duration: 200, ease: 'Back.Out' });
+      this.burst(this.mx - 6, this.my + 10, 'fx_dust', 6);
+    }
     const hop = this.air > 0 ? Math.sin((1 - this.air / 0.6) * Math.PI) * 14 : 0;
     this.moto.setPosition(this.mx, this.my - hop + (this.air > 0 ? 0 : Math.sin(time / 60) * 0.4));
     this.moto.setAngle((this.air > 0 ? -6 : p1.y * 4) + (this.curve ? this.curve.b * 14 : 0));
     this.moto.setDepth(this.my + 4);
     this.moto.setAlpha(this.invuln > 0 && Math.floor(this.invuln * 12) % 2 ? 0.4 : 1);
     this.shadow.setPosition(this.mx, this.my + 12).setScale(1 - hop / 40).setDepth(this.my - 1);
-    if (this.headlight) {
-      const hy = this.my - hop - 6;
-      this.headlight.clear().fillStyle(0xffe08a, 0.13).fillTriangle(this.mx + 14, hy, this.mx + 160, hy - 36, this.mx + 160, hy + 30)
-        .fillStyle(0xfff1a8, 0.3).fillCircle(this.mx + 15, hy, 4);
-    }
+    this.hopY = hop;
     if (Math.random() < dt * 20) {
       const d = this.add.image(this.mx - 20, this.my + 8, 'fx_dust').setDepth(this.my);
       this.world.add(d);
@@ -506,8 +557,7 @@ export class MotoLevel extends Phaser.Scene {
     // rolagem
     const dx = this.speed * dt;
     this.dist += dx;
-    this.grass.tilePositionX += dx;
-    this.dashes.forEach((d) => { d.tilePositionX += dx; });
+    this.scrollBackground(dx, dt);
     if (Math.random() < dt * 2.2) this.spawnDecor(W + 30);
     this.spawnT -= dt;
     const gap = Phaser.Math.Linear(1.25, 0.75, this.dist / this.cfg.total);
@@ -582,8 +632,7 @@ export class MotoLevel extends Phaser.Scene {
       const v = st.push * 70;
       const dx = v * dt;
       this.dist += dx;
-      this.grass.tilePositionX += dx;
-      this.dashes.forEach((d) => { d.tilePositionX += dx; });
+      this.scrollBackground(dx, dt);
       this.updateObjs(dt, dx);
       const step = Math.floor(time / 140) % 2 ? 1 : 2;
       // ele empurra pelo guidão (do outro lado da moto), ela empurra por trás
@@ -702,8 +751,9 @@ export class MotoLevel extends Phaser.Scene {
     o.spot = s;
     if (this.cfg.night) {
       // a padaria e a casa ficam com a luz acesa
-      const glow = this.add.ellipse(x + 20, ROAD_TOP - 24, 110, 70, 0xffe8a0, 0.25).setDepth(8001).setBlendMode(Phaser.BlendModes.ADD);
+      const glow = this.add.ellipse(x + 20, ROAD_TOP - 24, 4, 4, 0xffe8a0, 0).setVisible(false);
       this.world.add(glow);
+      this.dark?.add(glow, 52, { glow: 0xffe8a0, glowAlpha: 0.12 });
       this.objs.push({ kind: 'coin', img: glow, x: x + 20, y: ROAD_TOP - 24, w: 0, h: 0, vy: 0, dead: false, label: 'decor' });
     }
     o.img.setOrigin(0.5, 1);
@@ -1059,14 +1109,16 @@ export class MotoLevel extends Phaser.Scene {
   private portaria(): void {
     this.arriving = true;
     this.started = false;
-    this.headlight?.clear();
+    if (this.headLight) this.headLight.on = false;
     this.catchT = 0;
     this.flyingBread?.destroy();
     this.flyingBread = null;
     for (const o of this.objs) if (o.label !== 'decor') o.dead = true;
     const gateX = W * 0.62;
     const condo = this.add.image(W + 90, ROAD_TOP - 2, 'condo').setOrigin(0.5, 1).setScale(1.7).setDepth(ROAD_TOP - 3);
-    const glow = this.add.ellipse(W + 90, ROAD_TOP + 2, 150, 70, 0xffe8a0, 0.12).setDepth(8001).setBlendMode(Phaser.BlendModes.ADD);
+    const glow = this.add.ellipse(W + 90, ROAD_TOP + 2, 4, 4, 0xffe8a0, 0).setVisible(false);
+    // a portaria acesa ilumina os dois
+    this.dark?.add(glow, 80, { glow: 0xffe8a0, glowAlpha: 0.12, dy: 8 });
     const ju = this.add.sprite(W + 76, ROAD_TOP + 14, 'char_1', charFrame('side', 0)).setOrigin(0.5, 1).setDepth(8003);
     const juGlow = this.add.ellipse(W + 76, ROAD_TOP + 14, 30, 8, 0x000000, 0.3).setDepth(8002);
     this.world.add([condo, glow, ju, juGlow]);
@@ -1105,8 +1157,7 @@ export class MotoLevel extends Phaser.Scene {
     const stars = win ? 1 + (second ? 1 : 0) + (this.hits <= 1 ? 1 : 0) : 0;
     const score = win ? this.coins * 5 + this.photos * 50 + this.hp * 30 : 0;
     this.time.delayedCall(1800, () => {
-      this.cameras.main.fadeOut(400, 27, 20, 36);
-      this.time.delayedCall(420, () => this.scene.start('Result', {
+      irisOut(this, () => this.scene.start('Result', {
         levelId: this.info.id, win, stars, score,
         title: win ? this.cfg.finishTitle : 'A moto precisou de conserto...',
         lines: [

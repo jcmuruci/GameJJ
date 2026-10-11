@@ -15,6 +15,11 @@ import { attachPilot } from '../../systems/autopilot';
 import { Shadows } from '../../systems/Shadows';
 import { Ground } from '../../art/Ground';
 import { applyGrade } from '../../systems/Grade';
+import { Ambience } from '../../systems/Ambience';
+import { irisOut, HEART_LEVELS } from '../TransitionScene';
+
+/** Chão que levanta poeira ao andar. */
+const DUSTY = new Set<number>([T.GRASS, T.GRASS_FLOWERS, T.GRASS_TUFT, T.PATH, T.SAND, T.DARK_GRASS, T.ROCKY_GRASS, T.GRANITE]);
 
 export interface LevelResult {
   win: boolean;
@@ -59,6 +64,10 @@ export abstract class BaseLevel extends Phaser.Scene {
   tilemap!: Phaser.Tilemaps.Tilemap;
   layer!: Phaser.Tilemaps.TilemapLayer;
   shadows!: Shadows;
+  /** Poeira dos passos. */
+  private dust: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
+  /** Pausa de impacto: o mundo fica parado até este instante (ms). */
+  private stopUntil = 0;
   /** Chão desenhado (variações, bordas, água animada). Existe depois de setup(). */
   ground: Ground | null = null;
   /** Para onde a água corre (px/s); as fases podem trocar. */
@@ -146,6 +155,7 @@ export abstract class BaseLevel extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#1b1424');
     // sombras no chão para NPCs, bichos e objetos criados daqui em diante
     this.shadows = new Shadows(this).auto();
+    const ambience = new Ambience(this);
     this.ground = null;
 
     const rows = this.mapRows();
@@ -222,6 +232,13 @@ export abstract class BaseLevel extends Phaser.Scene {
 
     this.setup();
     this.ground = new Ground(this, this.waterFlow);
+    ambience.start();
+    this.stopUntil = 0;
+    this.physics.world.resume();
+    this.dust = this.add.particles(0, 0, 'fx_dust', {
+      lifespan: 380, speed: { min: 6, max: 18 }, angle: { min: 200, max: 340 }, gravityY: -10,
+      scale: { start: 0.8, end: 0 }, alpha: { start: 0.5, end: 0 }, emitting: false,
+    }).setDepth(1);
 
     this.scene.launch('HUD', { level: this });
     this.hud = this.scene.get('HUD') as HUDScene;
@@ -236,6 +253,15 @@ export abstract class BaseLevel extends Phaser.Scene {
   // ------------------------------------------------------------------ utilidades de mapa
   tileCenter(tx: number, ty: number): { x: number; y: number } {
     return { x: tx * TILE + 8, y: ty * TILE + 8 };
+  }
+
+  /** Onde a íris de transição fecha: no casal (coordenadas da tela). */
+  irisPoint(): { x: number; y: number } {
+    const cam = this.cameras.main;
+    const k = cam.zoom / RES;
+    const mx = (this.players[0].x + this.players[1].x) / 2;
+    const my = (this.players[0].y + this.players[1].y) / 2 - 10;
+    return { x: (mx - cam.worldView.x) * k, y: (my - cam.worldView.y) * k };
   }
 
   /** Troca um tile do mapa: a colisão (camada lógica) e o desenho do chão. */
@@ -304,6 +330,26 @@ export abstract class BaseLevel extends Phaser.Scene {
   }
 
   // ------------------------------------------------------------------ efeitos
+  /** Congela os movimentos por alguns milissegundos para dar peso a um golpe. */
+  hitstop(ms: number): void {
+    if (this.ended) return;
+    this.stopUntil = Math.max(this.stopUntil, this.time.now + ms);
+    this.physics.world.pause();
+  }
+
+  /** Pouso (fim do rapel / da escalada): achata e estica rapidinho, com poeira. */
+  land(p: Player): void {
+    this.tweens.add({ targets: p.sprite, scaleX: { from: 1.12, to: 1 }, scaleY: { from: 0.88, to: 1 }, duration: 180, ease: 'Back.Out' });
+    this.dust?.emitParticleAt(p.x, p.y + 2, 6);
+  }
+
+  /** Faíscas e um anel rápido no ponto do impacto. */
+  impact(x: number, y: number, tint = 0xfff4c0): void {
+    this.burst(x, y, 'fx_spark', 6, { speed: 90, lifespan: 260, tint, scale: 0.8 });
+    const ring = this.add.image(x, y, 'fx_ring').setScale(0.15).setAlpha(0.9).setDepth(8001).setTint(tint);
+    this.tweens.add({ targets: ring, scale: 0.55, alpha: 0, duration: 200, onComplete: () => ring.destroy() });
+  }
+
   burst(x: number, y: number, tex: string, count: number, o: { speed?: number; lifespan?: number; gravity?: number; scale?: number; tint?: number; depth?: number } = {}): void {
     const em = this.add.particles(x, y, tex, {
       speed: { min: (o.speed ?? 60) * 0.4, max: o.speed ?? 60 },
@@ -410,8 +456,11 @@ export abstract class BaseLevel extends Phaser.Scene {
     }
     p.hp -= n;
     p.invuln = 1.3;
+    p.hurtT = 0.22;
     p.pushBack(fromX, fromY);
     this.sfx('hurt');
+    this.hitstop(90);
+    this.burst(p.x, p.y - 10, 'fx_pixel', 8, { speed: 70, lifespan: 300, tint: 0xff6a6a });
     Input.rumble(p.id, 150, 0.6);
     this.cameras.main.shake(120, 0.004);
     if (p.hp <= 0) this.faint(p);
@@ -485,6 +534,7 @@ export abstract class BaseLevel extends Phaser.Scene {
   useAbility(p: Player): void {
     p.abilityCd = p.abilityMax;
     p.actTimer = 0.2;
+    p.abilityT = 0.22;
     if (p.id === 0) this.slash(p);
     else this.castBolt(p);
   }
@@ -596,19 +646,27 @@ export abstract class BaseLevel extends Phaser.Scene {
     this.hugCd = Math.max(0, this.hugCd - dt);
     this.bumpCd = Math.max(0, this.bumpCd - dt);
     const frozen = this.ended || !this.started;
+    // pausa de impacto: a física congela por alguns quadros (os botões continuam valendo)
+    if (this.stopUntil > 0 && (this.time.now >= this.stopUntil || this.ended)) {
+      this.stopUntil = 0;
+      this.physics.world.resume();
+    }
 
     this.reviveBars.clear();
     for (const p of this.players) {
       const inp = Input.players[p.id];
       p.update(dt, frozen ? NO_INPUT : inp, this.canMove);
       if (!frozen) this.handleActions(p, inp, dt);
-      if (p.moving && p.takeStep()) Audio.play('step');
+      if (p.moving && p.takeStep()) {
+        Audio.play('step');
+        if (DUSTY.has(this.layer.getTileAtWorldXY(p.x, p.y)?.index ?? -1)) this.dust?.emitParticleAt(p.x, p.y + 2, 2);
+      }
     }
 
     if (!frozen) {
       for (const e of this.enemies) e.update(dt, this.players);
       this.enemies = this.enemies.filter((e) => !e.dead);
-      this.updateBolts(dt);
+      if (this.stopUntil === 0) this.updateBolts(dt);
       this.updatePickups(time);
       this.romance(dt);
       this.tick(dt);
@@ -772,11 +830,11 @@ export abstract class BaseLevel extends Phaser.Scene {
     }
     this.hud?.banner(res.win ? 'Conseguimos!' : 'Ah, não...', res.title, 1800);
     this.time.delayedCall(2000, () => {
-      this.cameras.main.fadeOut(400, 27, 20, 36);
-      this.time.delayedCall(420, () => {
+      // fecha num coração quando o capítulo termina num momento do casal
+      irisOut(this, () => {
         this.scene.stop('HUD');
         this.scene.start('Result', { ...res, levelId: this.info.id, stats: this.stats });
-      });
+      }, { shape: res.win && HEART_LEVELS.has(this.info.id) ? 'heart' : 'circle' });
     });
   }
 

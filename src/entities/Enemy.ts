@@ -75,6 +75,8 @@ export class Slime {
     const a = Math.atan2(this.y - from.y, this.x - from.x);
     body.setVelocity(Math.cos(a) * 180, Math.sin(a) * 180);
     Audio.play('hit');
+    this.level.impact(this.x, this.y - 6, magic ? 0xffd6e4 : 0xfff4c0);
+    this.level.hitstop(50);
     if (this.hp <= 0) this.die();
   }
 

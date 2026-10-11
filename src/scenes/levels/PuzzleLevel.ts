@@ -405,6 +405,7 @@ export abstract class PuzzleLevel extends BaseLevel {
         this.rope?.clear();
         p.locked = false;
         p.body.checkCollision.none = false;
+        this.land(p);
         this.rappels++;
         this.onClimbDone(p);
         this.sfx('revive');
@@ -461,6 +462,7 @@ export abstract class PuzzleLevel extends BaseLevel {
         this.rope?.clear();
         p.locked = false;
         p.body.checkCollision.none = false;
+        this.land(p);
         this.rappels++;
         this.onRappelDone(p);
         this.sfx('revive');

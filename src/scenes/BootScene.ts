@@ -37,6 +37,10 @@ export class BootScene extends Phaser.Scene {
     anim('duck-swim', 'duck', 3);
     anim('cow-walk', 'cow', 4);
     anim('pigeon-fly', 'pigeon', 10);
+    anim('butterfly-fly', 'butterfly', 9);
+    anim('bird-fly', 'bird', 7);
+    // a cena de transições (íris) fica sempre rodando por cima
+    this.scene.launch('Fx');
     this.scene.start('Menu');
   }
 }

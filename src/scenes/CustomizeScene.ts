@@ -4,7 +4,7 @@ import { txt, panel, uiButton } from '../ui/text';
 import { Input, PlayerId, KEY_LABELS } from '../systems/InputManager';
 import { Audio } from '../systems/Audio';
 import { Save } from '../systems/SaveManager';
-import { generateCharacterTexture, charFrame, Dir } from '../art/CharacterArt';
+import { generateCharacterTexture, charFrame, Dir, WALK_CYCLE } from '../art/CharacterArt';
 import { generatePortrait } from '../art/Portrait';
 import {
   CharacterLook, SKIN_TONES, HAIR_COLORS, EYE_COLORS, CLOTH_COLORS, HAIR_STYLES, ACCESSORIES, BEARDS,
@@ -184,7 +184,7 @@ export class CustomizeScene extends Phaser.Scene {
     this.dirT += delta / 1000;
     const dirs: [Dir, boolean][] = [['down', false], ['side', true], ['up', false], ['side', false]];
     const [dir, flip] = dirs[Math.floor(this.dirT / 1.2) % 4];
-    const col = [1, 0, 2, 0][Math.floor(this.dirT * 6) % 4];
+    const col = WALK_CYCLE[Math.floor(this.dirT * 6) % 4];
     this.previews.forEach((p) => p.setFrame(charFrame(dir, col)).setFlipX(flip));
 
     if (this.editing !== null) return;

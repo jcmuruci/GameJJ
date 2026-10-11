@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { CharacterLook } from '../data/characters';
-import { charFrame, Dir } from '../art/CharacterArt';
+import { WALK_CYCLE, charFrame, Dir } from '../art/CharacterArt';
 import { Item } from './Item';
 import { PlayerId, PlayerState } from '../systems/InputManager';
 import { PLAYER_TINTS } from '../config';
@@ -38,6 +38,10 @@ export class Player {
   fainted = false;
   invuln = 0;
   actTimer = 0;
+  /** Mostra o quadro de golpe (espada / magia) por este tempo. */
+  abilityT = 0;
+  /** Flash de dano (s). */
+  hurtT = 0;
   abilityCd = 0;
   abilityMax = 0.5;
   hugRequest = -999;
@@ -96,6 +100,8 @@ export class Player {
   update(dt: number, inp: PlayerState, canMove: (p: Player, vx: number, vy: number) => [number, number]): void {
     this.invuln = Math.max(0, this.invuln - dt);
     this.actTimer = Math.max(0, this.actTimer - dt);
+    this.abilityT = Math.max(0, this.abilityT - dt);
+    this.hurtT = Math.max(0, this.hurtT - dt);
     this.abilityCd = Math.max(0, this.abilityCd - dt);
     this.slowTimer = Math.max(0, this.slowTimer - dt);
 
@@ -128,14 +134,17 @@ export class Player {
     this.dir = this.face.y !== 0 ? (this.face.y > 0 ? 'down' : 'up') : 'side';
     this.sprite.setFlipX(this.face.x > 0);
     let col = 0;
-    if (this.actTimer > 0) col = 3;
+    if (this.abilityT > 0) col = 7;
+    else if (this.actTimer > 0) col = 3;
     else if (this.moving) {
       this.animT += dt * 8 * Math.min(1.4, this.speedMult);
-      col = [1, 0, 2, 0][Math.floor(this.animT) % 4];
+      col = WALK_CYCLE[Math.floor(this.animT) % 4];
       this.stepT += dt;
     } else if (this.working) {
       this.animT += dt * 10;
       col = Math.floor(this.animT) % 2 ? 3 : 0;
+    } else if (this.idleTime % 2.6 > 2.2) {
+      col = 6; // respira
     }
     if (!this.fainted) this.sprite.setFrame(charFrame(this.dir, col));
 
@@ -147,6 +156,11 @@ export class Player {
       if (this.invuln > 0) this.sprite.setAlpha(Math.floor(this.invuln * 12) % 2 ? 0.35 : 1);
       else this.sprite.setAlpha(1);
       this.sprite.clearTint();
+      // flash de dano: branco no primeiro instante, depois vermelho
+      if (this.hurtT > 0) {
+        if (this.hurtT > 0.14) this.sprite.setTintFill(0xffffff);
+        else this.sprite.setTint(0xff6a6a);
+      }
     }
   }
 

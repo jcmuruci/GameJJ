@@ -9,6 +9,7 @@ import { Save } from '../systems/SaveManager';
 import { cozyBackground } from './MenuScene';
 import { Mood } from '../art/Portrait';
 import { Admin } from '../systems/Admin';
+import { irisOut } from './TransitionScene';
 
 interface StoryData {
   id: string;
@@ -243,8 +244,7 @@ export class StoryScene extends Phaser.Scene {
   private finish(): void {
     if (this.done) return;
     this.done = true;
-    this.cameras.main.fadeOut(300, 27, 20, 36);
-    this.time.delayedCall(320, () => this.scene.start(this.data_.next, this.data_.nextData ?? {}));
+    irisOut(this, () => this.scene.start(this.data_.next, this.data_.nextData ?? {}));
   }
 
   update(_t: number, delta: number): void {

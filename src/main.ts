@@ -26,6 +26,7 @@ import { AmazonLevel } from './scenes/levels/AmazonLevel';
 import { FarmLevel } from './scenes/levels/FarmLevel';
 import { FishingLevel } from './scenes/levels/FishingLevel';
 import { MedalLevel } from './scenes/levels/MedalLevel';
+import { TransitionScene } from './scenes/TransitionScene';
 
 async function boot(): Promise<void> {
   // espera a fonte pixel (com tempo limite, para nunca travar)
@@ -71,7 +72,7 @@ async function boot(): Promise<void> {
     scene: [
       BootScene, MenuScene, MapScene, StoryScene, CustomizeScene,
       TutorialLevel, KitchenLevel, TrailLevel, BossLevel, MotoLevel, AmazonLevel, FarmLevel, FishingLevel, MedalLevel,
-      HUDScene, PauseScene, ResultScene,
+      HUDScene, PauseScene, ResultScene, TransitionScene,
     ],
   });
   game.events.on(Phaser.Core.Events.PRE_STEP, () => Input.update());

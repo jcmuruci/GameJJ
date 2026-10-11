@@ -6,6 +6,7 @@ import { generateTrailTextures } from './TexturesTrail';
 import { generateFarmTextures } from './TexturesFarm';
 import { generateCityTextures } from './TexturesCity';
 import { drawTiles } from './TexturesTiles';
+import { generateSkyTextures, makeSwayTextures } from './TexturesSky';
 
 /**
  * Toda a arte do jogo é gerada aqui, por código, no carregamento.
@@ -536,4 +537,6 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   generateTrailTextures(scene);
   generateFarmTextures(scene);
   generateCityTextures(scene);
+  generateSkyTextures(scene);
+  makeSwayTextures(scene);
 }

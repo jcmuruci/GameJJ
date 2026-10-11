@@ -176,7 +176,8 @@ export class BossLevel extends BaseLevel {
     this.sfx('hit');
     this.boss.setTintFill(0xffffff);
     this.time.delayedCall(70, () => this.boss.clearTint());
-    this.burst(this.boss.x + Phaser.Math.Between(-10, 10), this.boss.y + 10, 'fx_spark', 4, { speed: 50 });
+    this.impact(this.boss.x + Phaser.Math.Between(-10, 10), this.boss.y + 10);
+    this.hitstop(70);
     if (Math.random() < 0.15) this.say({ x: this.boss.x, y: this.boss.y - 6 }, Phaser.Utils.Array.GetRandom(LINES_HIT), 900, '#d8d8e8');
     const newPhase = PHASES - Math.floor((this.bossHp - 1) / PHASE_HP);
     if (this.bossHp <= 0) this.win();
