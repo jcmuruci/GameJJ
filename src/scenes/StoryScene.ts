@@ -33,6 +33,8 @@ const DECOR: Record<string, [string, number, number, number][]> = {
   climb: [['mirante', 480, 110, 4]],
   canyon: [['waterfall', 380, 170, 3], ['house_c0', 560, 160, 2.2], ['house_c2', 660, 170, 2]],
   bread: [['bakery', 400, 150, 3], ['item_lata', 600, 170, 5], ['moto', 480, 360, 4]],
+  medal: [['church', 300, 200, 3], ['item_medal', 620, 300, 6]],
+  medal_end: [['predio', 480, 170, 3], ['gift', 380, 340, 4], ['item_medal', 580, 340, 5]],
   bread_end: [['condo', 480, 150, 3], ['item_bread', 440, 330, 5], ['item_lata', 530, 330, 5]],
   itacolomi: [['itacolomi', 480, 170, 3]],
   itacolomi_end: [['itacolomi', 480, 170, 3]],

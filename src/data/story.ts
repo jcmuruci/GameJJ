@@ -39,13 +39,21 @@ export const STORY: Record<string, Line[]> = {
     { who: 'n', text: 'E no fim da trilha: Lavras Novas, uma cidadezinha de casas coloridas.' },
     { who: 1, text: 'Parece cenário de anime!' },
   ],
-  bread: [
+  medal: [
     { who: 'n', text: 'Março de 2026. Quase 40 dias sem se falar.' },
+    { who: 1, text: '(O aniversário dele tá chegando... e eu não paro de pensar nele.)' },
+    { who: 1, text: 'Já sei: uma medalha de São Bento, pra proteger ele. Eu mesma vou buscar.' },
+    { who: 'n', text: 'Nesta lembrança, só a {p2} joga. O {p1} nem imagina... mas pode torcer do sofá!' },
+  ],
+  medal_end: [
     { who: 'n', text: 'No aniversário dele, chegou um presente: um cordão com a medalha de São Bento.' },
     { who: 0, text: 'Ela lembrou de mim...' },
+    { who: 'n', text: 'Lembrança desbloqueada: a Medalha de São Bento. Ela protege o {p1} do primeiro golpe em cada fase.' },
+  ],
+  bread: [
+    { who: 0, text: 'A medalha no peito... e ela não sai da minha cabeça.' },
     { who: 0, text: 'Tá decidido. Pão da padaria com a carne de lata da minha família. E vou levar hoje, de moto.' },
-    { who: 'n', text: 'Era noite. Coração acelerado, pão quentinho na sacola...' },
-    { who: 1, text: '(Na vida real ele foi sozinho... mas nessa lembrança eu vou na garupa, cuidando do pão!)' },
+    { who: 'n', text: 'Era noite. Coração acelerado. Nesta lembrança, só o {p1} joga (a {p2} torce do sofá).' },
   ],
   bread_end: [
     { who: 'n', text: 'Uma noite de março. Pão da padaria, carne de lata da família, entregue na portaria.' },

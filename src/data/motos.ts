@@ -30,6 +30,8 @@ export interface MotoConfig {
   dirt: boolean;
   /** Viagem à noite (escuro, farol e postes). */
   night?: boolean;
+  /** Só o piloto joga: ele mesmo buzina, faz as paradas e segura o pão (a garupa vazia; ela só torce). */
+  solo?: boolean;
   /** Em que ponto da viagem o pneu fura (conserto cooperativo). */
   flatTireAt?: number;
   /** Aviso depois do conserto do pneu. */
@@ -57,9 +59,10 @@ export interface MotoConfig {
 export const MOTOS: Record<string, MotoConfig> = {
   bread: {
     title: 'O Pão de Moto',
-    subtitle: 'À noite: pão na padaria, carne de lata da família e direto pro condomínio dela!',
+    subtitle: 'À noite, sozinho: pão na padaria, carne de lata da família e direto pro condomínio dela!',
     total: 13000,
     night: true,
+    solo: true,
     spots: [
       { at: 0.12, label: 'Padaria', decor: 'bakery', kind: 'stop', item: 'item_bread', doneText: 'Pão quentinho na sacola!', task: 'padaria' },
       { at: 0.48, label: 'Casa da família', decor: 'house_c3', kind: 'stop', item: 'item_lata', doneText: 'Carne de lata da família no pão!', task: 'lata' },

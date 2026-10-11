@@ -36,6 +36,7 @@ export class BootScene extends Phaser.Scene {
     anim('dog-walk', 'dog', 6);
     anim('duck-swim', 'duck', 3);
     anim('cow-walk', 'cow', 4);
+    anim('pigeon-fly', 'pigeon', 10);
     this.scene.start('Menu');
   }
 }
