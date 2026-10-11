@@ -155,6 +155,7 @@ export class MotoLevel extends Phaser.Scene {
     this.catchT = 0;
     this.catches = 0;
     this.honked = 0;
+    this.cheers = 0;
     this.wasAir = false;
     this.flyingBread = null;
     this.warmBar = null;
@@ -205,6 +206,7 @@ export class MotoLevel extends Phaser.Scene {
     this.riders = [1, 0].map((i) => this.add.sprite(i === 0 ? 5 : -5, i === 0 ? -11 : -13, `char_${i}`, charFrame('side', 0)).setFlipX(true));
     const motoImg = this.add.image(0, 0, 'moto');
     this.moto = this.add.container(this.mx, this.my, [...this.riders, motoImg]);
+    if (this.solo) this.riders[0].setVisible(false);
     this.world.add([this.shadow, this.moto]);
 
     this.flash = this.add.rectangle(W / 2, H / 2, W, H, 0xffffff, 0);
@@ -246,10 +248,15 @@ export class MotoLevel extends Phaser.Scene {
       this.warmBar = add(this.add.graphics());
     }
     if (this.cfg.curves) this.balanceUi = add(this.add.graphics());
-    const help = [
-      `${this.names[0]}: ${KEY_LABELS[0].move} pilota · ${KEY_LABELS[0].ability}: pula buracos`,
-      `${this.names[1]}: ${KEY_LABELS[1].ability}: magia nas pedras · ${KEY_LABELS[1].action}: ${this.hasStops ? 'buzina / paradas' : this.cfg.gates ? 'porteira / foto' : 'buzina / foto'}${this.cfg.curves ? ' · ← →: equilíbrio' : ''}`,
-    ];
+    const help = this.solo
+      ? [
+        `${this.names[0]}: ${KEY_LABELS[0].move} pilota · ${KEY_LABELS[0].ability}: pula · ${KEY_LABELS[0].action}: buzina / paradas / pão`,
+        `${this.names[1]} não sabe de nada... ${KEY_LABELS[1].action}: torcer ♥`,
+      ]
+      : [
+        `${this.names[0]}: ${KEY_LABELS[0].move} pilota · ${KEY_LABELS[0].ability}: pula buracos`,
+        `${this.names[1]}: ${KEY_LABELS[1].ability}: magia nas pedras · ${KEY_LABELS[1].action}: ${this.hasStops ? 'buzina / paradas' : this.cfg.gates ? 'porteira / foto' : 'buzina / foto'}${this.cfg.curves ? ' · ← →: equilíbrio' : ''}`,
+      ];
     help.forEach((h, i) => add(txt(this, i === 0 ? 20 : GAME_W - 20, GAME_H - 18, h, 13, { origin: [i === 0 ? 0 : 1, 0.5], color: i === 0 ? '#bfe6ff' : '#ffd6e4', bold: false })));
     if (!isTouchDevice()) add(uiButton(this, GAME_W / 2, GAME_H - 20, 'Pausa (Esc)', () => this.openPause(), { size: 13 }));
     this.refreshUi();
@@ -271,9 +278,13 @@ export class MotoLevel extends Phaser.Scene {
     for (const s of this.cfg.spots) this.progress.fillStyle(0xff9cc2, 1).fillRect(x0 + w * s.at - 1, 53, 3, 12);
     this.progressMoto.setPosition(x0 + w * t, 52);
     const g = this.cdBars.clear();
-    g.fillStyle(0x000000, 0.4).fillRect(20, GAME_H - 36, 120, 3).fillRect(GAME_W - 140, GAME_H - 36, 120, 3);
+    g.fillStyle(0x000000, 0.4).fillRect(20, GAME_H - 36, 120, 3);
     g.fillStyle(this.jumpCd <= 0 ? 0x8be07a : 0xffd25e, 1).fillRect(20, GAME_H - 36, 120 * (1 - this.jumpCd / 1.3), 3);
-    g.fillStyle(this.boltCd <= 0 ? 0x8be07a : 0xffd25e, 1).fillRect(GAME_W - 140, GAME_H - 36, 120 * (1 - this.boltCd / 0.45), 3);
+    if (!this.solo) {
+      // recarga da magia da garupa
+      g.fillStyle(0x000000, 0.4).fillRect(GAME_W - 140, GAME_H - 36, 120, 3);
+      g.fillStyle(this.boltCd <= 0 ? 0x8be07a : 0xffd25e, 1).fillRect(GAME_W - 140, GAME_H - 36, 120 * (1 - this.boltCd / 0.45), 3);
+    }
     // equilíbrio nas curvas
     if (this.balanceUi) {
       const b = this.balanceUi.clear();
@@ -289,6 +300,10 @@ export class MotoLevel extends Phaser.Scene {
   }
 
   private get hasStops(): boolean { return this.cfg.spots.some((s) => s.kind === 'stop'); }
+  /** Modo solo: só o piloto joga. */
+  get solo(): boolean { return !!this.cfg.solo; }
+  /** Quem cuida das paradas, do pão e da buzina: a garupa ou, no solo, o próprio piloto. */
+  private get hi(): 0 | 1 { return this.solo ? 0 : 1; }
 
   private toast(s: string, color = '#fff4e0'): void {
     this.tweens.killTweensOf(this.toastT);
@@ -307,14 +322,18 @@ export class MotoLevel extends Phaser.Scene {
     add(panel(this, x0, y0, w, h));
     add(txt(this, GAME_W / 2, y0 + 34, this.cfg.title, 30, { color: '#ffd23a' }));
     add(txt(this, GAME_W / 2, y0 + 66, this.cfg.subtitle, 14, { bold: false, wrap: 600 }));
-    const lines: [string, string][] = [
+    const lines: [string, string][] = this.solo ? [
+      [`${this.names[0]} sozinho na moto`, `${KEY_LABELS[0].move}: desvia, acelera e freia · ${KEY_LABELS[0].ability}: pula buracos e cones`],
+      [`${this.names[0]} também cuida de tudo`, `${KEY_LABELS[0].action}: buzina p/ capivaras, paradas e segura o pão · sem magia: desvia das pedras!`],
+      [`E a ${this.names[1]}?`, `Em casa, sem saber de nada... mas pode torcer do sofá (${KEY_LABELS[1].action})!`],
+    ] : [
       [`${this.names[0]} pilota`, `${KEY_LABELS[0].move}: desvia, acelera e freia · ${KEY_LABELS[0].ability}: pula buracos e cones`],
-      [`${this.names[1]} na garupa`, `${KEY_LABELS[1].ability}: magia explode pedras · ${KEY_LABELS[1].action}: buzina p/ ${this.cfg.animal === 'cow' ? 'vacas' : 'capivaras'}${this.cfg.bread ? ' e segura o pão' : ''}`],
+      [`${this.names[1]} na garupa`, `${KEY_LABELS[this.hi].ability}: magia explode pedras · ${KEY_LABELS[this.hi].action}: buzina p/ ${this.cfg.animal === 'cow' ? 'vacas' : 'capivaras'}${this.cfg.bread ? ' e segura o pão' : ''}`],
       this.hasStops
-        ? ['Paradas', `Na padaria e na casa da família a moto para: ${this.names[1]} aperta ${KEY_LABELS[1].action}!`]
+        ? ['Paradas', `Na padaria e na casa da família a moto para: ${this.names[this.hi]} aperta ${KEY_LABELS[this.hi].action}!`]
         : this.cfg.gates
-          ? ['Porteiras e curvas', `Porteira: ${this.names[1]} abre e fecha (${KEY_LABELS[1].action}) · Curva: ela se inclina junto (← →)`]
-          : ['Fotos do casal', `Quando passar uma placa de câmera, ${this.names[1]} aperta ${KEY_LABELS[1].action}!`],
+          ? ['Porteiras e curvas', `Porteira: ${this.names[this.hi]} abre e fecha (${KEY_LABELS[this.hi].action}) · Curva: ela se inclina junto (← →)`]
+          : ['Fotos do casal', `Quando passar uma placa de câmera, ${this.names[this.hi]} aperta ${KEY_LABELS[this.hi].action}!`],
     ];
     lines.forEach(([a, b], i) => {
       add(txt(this, GAME_W / 2, y0 + 110 + i * 50, a, 17, { color: i === 0 ? '#bfe6ff' : i === 1 ? '#ffd6e4' : '#ffd25e' }));
@@ -437,16 +456,18 @@ export class MotoLevel extends Phaser.Scene {
       this.jumpCd = 1.3;
       Audio.play('jump');
     }
-    if (p1.actionPressed && this.hornCd <= 0) this.honk();
-    // garupa
-    if (p2.abilityPressed && this.boltCd <= 0) this.castBolt();
-    if (p2.actionPressed) {
+    // garupa (no solo, o próprio piloto faz tudo e ela só torce)
+    const helper = this.solo ? p1 : p2;
+    if (!this.solo && p1.actionPressed && this.hornCd <= 0) this.honk();
+    if (!this.solo && p2.abilityPressed && this.boltCd <= 0) this.castBolt();
+    if (this.solo && p2.actionPressed) this.cheer();
+    if (helper.actionPressed) {
       if (this.catchT > 0) this.catchBread(true);
       else if (this.gateAction()) { /* porteira */ }
       else if (!this.tryPhoto() && this.hornCd <= 0) this.honk();
     }
     this.updateBread(dt);
-    if (!halt) this.updateCurve(dt, p2.x);
+    if (!halt) this.updateCurve(dt, helper.x);
 
     this.air = Math.max(0, this.air - dt);
     const hop = this.air > 0 ? Math.sin((1 - this.air / 0.6) * Math.PI) * 14 : 0;
@@ -502,7 +523,7 @@ export class MotoLevel extends Phaser.Scene {
     const add = <T extends Phaser.GameObjects.GameObject>(o: T): T => { this.ui.add(o); this.repairUi.push(o); return o; };
     add(panel(this, GAME_W / 2 - 280, 150, 560, 170));
     add(txt(this, GAME_W / 2, 182, 'Consertem o pneu juntos!', 24, { color: '#ffd23a' }));
-    add(txt(this, GAME_W / 2, 216, `${this.names[0]}: SEGURE ${KEY_LABELS[0].action} (segura a moto)  ·  ${this.names[1]}: aperte ${KEY_LABELS[1].action} sem parar (bomba de ar)`, 14, { bold: false, wrap: 520 }));
+    add(txt(this, GAME_W / 2, 216, `${this.names[0]}: SEGURE ${KEY_LABELS[0].action} (segura a moto)  ·  ${this.names[this.hi]}: aperte ${KEY_LABELS[this.hi].action} sem parar (bomba de ar)`, 14, { bold: false, wrap: 520 }));
     this.repairBar = add(this.add.graphics());
   }
 
@@ -561,8 +582,8 @@ export class MotoLevel extends Phaser.Scene {
     }
     o.img.setOrigin(0.5, 1);
     this.tweens.add({ targets: o.img, scale: 1.2, yoyo: true, repeat: -1, duration: 300 });
-    if (s.kind === 'stop') this.toast(`Parada: ${s.label}! ${this.names[1]}, aperte ${KEY_LABELS[1].action} quando chegar.`, '#ffd23a');
-    else this.toast(`Foto: ${s.label} chegando! ${this.names[1]}, prepara a foto (${KEY_LABELS[1].action})!`, '#ffd6e4');
+    if (s.kind === 'stop') this.toast(`Parada: ${s.label}! ${this.names[this.hi]}, aperte ${KEY_LABELS[this.hi].action} quando chegar.`, '#ffd23a');
+    else this.toast(`Foto: ${s.label} chegando! ${this.names[this.hi]}, prepara a foto (${KEY_LABELS[this.hi].action})!`, '#ffd6e4');
   }
 
   private tryPhoto(): boolean {
@@ -626,7 +647,7 @@ export class MotoLevel extends Phaser.Scene {
       const st = this.objs.find((o) => o.kind === 'spot' && o.spot?.kind === 'stop' && !o.shot && !o.dead && o.x <= this.mx + 26);
       if (st) {
         this.stopWait = st;
-        this.toast(`${st.label}! ${this.names[1]}, aperte ${KEY_LABELS[1].action}!`, '#ffd23a');
+        this.toast(`${st.label}! ${this.names[this.hi]}, aperte ${KEY_LABELS[this.hi].action}!`, '#ffd23a');
       }
     } else if (this.stopWait.shot || this.stopWait.dead) this.stopWait = null;
     let gateHalt = false;
@@ -634,12 +655,12 @@ export class MotoLevel extends Phaser.Scene {
     if (g) {
       if (g.state === 'closed' && g.o.x - this.mx < 50) {
         gateHalt = true;
-        if (!g.warned) { g.warned = true; this.toast(`Porteira! ${this.names[1]}, desce e abre (${KEY_LABELS[1].action})!`, '#ffd23a'); }
+        if (!g.warned) { g.warned = true; this.toast(`Porteira! ${this.names[this.hi]}, desce e abre (${KEY_LABELS[this.hi].action})!`, '#ffd23a'); }
       }
       if (g.state === 'open' && g.o.x < this.mx - 28) {
         g.state = 'closing';
         g.t = 3;
-        this.toast(`Porteira aberta, porteira fechada! Fecha (${KEY_LABELS[1].action})!`, '#ffd23a');
+        this.toast(`Porteira aberta, porteira fechada! Fecha (${KEY_LABELS[this.hi].action})!`, '#ffd23a');
       }
       if (g.state === 'closing') {
         g.t -= dt;
@@ -696,7 +717,7 @@ export class MotoLevel extends Phaser.Scene {
         const sign = this.add.image(W + 10, ROAD_TOP - 2, 'curve_sign').setOrigin(0.5, 1).setFlipX(dir < 0).setDepth(ROAD_TOP);
         this.world.add(sign);
         this.objs.push({ kind: 'coin', img: sign, x: W + 10, y: ROAD_TOP - 2, w: 0, h: 0, vy: 0, dead: false, label: 'decor' });
-        this.toast(dir > 0 ? `Curva à direita! ${this.names[1]}, incline junto (→)` : `Curva à esquerda! ${this.names[1]}, incline junto (←)`, '#ffd23a');
+        this.toast(dir > 0 ? `Curva à direita! ${this.names[this.hi]}, incline junto (→)` : `Curva à esquerda! ${this.names[this.hi]}, incline junto (←)`, '#ffd23a');
       }
       return;
     }
@@ -735,7 +756,7 @@ export class MotoLevel extends Phaser.Scene {
     const inAir = this.air > 0;
     if (this.wasAir && !inAir && this.catchT <= 0 && Math.random() < 0.55) {
       this.catchT = 1.4;
-      this.toast(`O pão pulou da sacola! ${this.names[1]}, SEGURA (${KEY_LABELS[1].action})!`, '#ffd23a');
+      this.toast(`O pão pulou da sacola! ${this.names[this.hi]}, SEGURA (${KEY_LABELS[this.hi].action})!`, '#ffd23a');
       Audio.play('jump');
       const b = this.add.image(this.mx - 6, this.my - 24, 'item_bread').setDepth(9600);
       this.world.add(b);
@@ -783,6 +804,17 @@ export class MotoLevel extends Phaser.Scene {
       }
     }
     if (scared) this.toast(this.cfg.animal === 'cow' ? 'Licença, vaquinha! Muuu!' : 'Licença, capivara!', '#fff4e0');
+  }
+
+  /** Torcida do sofá (modo solo): corações sobem na tela. */
+  cheers = 0;
+  private cheer(): void {
+    this.cheers++;
+    Audio.play('blip');
+    const h = this.add.image(GAME_W - Phaser.Math.Between(30, 220), GAME_H - 40, 'fx_heart').setScale(2.4).setTint(0xffb0d0);
+    this.ui.add(h);
+    this.tweens.add({ targets: h, y: h.y - 120, alpha: 0, duration: 1200, onComplete: () => h.destroy() });
+    if (this.cheers % 6 === 1) this.toast(`Torcida do sofá: vai, ${this.names[0]}! ♥`, '#ffd6e4');
   }
 
   private castBolt(): void {
@@ -870,7 +902,12 @@ export class MotoLevel extends Phaser.Scene {
     Input.rumble(0, 200, 0.7);
     Input.rumble(1, 200, 0.7);
     this.cameras.main.shake(180, 0.008);
-    const lines: Record<string, string[]> = {
+    const lines: Record<string, string[]> = this.solo ? {
+      pothole: ['Ai, buraco!', 'Opa! Segura o pão!'],
+      rock: ['Ops, a pedra!', 'Pedra! Desvia!'],
+      cone: ['Desculpa, cone!'],
+      capy: ['Desculpa, capivara!', 'Esqueci de buzinar!'],
+    } : {
       pothole: ['Ai, buraco!', 'Segura firme, amor!'],
       rock: ['Pedra! Cadê a magia?', 'Ops, a pedra!'],
       cone: ['Desculpa, cone!'],

@@ -9,4 +9,7 @@ export const NPCS: Record<string, CharacterLook> = {
   mae: { ...base, name: 'Mãe do João', skin: '#f0c8a8', hair: '#8a5a34', hairStyle: 'coque', eyes: '#3a2a1e', shirt: '#e76f51', pants: '#3b3f5c', lashes: true, accessory: 'brinco', accessoryColor: '#ffd25e', build: 'medio' },
   caipira: { ...base, name: 'Dançarino', skin: '#d9a07a', hair: '#3b2a20', hairStyle: 'curto', shirt: '#d64545', pants: '#3f5a8a', accessory: 'chapeu', accessoryColor: '#e9c46a', beard: 'rala', beardColor: '#3b2a20' },
   caipira2: { ...base, name: 'Dançarina', skin: '#e8b48f', hair: '#5a3a24', hairStyle: 'rabo', shirt: '#ff8fb1', pants: '#ff8fb1', accessory: 'chapeu', accessoryColor: '#e9c46a', lashes: true, build: 'magro' },
+  vendedora: { ...base, name: 'Vendedora', skin: '#e8b48f', hair: '#2a1a14', hairStyle: 'coque', eyes: '#3a2a1e', shirt: '#6c9cff', pants: '#3b3f5c', lashes: true, build: 'medio' },
+  padre: { ...base, name: 'Padre', skin: '#f0c8a8', hair: '#d8d0c8', hairStyle: 'curto', eyes: '#3a2a1e', shirt: '#2a2a34', pants: '#2a2a34' },
+  porteiro: { ...base, name: 'Porteiro', skin: '#c88a5a', hair: '#1c1414', hairStyle: 'raspado', eyes: '#3a2a1e', shirt: '#3f7fd6', pants: '#2a2a3a', beard: 'rala', beardColor: '#1c1414' },
 };

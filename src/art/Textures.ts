@@ -4,6 +4,7 @@ import { generateExtraTextures } from './TexturesExtra';
 import { generateFoodTextures } from './TexturesFood';
 import { generateTrailTextures } from './TexturesTrail';
 import { generateFarmTextures } from './TexturesFarm';
+import { generateCityTextures } from './TexturesCity';
 
 /**
  * Toda a arte do jogo é gerada aqui, por código, no carregamento.
@@ -663,4 +664,5 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   generateFoodTextures(scene);
   generateTrailTextures(scene);
   generateFarmTextures(scene);
+  generateCityTextures(scene);
 }

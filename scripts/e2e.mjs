@@ -400,6 +400,82 @@ try {
   await page.waitForFunction(() => window.__game.scene.isActive('Result'), null, { timeout: 6000 }).catch(() => undefined);
   check('Pedido de namoro aceito leva ao resultado', (await activeScenes()).includes('Result'));
 
+  // ---------------------------------------------------------------- MEDALHA (Juliana sozinha)
+  const ML = 'MedalLevel';
+  const ms = (f) => evalG(f);
+  await startScene(ML, { levelId: 'medal' });
+  await shot('20a-medalha-intro');
+  await press('KeyF');
+  await press('KeyK');
+  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'walk', null, { timeout: 5000 }).catch(() => undefined);
+  await ms(() => { window.__game.scene.getScene('MedalLevel').invuln = 99; });
+  await page.keyboard.down('ArrowRight');
+  await wait(1400);
+  await page.keyboard.up('ArrowRight');
+  check('Juliana anda pela calçada', (await ms(() => window.__game.scene.getScene('MedalLevel').dist)) > 40);
+  // sinal vermelho: empurra de volta; no verde, atravessa
+  await ms(() => { const s = window.__game.scene.getScene('MedalLevel'); const c = s.crossings[0]; s.dist = c.at - 30 - 150 - 12; s.invuln = 99; });
+  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').crossings[0].spawned, null, { timeout: 5000 }).catch(() => undefined);
+  await ms(() => { const c = window.__game.scene.getScene('MedalLevel').crossings[0]; c.red = true; c.t = 9; });
+  await shot('20b-medalha-sinal');
+  await page.keyboard.down('ArrowRight');
+  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').infractions > 0, null, { timeout: 8000 }).catch(() => undefined);
+  await page.keyboard.up('ArrowRight');
+  check('Sinal vermelho: ela volta pra calçada', (await ms(() => window.__game.scene.getScene('MedalLevel').infractions)) >= 1);
+  await ms(() => { const c = window.__game.scene.getScene('MedalLevel').crossings[0]; c.red = false; c.t = 9; });
+  await page.keyboard.down('ArrowRight');
+  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').crossings[0].counted, null, { timeout: 10000 }).catch(() => undefined);
+  await page.keyboard.up('ArrowRight');
+  check('Atravessa no sinal verde', (await ms(() => window.__game.scene.getScene('MedalLevel').crossOk)) === 1);
+  // loja: escolher a medalha certa
+  await ms(() => { const s = window.__game.scene.getScene('MedalLevel'); s.dist = 99999; });
+  await page.waitForFunction(() => { const s = window.__game.scene.getScene('MedalLevel'); return s.dist < 99999 && s.stops[0].spawned; }, null, { timeout: 5000 }).catch(() => undefined);
+  await press('KeyK');
+  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'shop', null, { timeout: 5000 }).catch(() => undefined);
+  await shot('20c-medalha-loja');
+  await ms(() => { const s = window.__game.scene.getScene('MedalLevel'); s.sel = s.shopOrder.indexOf(1); });
+  await press('KeyK');
+  check('Medalha errada: não compra', (await ms(() => window.__game.scene.getScene('MedalLevel').wrongPicks)) === 1);
+  await ms(() => { const s = window.__game.scene.getScene('MedalLevel'); s.sel = s.shopOrder.indexOf(0); });
+  await press('KeyK');
+  check('Escolhe a medalha de São Bento', await ms(() => window.__game.scene.getScene('MedalLevel').tasks.isDone('medal')));
+  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'walk', null, { timeout: 6000 }).catch(() => undefined);
+  // igreja: segurar K até o sino tocar 3 vezes
+  await ms(() => { const s = window.__game.scene.getScene('MedalLevel'); s.dist = 99999; });
+  await page.waitForFunction(() => { const s = window.__game.scene.getScene('MedalLevel'); return s.dist < 99999 && s.stops[1].spawned; }, null, { timeout: 5000 }).catch(() => undefined);
+  await press('KeyK');
+  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'bless', null, { timeout: 5000 }).catch(() => undefined);
+  await page.keyboard.down('KeyK');
+  await wait(1200);
+  await shot('20d-medalha-bencao');
+  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').tasks.isDone('bless'), null, { timeout: 12000 }).catch(() => undefined);
+  await page.keyboard.up('KeyK');
+  check('Medalha abençoada na igreja', await ms(() => window.__game.scene.getScene('MedalLevel').tasks.isDone('bless')));
+  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'walk', null, { timeout: 6000 }).catch(() => undefined);
+  // papelaria: setas na ordem
+  await ms(() => { const s = window.__game.scene.getScene('MedalLevel'); s.dist = 99999; });
+  await page.waitForFunction(() => { const s = window.__game.scene.getScene('MedalLevel'); return s.dist < 99999 && s.stops[2].spawned; }, null, { timeout: 5000 }).catch(() => undefined);
+  await press('KeyK');
+  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'wrap', null, { timeout: 5000 }).catch(() => undefined);
+  const seq = await ms(() => window.__game.scene.getScene('MedalLevel').seq);
+  const arrowKey = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
+  for (let i = 0; i < seq.length; i++) {
+    await press(arrowKey[seq[i]], 40);
+    await page.waitForFunction((n) => window.__game.scene.getScene('MedalLevel').seqIdx >= n, i + 1, { timeout: 3000 }).catch(() => undefined);
+    if (i === 2) await shot('20e-medalha-embrulho');
+  }
+  check('Presente embrulhado', await ms(() => window.__game.scene.getScene('MedalLevel').tasks.isDone('wrap')));
+  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'walk', null, { timeout: 6000 }).catch(() => undefined);
+  // portaria do prédio dele
+  await ms(() => { const s = window.__game.scene.getScene('MedalLevel'); s.dist = 99999; });
+  await page.waitForFunction(() => { const s = window.__game.scene.getScene('MedalLevel'); return s.dist < 99999 && s.stops[3].spawned; }, null, { timeout: 5000 }).catch(() => undefined);
+  await shot('20f-medalha-predio');
+  await press('KeyK');
+  await wait(1600);
+  await shot('20g-medalha-portaria');
+  await page.waitForFunction(() => window.__game.scene.isActive('Result'), null, { timeout: 12000 }).catch(() => undefined);
+  check('Entregar a medalha leva ao resultado', (await activeScenes()).includes('Result'));
+
   // ---------------------------------------------------------------- MOTO (pão)
   const M = 'MotoLevel';
   await startScene(M, { levelId: 'bread' });
@@ -420,13 +496,15 @@ try {
   await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = s.cfg.total * 0.2; s.invuln = 99; });
   await page.waitForFunction(() => { const s = window.__game.scene.getScene('MotoLevel'); const o = s.objs.find((x) => x.kind === 'spot'); return o && o.x < s.mx + 160; }, null, { timeout: 5000 });
   await shot('21-moto');
-  await press('KeyK');
+  check('Pão de Moto: só o João na moto', (await evalG(() => window.__game.scene.getScene('MotoLevel').riders[0].visible)) === false);
+  await page.waitForFunction(() => !!window.__game.scene.getScene('MotoLevel').stopWait, null, { timeout: 8000 }).catch(() => undefined);
+  await press('KeyF');
   await wait(200);
   const photos = await evalG(() => window.__game.scene.getScene('MotoLevel').photos);
-  check('Parada na padaria: Juliana compra o pão', photos === 1 && (await evalG(() => window.__game.scene.getScene('MotoLevel').breadOn)), `paradas=${photos}`);
+  check('Parada na padaria: o João compra o pão', photos === 1 && (await evalG(() => window.__game.scene.getScene('MotoLevel').breadOn)), `paradas=${photos}`);
   await evalG(() => { window.__game.scene.getScene('MotoLevel').catchT = 1.2; });
-  await press('KeyK');
-  check('Juliana segura o pão que pulou', (await evalG(() => window.__game.scene.getScene('MotoLevel').catches)) === 1);
+  await press('KeyF');
+  check('O João segura o pão que pulou', (await evalG(() => window.__game.scene.getScene('MotoLevel').catches)) === 1);
   await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = s.cfg.total; });
   await wait(3200);
   check('Entregar o pão à noite leva ao resultado', (await activeScenes()).includes('Result'));

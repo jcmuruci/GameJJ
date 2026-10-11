@@ -36,7 +36,8 @@ O mapa é uma linha do tempo, mês a mês. Cada capítulo abre com uma cena de h
 | Jul 2025 | **O Rapel** | tutorial ao pé da **Pedra Grande, em Caeté**; o rapel desce do topo da pedrona |
 | Jan 2026 | **Escalada e Mirante** | academia de escalada **indoor** (segurança em dupla, agarras soltas caindo) e depois o mirante |
 | Fev 2026 | **Cânion e Lavras Novas** | paredões de rocha, quedas d'água, **borrachudos** (a magia dela é o repelente) e as casinhas coloridas |
-| Mar 2026 | **O Pão de Moto** | **à noite**: pão na padaria, **carne de lata da família** e direto pro condomínio dela; o pão esfria e pula da sacola. Ganha a **medalha de São Bento** |
+| Mar 2026 | **A Medalha de São Bento** | **só a Juliana joga**: atravessa a cidade (sinal verde, pombos, poças), escolhe a medalha na loja, benze na igreja, embrulha na papelaria e entrega no prédio dele; o João só torce do sofá. Ganha a **medalha de São Bento** |
+| Mar 2026 | **O Pão de Moto** | **só o João joga**, **à noite**: pão na padaria, **carne de lata da família** e direto pro condomínio dela; o pão esfria e pula da sacola. Depois dessa noite, voltam a ficar juntos |
 | Abr 2026 | **Pico do Itacolomi** | rajadas de vento e gralhas; sentados no **arco de pedra**, o resto do poema e o **pedido de namoro** |
 | Mai 2026 | **O Italiano** | cozinha do restaurante; no meio do jantar, **as alianças entregues com um abraço** |
 | Jun 2026 | **Juiz de Fora e Festa Junina** | **pescaria**: ela lança, fisga e recolhe; ele afrouxa a linha e pega com o puçá; os pais comentam. À noite, **quadrilha** no arraiá de BH |
