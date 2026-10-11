@@ -24,6 +24,7 @@ const NPC: Partial<Record<Speaker, { tex: string; frame?: number; name: string; 
   nimbo: { tex: 'boss', name: 'Nimbo', color: '#d8d8e8', scale: 3, y: 130 },
   mae: { tex: 'nest', name: 'Mamãe Jacaré', color: '#b8e8a0', scale: 5, y: 240 },
   vovo: { tex: 'portrait_mae', name: 'Vovó Rosa', color: '#d8c8e8', scale: 4, y: 256 },
+  poema: { tex: 'item_poem', name: 'Poema do {p1}', color: '#ffd6e4', scale: 9, y: 200 },
 };
 
 /** Decoração de fundo de cada capítulo. */
@@ -205,8 +206,11 @@ export class StoryScene extends Phaser.Scene {
       this.nameTag.lineStyle(3, 0x2a1d2e, 1).strokeRoundedRect(60, GAME_H - 184, w, 32, 10);
     }
     this.body.setText('');
-    this.body.setColor(l.who === 'n' ? '#d8c8e8' : '#fff4e0');
-    this.body.setFontStyle(l.who === 'n' ? 'italic' : 'normal');
+    // estrofes do poema: letra menor para caber os quatro versos
+    const verse = l.who === 'poema';
+    this.body.setFontSize(verse ? 17 : 20).setLineSpacing(verse ? 3 : 6).setAlign(verse ? 'left' : 'center');
+    this.body.setColor(l.who === 'n' ? '#d8c8e8' : verse ? '#ffe6ef' : '#fff4e0');
+    this.body.setFontStyle(l.who === 'n' || verse ? 'italic' : 'normal');
     const mood = moodOf(this.full);
     this.portraits.forEach((p, i) => {
       const active = l.who === i;

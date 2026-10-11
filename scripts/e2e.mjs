@@ -611,6 +611,13 @@ try {
   await wait(1800);
   await shot('26-story-anime');
   check('Cena de história abre', (await activeScenes()).includes('Story'));
+  // as oito estrofes na véspera da trilha
+  await startScene('Story', { id: 'itacolomi', next: 'Map' });
+  await page.waitForFunction(() => !window.__game.scene.getScene('Story').titleCard, null, { timeout: 6000 }).catch(() => undefined);
+  await evalG(() => { const s = window.__game.scene.getScene('Story'); s.idx = 2; s.showLine(); s.shown = s.full.length; s.body.setText(s.full); });
+  await wait(400);
+  await shot('26b-poema-estrofe');
+  check('Poema: primeira estrofe na história', (await evalG(() => window.__game.scene.getScene('Story').full)).startsWith('Juliana tem jeito de lar'));
 
   // ---------------------------------------------------------------- AMAZÔNIA
   await startScene('AmazonLevel', { levelId: 'amazon' });

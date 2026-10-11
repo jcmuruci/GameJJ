@@ -1,8 +1,10 @@
+import { POEM_FIRST } from './poem';
+
 /**
  * Diálogos da história. {p1} e {p2} viram os nomes dos personagens.
  * who: 0 = Jogador 1 (João), 1 = Jogador 2 (Juliana), 'n' = narração, e personagens secundários.
  */
-export type Speaker = 0 | 1 | 'n' | 'nimbo' | 'vovo' | 'mae' | 'paiJ' | 'maeJ' | 'garcom' | 'avestruz';
+export type Speaker = 0 | 1 | 'n' | 'poema' | 'nimbo' | 'vovo' | 'mae' | 'paiJ' | 'maeJ' | 'garcom' | 'avestruz';
 
 export interface Line {
   who: Speaker;
@@ -62,16 +64,17 @@ export const STORY: Record<string, Line[]> = {
     { who: 'n', text: 'Depois daquela noite, eles voltaram a ficar juntos. ♥' },
   ],
   itacolomi: [
-    { who: 'n', text: 'Abril de 2026. Viagem de moto e trilha a pé até o Pico do Itacolomi.' },
-    { who: 'n', text: 'Dias antes, ele tinha entregado a ela um poema... incompleto.' },
-    { who: 1, text: 'Ainda tô pensando naquele poema. Por que ele termina no meio?!' },
+    { who: 'n', text: 'Abril de 2026. Viagem de moto até o Pico do Itacolomi.' },
+    { who: 'n', text: 'Na noite anterior à trilha, ele entregou a ela um poema de oito estrofes...' },
+    ...POEM_FIRST.map((stanza): Line => ({ who: 'poema', text: stanza.join('\n') })),
+    { who: 1, text: 'Oito estrofes lindas... e termina assim, sem final?!' },
     { who: 0, text: 'Vai ver o final ainda não foi escrito...' },
     { who: 1, text: 'Você tá quieto hoje... tá tudo bem?' },
     { who: 0, text: 'Eu? Tô ótimo! É só o cansaço da subida.' },
-    { who: 'n', text: '(No bolso dele: o resto do poema e uma pergunta muito importante.)' },
+    { who: 'n', text: '(No bolso dele: a nona estrofe e uma pergunta muito importante.)' },
   ],
   itacolomi_end: [
-    { who: 1, text: 'O poema finalmente terminou... e o último verso era um pedido. ♥' },
+    { who: 1, text: 'O poema finalmente terminou... e a nona estrofe virou um pedido. ♥' },
     { who: 1, text: 'Lá em cima do Itacolomi, eu disse SIM!' },
     { who: 0, text: 'A vista mais bonita do pico era você sorrindo.' },
     { who: 'n', text: 'Abril de 2026: o começo oficial do namoro. ♥' },
