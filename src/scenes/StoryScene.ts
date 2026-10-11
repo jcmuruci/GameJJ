@@ -35,8 +35,8 @@ const DECOR: Record<string, [string, number, number, number][]> = {
   climb: [['mirante', 480, 110, 4]],
   canyon: [['waterfall', 380, 170, 3], ['house_c0', 560, 160, 2.2], ['house_c2', 660, 170, 2]],
   bread: [['bakery', 400, 150, 3], ['item_lata', 600, 170, 5], ['moto', 480, 360, 4]],
-  medal: [['church', 300, 200, 3], ['item_medal', 620, 300, 6]],
-  medal_end: [['predio', 480, 170, 3], ['gift', 380, 340, 4], ['item_medal', 580, 340, 5]],
+  medal: [['shop_rel', 300, 200, 3], ['item_medal', 620, 300, 6]],
+  medal_end: [['moto', 340, 330, 4], ['gift', 480, 330, 4], ['item_poem', 600, 330, 5]],
   bread_end: [['condo', 480, 150, 3], ['item_bread', 440, 330, 5], ['item_lata', 530, 330, 5]],
   itacolomi: [['itacolomi', 480, 170, 3]],
   itacolomi_end: [['itacolomi', 480, 170, 3]],
@@ -46,6 +46,8 @@ const DECOR: Record<string, [string, number, number, number][]> = {
   roca: [['porteira', 300, 200, 1.2], ['moto', 480, 340, 4], ['cow', 680, 330, 4]],
   roca_end: [['farmhouse', 480, 160, 3], ['duck', 640, 330, 4]],
   topo: [['paraglider', 360, 100, 3], ['paraglider', 620, 70, 2.4], ['takeoff_ramp', 480, 250, 4], ['windsock', 680, 240, 3]],
+  volta: [['moto', 480, 340, 4], ['big_rock', 680, 150, 2], ['tree_ipe', 260, 180, 3]],
+  volta_end: [['moto', 480, 340, 4], ['house_c2', 680, 160, 3]],
   lapinha: [['waterfall', 480, 170, 3], ['big_rock', 330, 300, 2], ['big_rock', 640, 300, 1.6]],
   farm: [['farmhouse', 480, 150, 3], ['goat', 330, 350, 4], ['horse', 640, 350, 3]],
   farm_end: [['pedalinho', 480, 330, 4]],
@@ -147,7 +149,7 @@ export class StoryScene extends Phaser.Scene {
     if (id === 'storm') return 'boss';
     if (id === 'ending' || id.endsWith('_end')) return 'ending';
     if (id.startsWith('amazon')) return 'jungle';
-    if (id === 'bread' || id === 'roca') return 'road';
+    if (id === 'bread' || id === 'roca' || id === 'volta') return 'road';
     if (id === 'junina') return 'festival';
     if (id === 'italiano') return 'kitchen';
     return 'map';

@@ -13,7 +13,7 @@ import { attachPilot } from '../../systems/autopilot';
 /**
  * Jun/2026 — Juiz de Fora: a Juliana aprende a pescar no lago, com os pais do João olhando.
  * Juliana lança (AÇÃO na força certa), fisga quando a boia afunda e recolhe a linha (AÇÃO).
- * João afrouxa a linha quando o peixe briga (segura HABILIDADE) e pega com o puçá (AÇÃO no tempo certo).
+ * João afrouxa a linha quando o peixe briga (segura HABILIDADE) e pega o peixe com a rede (AÇÃO quando o círculo fica verde).
  * À noite, festa junina em BH: quadrilha com os comandos do marcador.
  */
 
@@ -34,20 +34,23 @@ const WATER_Y = 300;
 const PIER_END = 340;
 const FISH_TIME = 150;
 
-/** Comandos da quadrilha: o que os dois precisam apertar. */
-export const CALLS: { call: string; need: 'action' | 'ability' | 'up' | 'right' | 'none'; hint: string }[] = [
-  { call: 'BALANCÊ!', need: 'action', hint: 'os dois: AÇÃO' },
-  { call: 'ANARRIÊ!', need: 'ability', hint: 'os dois: HABILIDADE' },
-  { call: 'OLHA A COBRA!', need: 'up', hint: 'os dois: pulem (CIMA)' },
-  { call: 'É MENTIRA!', need: 'none', hint: 'ninguém aperta nada!' },
-  { call: 'CAMINHO DA ROÇA!', need: 'right', hint: 'os dois: DIREITA' },
-  { call: 'OLHA A CHUVA!', need: 'up', hint: 'os dois: pulem (CIMA)' },
-  { call: 'É MENTIRA!', need: 'none', hint: 'ninguém aperta nada!' },
-  { call: 'BALANCÊ!', need: 'action', hint: 'os dois: AÇÃO' },
+type Dir = 'up' | 'down' | 'left' | 'right';
+/** Comandos da quadrilha: a seta que os dois precisam apertar (ou nada, se for mentira). */
+export const CALLS: { call: string; need: Dir | 'none'; hint: string }[] = [
+  { call: 'BALANCÊ!', need: 'left', hint: 'balança pro lado' },
+  { call: 'CAMINHO DA ROÇA!', need: 'right', hint: 'todo mundo pra frente' },
+  { call: 'OLHA A COBRA!', need: 'up', hint: 'pula!' },
+  { call: 'É MENTIRA!', need: 'none', hint: 'era mentira: ninguém aperta nada!' },
+  { call: 'OLHA A CHUVA!', need: 'down', hint: 'se abaixa!' },
+  { call: 'ANARRIÊ!', need: 'left', hint: 'volta pro lugar' },
+  { call: 'É MENTIRA!', need: 'none', hint: 'não caiam nessa: ninguém aperta nada!' },
+  { call: 'CAMINHO DA ROÇA!', need: 'right', hint: 'todo mundo pra frente' },
 ];
+const ARROW: Record<Dir, string> = { up: '↑', down: '↓', left: '←', right: '→' };
+const WASD: Record<Dir, string> = { up: 'W', down: 'S', left: 'A', right: 'D' };
 
 const DAD_LINES = ['Puxa devagar, {p2}!', 'Isso! Deixa ele cansar!', 'Aprendeu rapidinho, hein!', 'Esse lago tem traíra brava, cuidado!', 'Lança mais longe que lá tem peixe grande!'];
-const MOM_LINES = ['Que moça boa de pescaria!', 'Tira foto pra mandar pra família!', '{p1}, segura esse puçá direito!', 'Vou fritar esses peixes pro almoço!', 'Vocês dois juntos dão gosto de ver.'];
+const MOM_LINES = ['Que moça boa de pescaria!', 'Tira foto pra mandar pra família!', '{p1}, segura essa rede direito!', 'Vou fritar esses peixes pro almoço!', 'Vocês dois juntos dão gosto de ver.'];
 
 export class FishingLevel extends Phaser.Scene {
   info!: LevelInfo;
@@ -91,6 +94,7 @@ export class FishingLevel extends Phaser.Scene {
   /** Pequena pausa antes de poder lançar (o "pronto" não vira lançamento). */
   private aimGrace = 0;
   private callText: Phaser.GameObjects.Text | null = null;
+  private callArrow: Phaser.GameObjects.Graphics | null = null;
 
   constructor() {
     super('FishingLevel');
@@ -110,6 +114,7 @@ export class FishingLevel extends Phaser.Scene {
     this.bigCatch = false;
     this.callIdx = 0;
     this.callText = null;
+    this.callArrow = null;
     this.nightLayer = [];
     this.chatT = 8;
     this.tasks = null;
@@ -186,7 +191,7 @@ export class FishingLevel extends Phaser.Scene {
       toast: txt(this, GAME_W / 2, 130, '', 20, { color: '#ffd25e' }).setDepth(102).setAlpha(0),
     };
     const help = [
-      `${this.names[0]}: segura ${KEY_LABELS[0].ability} = afrouxa a linha · ${KEY_LABELS[0].action} = puçá`,
+      `${this.names[0]}: segura ${KEY_LABELS[0].ability} = afrouxa a linha · ${KEY_LABELS[0].action} = rede`,
       `${this.names[1]}: ${KEY_LABELS[1].action} = lançar, fisgar e recolher`,
     ];
     help.forEach((h, i) => txt(this, i === 0 ? 20 : GAME_W - 20, GAME_H - 18, h, 13, { origin: [i === 0 ? 0 : 1, 0.5], color: i === 0 ? '#bfe6ff' : '#ffd6e4', bold: false }).setDepth(101));
@@ -225,8 +230,8 @@ export class FishingLevel extends Phaser.Scene {
     objs.push(txt(this, GAME_W / 2, y0 + 32, 'Pescaria em Juiz de Fora', 28, { color: '#9ce8ff' }).setDepth(201));
     const lines: [string, string, string][] = [
       [`${this.names[1]} pesca`, `${KEY_LABELS[1].action} na força certa para lançar · ${KEY_LABELS[1].action} quando a boia afundar · ${KEY_LABELS[1].action} sem parar para recolher`, '#ffd6e4'],
-      [`${this.names[0]} ajuda`, `Quando o peixe brigar, SEGURA ${KEY_LABELS[0].ability} para afrouxar a linha · ${KEY_LABELS[0].action} com o puçá quando o peixe pular`, '#bfe6ff'],
-      ['À noite', 'Festa junina em BH: sigam os comandos da quadrilha!', '#ffd25e'],
+      [`${this.names[0]} ajuda`, `Quando o peixe brigar, SEGURA ${KEY_LABELS[0].ability} para afrouxar a linha · ${KEY_LABELS[0].action} com a rede quando o peixe pular perto do pier (círculo verde)`, '#bfe6ff'],
+      ['À noite', `Quadrilha em BH: apertem a SETA que aparecer (${this.names[0]}: W A S D · ${this.names[1]}: setas)`, '#ffd25e'],
     ];
     lines.forEach(([a, b, c], i) => {
       objs.push(txt(this, GAME_W / 2, y0 + 80 + i * 62, a, 17, { color: c }).setDepth(201));
@@ -246,7 +251,7 @@ export class FishingLevel extends Phaser.Scene {
           this.tasks = new TaskList(this, 12, 12, [
             { id: 'fish', text: 'Pescar peixes', goal: 5 },
             { id: 'big', text: 'Pegar um peixe brigão' },
-            { id: 'net', text: `Puçá certeiro do ${this.names[0]}`, goal: 3 },
+            { id: 'net', text: `Rede certeira do ${this.names[0]}`, goal: 3 },
             { id: 'dance', text: 'Dançar a quadrilha (acertos)', goal: 5 },
           ]);
           this.tasks.container.setDepth(150);
@@ -335,7 +340,7 @@ export class FishingLevel extends Phaser.Scene {
   private land(): void {
     this.state = 'land';
     this.ringT = 1.1;
-    this.ui.hint.setText(`${this.names[0]}: ${KEY_LABELS[0].action} com o puçá quando o círculo ficar pequeno!`);
+    this.ui.hint.setText(`${this.names[0]}: ${KEY_LABELS[0].action} com a rede quando o círculo ficar VERDE!`);
     Audio.play('splash');
   }
 
@@ -359,7 +364,7 @@ export class FishingLevel extends Phaser.Scene {
     this.tweens.add({ targets: card, scale: 1, duration: 240, ease: 'Back.Out' });
     this.tweens.add({ targets: card, alpha: 0, delay: 1300, duration: 300, onComplete: () => card.destroy() });
     if (this.firstCatch) { this.firstCatch = false; this.bubble(this.chars[1], 'Meu primeiro peixe!!! ♥', '#ffd6e4', 2200); }
-    else this.bubble(this.chars[0], Phaser.Utils.Array.GetRandom(['Peguei! Puçá certeiro!', 'Que dupla!', 'Esse vai pra frigideira!']), '#bfe6ff');
+    else this.bubble(this.chars[0], Phaser.Utils.Array.GetRandom(['Peguei com a rede!', 'Que dupla!', 'Esse vai pra frigideira!']), '#bfe6ff');
     this.time.delayedCall(500, () => this.bubble(this.parents[0], f.sp.strength >= 1.3 ? 'Que peixão!!!' : 'Isso aí!', '#d8f0c0'));
     // o peixe vai pro balde e nasce outro no lago
     f.img.destroy();
@@ -388,9 +393,11 @@ export class FishingLevel extends Phaser.Scene {
       const fire = this.add.sprite(GAME_W / 2, 300, 'fire', 0).setScale(5).setDepth(45).play('fire-anim');
       this.nightLayer.push(fire);
       this.nightLayer.push(txt(this, GAME_W / 2, 76, 'ARRAIÁ DE BH', 24, { color: '#ffd25e' }).setDepth(46));
-      this.callText = txt(this, GAME_W / 2, 178, '', 44, { color: '#ffd6e4', strokeW: 8 }).setDepth(60);
+      this.callText = txt(this, GAME_W / 2, 150, '', 40, { color: '#ffd6e4', strokeW: 8 }).setDepth(60);
       this.nightLayer.push(this.callText);
-      this.ui.hint.setY(228);
+      this.callArrow = this.add.graphics().setDepth(60);
+      this.nightLayer.push(this.callArrow);
+      this.ui.hint.setY(262);
       this.chars.forEach((c, i) => c.setPosition(GAME_W / 2 + (i ? 120 : -120), 420).setDepth(50).setFlipX(i === 0).setFrame(charFrame('side', 0)));
       this.parents.forEach((p) => p.setVisible(false));
       this.fishes.forEach((f) => f.img.setVisible(false));
@@ -404,13 +411,34 @@ export class FishingLevel extends Phaser.Scene {
   private nextCall(): void {
     if (this.callIdx >= CALLS.length) { this.finish(); return; }
     const c = CALLS[this.callIdx];
-    this.callWin = 1.6;
+    this.callWin = 2.2;
     this.callPressed = [false, false];
     this.callWrong = false;
     Audio.play('bell');
     this.callText?.setText(c.call).setScale(1.4).setAlpha(1);
     if (this.callText) this.tweens.add({ targets: this.callText, scale: 1, duration: 260, ease: 'Back.Out' });
-    this.ui.hint.setText(c.hint);
+    this.drawCallArrow(c.need);
+    this.ui.hint.setText(c.need === 'none'
+      ? `${c.hint}`
+      : `${c.hint}: ${this.names[0]} aperta ${KEY_LABELS[0].move === 'W A S D' ? WASD[c.need] : ARROW[c.need]} · ${this.names[1]} aperta ${ARROW[c.need]}`);
+  }
+
+  /** Seta grande do passo (ou um X quando é mentira). */
+  private drawCallArrow(need: Dir | 'none'): void {
+    const g = this.callArrow;
+    if (!g) return;
+    g.clear();
+    const x = GAME_W / 2;
+    const y = 212;
+    g.fillStyle(0x1b1424, 0.75).fillRoundedRect(x - 40, y - 34, 80, 68, 14).lineStyle(3, 0xffd25e, 1).strokeRoundedRect(x - 40, y - 34, 80, 68, 14);
+    if (need === 'none') {
+      g.lineStyle(9, 0xff7a7a, 1).lineBetween(x - 18, y - 18, x + 18, y + 18).lineBetween(x + 18, y - 18, x - 18, y + 18);
+      return;
+    }
+    const ang = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 }[need];
+    const rot = (dx: number, dy: number) => ({ x: x + dx * Math.cos(ang) - dy * Math.sin(ang), y: y + dx * Math.sin(ang) + dy * Math.cos(ang) });
+    const pts = [rot(26, 0), rot(2, -22), rot(2, -9), rot(-24, -9), rot(-24, 9), rot(2, 9), rot(2, 22)];
+    g.fillStyle(0xffd25e, 1).fillPoints(pts, true);
   }
 
   private resolveCall(): void {
@@ -428,6 +456,7 @@ export class FishingLevel extends Phaser.Scene {
       this.ui.hint.setText(c.need === 'none' ? 'Caíram na mentira! Hahaha' : 'Errou o passo... próxima!');
     }
     this.callIdx++;
+    this.callArrow?.clear();
     this.time.delayedCall(900, () => this.nextCall());
   }
 
@@ -489,10 +518,10 @@ export class FishingLevel extends Phaser.Scene {
         if (p1.actionPressed) {
           const r = this.ringT / 1.1;
           if (r > 0.12 && r < 0.45) this.catchFish();
-          else { this.bubble(this.chars[0], 'Ixi, errei o puçá!', '#bfe6ff', 1200); this.backToReel(); }
+          else { this.bubble(this.chars[0], 'Ixi, errei a rede!', '#bfe6ff', 1200); this.backToReel(); }
           break;
         }
-        if (this.ringT <= 0) { this.bubble(this.chars[0], 'Ixi, escapou do puçá!', '#bfe6ff', 1200); this.backToReel(); }
+        if (this.ringT <= 0) { this.bubble(this.chars[0], 'Ixi, escapou da rede!', '#bfe6ff', 1200); this.backToReel(); }
         break;
     }
     this.drawLine();
@@ -583,13 +612,22 @@ export class FishingLevel extends Phaser.Scene {
     if (this.state === 'land' && this.hooked) {
       const r = this.ringT / 1.1;
       g.lineStyle(3, r > 0.12 && r < 0.45 ? 0x8be07a : 0xfff4e0, 1).strokeCircle(PIER_END + 30, WATER_Y - 30, 8 + r * 50);
+      // a rede de pesca na mão do João (cabo + aro + malha)
+      const j = this.chars[0];
+      const nx = PIER_END + 26;
+      const ny = WATER_Y - 22;
+      g.lineStyle(3, 0x8a5a34, 1).lineBetween(j.x + 14, j.y - 42, nx - 10, ny - 6);
+      g.lineStyle(2, 0xd8d8e0, 1).strokeEllipse(nx, ny, 22, 12);
+      g.lineStyle(1, 0xd8d8e0, 0.7);
+      for (let k = -8; k <= 8; k += 4) g.lineBetween(nx + k, ny - 5, nx + k * 0.6, ny + 10);
+      g.lineBetween(nx - 8, ny + 4, nx + 8, ny + 4);
     }
   }
 
   private updateParty(dt: number, p1: typeof Input.players[0], p2: typeof Input.players[1]): void {
     if (this.callWin <= 0 || this.callIdx >= CALLS.length) return;
     const c = CALLS[this.callIdx];
-    const pressed = (p: typeof p1) => ({ action: p.actionPressed, ability: p.abilityPressed, up: p.upPressed, right: p.rightPressed, any: p.actionPressed || p.abilityPressed || p.upPressed || p.rightPressed || p.leftPressed || p.downPressed });
+    const pressed = (p: typeof p1) => ({ up: p.upPressed, down: p.downPressed, left: p.leftPressed, right: p.rightPressed, any: p.upPressed || p.rightPressed || p.leftPressed || p.downPressed });
     [p1, p2].forEach((p, i) => {
       const pr = pressed(p);
       if (!pr.any) return;

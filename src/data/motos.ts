@@ -32,10 +32,14 @@ export interface MotoConfig {
   night?: boolean;
   /** Só o piloto joga: ele mesmo buzina, faz as paradas e segura o pão (a garupa vazia; ela só torce). */
   solo?: boolean;
+  /** Chegada com cena: ela esperando na portaria do condomínio. */
+  arrival?: 'portaria';
   /** Em que ponto da viagem o pneu fura (conserto cooperativo). */
   flatTireAt?: number;
   /** Aviso depois do conserto do pneu. */
   repairText?: string;
+  /** Em que ponto a moto morre e só pega no tranco (os dois empurram). */
+  stallAt?: number;
   /** Lembrete na tela de resultado. */
   memory: string;
   /** Bicho que senta na estrada (buzina para sair). */
@@ -50,7 +54,7 @@ export interface MotoConfig {
   curves?: boolean;
   /**
    * Tarefas do capítulo. Ids: photos, warm (pão quentinho na entrega), catch (pegar o pão no pulo),
-   * repair (pneu), honk (bichos que saíram com a buzina), gates (porteiras fechadas), curves (curvas
+   * repair (pneu), pushstart (pegar no tranco), honk (bichos que saíram com a buzina), gates (porteiras fechadas), curves (curvas
    * equilibradas), arrive, e os ids próprios das paradas (spot.task).
    */
   tasks: ChapterTask[];
@@ -63,6 +67,7 @@ export const MOTOS: Record<string, MotoConfig> = {
     total: 13000,
     night: true,
     solo: true,
+    arrival: 'portaria',
     spots: [
       { at: 0.12, label: 'Padaria', decor: 'bakery', kind: 'stop', item: 'item_bread', doneText: 'Pão quentinho na sacola!', task: 'padaria' },
       { at: 0.48, label: 'Casa da família', decor: 'house_c3', kind: 'stop', item: 'item_lata', doneText: 'Carne de lata da família no pão!', task: 'lata' },
@@ -108,6 +113,31 @@ export const MOTOS: Record<string, MotoConfig> = {
       { id: 'curves', text: 'Equilibrar nas curvas', goal: 3 },
       { id: 'photos', text: 'Fotos da viagem', goal: 3 },
       { id: 'arrive', text: 'Chegar no restaurante da roça' },
+    ],
+  },
+  volta: {
+    title: 'A Volta da Lapinha',
+    subtitle: 'Estrada de terra de volta pra casa... e a moto morre no meio do caminho!',
+    total: 14000,
+    stallAt: 0.42,
+    spots: [
+      { at: 0.16, label: 'Serra no horizonte', decor: 'big_rock' },
+      { at: 0.62, label: 'Ipê florido na estrada', decor: 'tree_ipe' },
+      { at: 0.86, label: 'Vendinha da estrada', decor: 'farmhouse' },
+    ],
+    goalIcon: 'house_c2',
+    arriveText: 'Em casa, cheios de poeira e de histórias!',
+    finishTitle: 'Pegou no tranco!',
+    dirt: true,
+    memory: 'A moto morreu, mas pegou no tranco. Juntos a gente dá um jeito. ♥',
+    animal: 'cow',
+    mud: true,
+    curves: true,
+    tasks: [
+      { id: 'pushstart', text: 'Pegar a moto no tranco (empurrar juntos)' },
+      { id: 'curves', text: 'Equilibrar nas curvas', goal: 3 },
+      { id: 'photos', text: 'Fotos da volta', goal: 3 },
+      { id: 'arrive', text: 'Chegar em casa' },
     ],
   },
 };

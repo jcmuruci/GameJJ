@@ -209,9 +209,28 @@ export class TrailLevel extends PuzzleLevel {
         });
         break;
       }
-      case 'canyon':
+      case 'canyon': {
         scatter(this, rows, ['rock_small', 'rock_small', 'bromelia'], 0.06, seed);
+        // passarela suspensa: corrimão de corda e postes do lado do desfiladeiro, sombra sobre o abismo
+        const g = this.add.graphics().setDepth(-3);
+        rows.forEach((row, y) => {
+          for (let x = 1; x < row.length; x++) {
+            if (row[x - 1] !== 'd' || 'dr#'.includes(row[x])) continue;
+            const px = x * TILE;
+            g.fillStyle(0x000000, 0.28).fillRect(px - 6, y * TILE, 6, TILE);
+            g.lineStyle(1, 0xd8c08a, 1).lineBetween(px + 1, y * TILE, px + 1, (y + 1) * TILE);
+            g.lineStyle(1, 0x8a6a3a, 1).lineBetween(px + 2, y * TILE, px + 2, (y + 1) * TILE);
+            if (y % 2 === 0) g.fillStyle(0x5a3a24, 1).fillRect(px, y * TILE + 4, 3, 7).fillStyle(0x8a5a34, 1).fillRect(px, y * TILE + 4, 3, 2);
+          }
+        });
+        // névoa subindo do rio lá embaixo
+        const riverW = rows[20]?.lastIndexOf('r') ?? 0;
+        for (let i = 0; i < 8; i++) {
+          const m = this.add.ellipse(Phaser.Math.Between(TILE, (riverW + 1) * TILE), Phaser.Math.Between(8 * TILE, rows.length * TILE), 60, 20, 0xffffff, 0.08).setDepth(-2);
+          this.tweens.add({ targets: m, x: m.x + 30, alpha: 0.02, yoyo: true, repeat: -1, duration: Phaser.Math.Between(2500, 4500), ease: 'Sine.InOut' });
+        }
         break;
+      }
       case 'mountain':
         scatter(this, rows, ['rock_small', 'bromelia', 'bromelia'], 0.05, seed);
         break;
