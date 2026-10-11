@@ -27,6 +27,8 @@ export interface TrailConfig {
   event: 'rockfall' | 'swarm' | 'wind' | 'photos' | 'stones';
   /** Terreno próprio do cenário (ex.: '#' vira parede da academia, '^' vira parede de escalada). */
   terrain?: Record<string, number>;
+  /** Para onde a água rasa corre (px/s). */
+  waterFlow?: [number, number];
   /** Tile do paredão de rapel/escalada. */
   cliff?: number;
   /** Enfeites do cenário: academia indoor, cânion, montanha, Topo do Mundo. */
@@ -80,6 +82,8 @@ export const TRAILS: Record<string, TrailConfig> = {
   canyon: {
     map: CANYON_MAP,
     floor: T.ROCKY_GRASS,
+    // o córrego desce entre as pedras
+    waterFlow: [0, 9],
     // as placas são lidas de cima para baixo no mapa
     signs: [
       'Lavras Novas! As casinhas coloridas estão logo ali. Pisem juntos no coração.',

@@ -254,7 +254,7 @@ export class FarmLevel extends PuzzleLevel {
     if (ANIMALS[ch]) { const a = new Animal(this, ch, c.x, c.y); this.animals.push(a); this.interactables.push(a); return true; }
     if (ch === 'e') { this.ostrich = new Ostrich(this, c.x, c.y); this.interactables.push(this.ostrich); return true; }
     if (ch === 'q') {
-      this.layer.putTileAt(T.WATER, tx, ty);
+      this.setTile(T.WATER, tx, ty);
       this.ducks.push({ s: this.add.sprite(c.x, c.y, 'duck', 0).play('duck-swim').setDepth(c.y), vx: Phaser.Math.Between(-10, 10), vy: Phaser.Math.Between(-6, 6) });
       return true;
     }

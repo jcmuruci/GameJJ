@@ -368,7 +368,7 @@ class FishingSpot implements Interactable {
     const c = L.tileCenter(tx, ty);
     this.x = c.x;
     this.y = c.y;
-    L.layer.putTileAt(4, tx, ty);
+    L.setTile(4, tx, ty);
     L.add.image(c.x, c.y, 'dock').setDepth(-5);
     L.addSolid(tx, ty, this);
     this.bobber = L.add.image(c.x, c.y, 'bobber').setDepth(c.y + 2).setVisible(false);
@@ -628,6 +628,8 @@ export class KitchenLevel extends BaseLevel {
     this.dance = { t: 0, pressed: [-1, -1], next: 30 };
     this.guestT = 8;
     this.recipeBook = [];
+    this.bookEv = null;
+    this.bookSeen = new Set();
     for (const pq of this.cfg.plaques ?? []) plaque(this, pq.tx, pq.ty, pq.text);
     this.guests = (this.cfg.guests ?? []).map((g) => {
       const c = this.tileCenter(g.tx, g.ty);
@@ -812,7 +814,7 @@ export class KitchenLevel extends BaseLevel {
         hud.tweens.add({ targets: t, scale: { from: 1.6, to: 1 }, alpha: { from: 1, to: 0 }, duration: 580, onComplete: () => t.destroy() });
         if (i === 3) {
           this.started = true;
-          this.buildRecipeBook();
+          this.peekRecipeBook(9000);
           // painel de tarefas aparece quando a cozinha abre (sem cobrir o cardápio inicial)
           if (!this.tasks) this.tasks = new TaskList(hud, 12, 92, this.cfg.tasks.map((t) => ({ ...t, text: fillNames(t.text, this.names) })));
         }
@@ -820,34 +822,41 @@ export class KitchenLevel extends BaseLevel {
     });
   }
 
-  /** Painel "Receitas" no canto: o passo a passo de cada prato que pode ser pedido. */
+  /**
+   * Painel "Receitas" no canto. Recolhido, mostra só os pratos; abre com o passo a passo
+   * por alguns segundos no começo, quando um prato é desbloqueado e no primeiro pedido de cada prato.
+   */
   private recipeBook: Phaser.GameObjects.GameObject[] = [];
-  private buildRecipeBook(): void {
+  private bookEv: Phaser.Time.TimerEvent | null = null;
+  private bookSeen = new Set<RecipeId>();
+
+  private peekRecipeBook(ms = 8000): void {
+    this.bookEv?.remove();
+    this.buildRecipeBook(true);
+    this.bookEv = this.time.delayedCall(ms, () => { this.bookEv = null; this.buildRecipeBook(false); });
+  }
+
+  private buildRecipeBook(open: boolean): void {
     const hud = this.hud;
     if (!hud?.ready) return;
     this.recipeBook.forEach((o) => o.destroy());
     this.recipeBook = [];
-    const w = 330;
+    const w = 250;
     const x0 = GAME_W - w - 10;
     const y0 = 66;
-    const lines: { t: string; title: boolean; icons?: ItemKind[] }[] = [];
+    let y = y0 + 32;
     for (const r of this.active) {
       const rec = RECIPES[r];
-      lines.push({ t: rec.name, title: true, icons: rec.icons });
-      (rec.steps ?? [rec.how]).forEach((st, i) => lines.push({ t: `${i + 1}. ${fillNames(st, this.names)}`, title: false }));
-    }
-    let y = y0 + 32;
-    for (const l of lines) {
-      if (l.title) {
-        y += 4;
-        this.recipeBook.push(txt(hud, x0 + 12, y, l.t, 13, { origin: [0, 0.5], color: '#ffd6e4' }).setDepth(21));
-        l.icons?.forEach((k, i) => this.recipeBook.push(hud.add.image(x0 + w - 20 - i * 22, y, `item_${k}`).setScale(1.5).setDepth(21)));
-        y += 16;
-      } else {
-        const t = txt(hud, x0 + 18, y, l.t, 11, { origin: [0, 0], bold: false, wrap: w - 30 }).setDepth(21);
+      y += 4;
+      this.recipeBook.push(txt(hud, x0 + 12, y, rec.name, 13, { origin: [0, 0.5], color: '#ffd6e4' }).setDepth(21));
+      rec.icons?.forEach((k, i) => this.recipeBook.push(hud.add.image(x0 + w - 20 - i * 22, y, `item_${k}`).setScale(1.5).setDepth(21)));
+      y += 16;
+      if (!open) continue;
+      (rec.steps ?? [rec.how]).forEach((st, i) => {
+        const t = txt(hud, x0 + 18, y, `${i + 1}. ${fillNames(st, this.names)}`, 11, { origin: [0, 0], bold: false, wrap: w - 30 }).setDepth(21);
         this.recipeBook.push(t);
         y += t.height + 1;
-      }
+      });
     }
     const h = y - y0 + 8;
     const g = hud.add.graphics().setDepth(20);
@@ -919,6 +928,8 @@ export class KitchenLevel extends BaseLevel {
     this.buildOrderCard(o);
     this.layoutOrders();
     Audio.play('bell');
+    // primeiro pedido de um prato: abre o passo a passo dele
+    if (!this.bookSeen.has(recipe)) { this.bookSeen.add(recipe); if (this.started) this.peekRecipeBook(); }
   }
 
   private buildOrderCard(o: Order): void {
@@ -987,7 +998,7 @@ export class KitchenLevel extends BaseLevel {
       const r = this.cfg.unlocks[this.unlockIdx++].recipe;
       this.active.push(r);
       this.hud.banner('Novo prato!', `${RECIPES[r].name}: ${RECIPES[r].how}`, 2600);
-      this.buildRecipeBook();
+      this.peekRecipeBook();
       this.nextOrder = 1;
     }
 

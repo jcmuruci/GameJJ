@@ -3,6 +3,7 @@ import '@fontsource/pixelify-sans/400.css';
 import '@fontsource/pixelify-sans/700.css';
 import { GAME_W, GAME_H, RES } from './config';
 import { installHiRes } from './systems/HiRes';
+import { installPixelCorners } from './ui/pixelCorners';
 import { Save } from './systems/SaveManager';
 import { Input, KEY_LABELS } from './systems/InputManager';
 import { Admin } from './systems/Admin';
@@ -54,6 +55,7 @@ async function boot(): Promise<void> {
   }
 
   installHiRes();
+  installPixelCorners();
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'game',

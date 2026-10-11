@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H } from '../../config';
+import { GAME_W, GAME_H, TOAST_WRAP } from '../../config';
 import { LevelInfo, levelById } from '../../data/levels';
 import { Save } from '../../systems/SaveManager';
 import { Input, KEY_LABELS } from '../../systems/InputManager';
@@ -9,6 +9,8 @@ import { txt, panel, uiButton, fillNames } from '../../ui/text';
 import { isTouchDevice } from '../../systems/TouchControls';
 import { TaskList } from '../../ui/TaskList';
 import { attachPilot } from '../../systems/autopilot';
+import { Shadows } from '../../systems/Shadows';
+import { applyGrade } from '../../systems/Grade';
 
 /**
  * Jun/2026 — Juiz de Fora: a Juliana aprende a pescar no lago, com os pais do João olhando.
@@ -127,6 +129,8 @@ export class FishingLevel extends Phaser.Scene {
     this.chars = [0, 1].map((i) => this.add.sprite(i === 0 ? 236 : 300, 266, `char_${i}`, charFrame('side', 0)).setScale(3).setOrigin(0.5, 1).setFlipX(true).setDepth(20));
     // pais do João na margem
     this.parents = ['pai', 'mae'].map((k, i) => this.add.sprite(60 + i * 46, 262, `npc_${k}`, charFrame('down', 0)).setScale(3).setOrigin(0.5, 1).setDepth(15));
+    const shadows = new Shadows(this);
+    [...this.chars, ...this.parents].forEach((c) => shadows.add(c, 11, { alpha: 0.2 }));
     this.rodTip = { x: 352, y: 196 };
     this.line = this.add.graphics().setDepth(25);
     this.bobber = this.add.image(this.rodTip.x, this.rodTip.y, 'bobber').setScale(3).setDepth(26).setVisible(false);
@@ -136,6 +140,8 @@ export class FishingLevel extends Phaser.Scene {
     this.showIntro();
     Audio.music('festival');
     this.cameras.main.fadeIn(400, 27, 20, 36);
+    // a interface usa a mesma câmera: só a cor, sem vinheta
+    applyGrade(this, this.cameras.main, this.info.id, { vignette: false });
     attachPilot(this);
   }
 
@@ -188,7 +194,7 @@ export class FishingLevel extends Phaser.Scene {
       fish: txt(this, GAME_W / 2 + 70, 28, '', 18, { color: '#9ce8ff' }).setDepth(101),
       meter: this.add.graphics().setDepth(101),
       hint: txt(this, GAME_W / 2, 96, '', 18, { color: '#fff4e0', wrap: 760 }).setDepth(101),
-      toast: txt(this, GAME_W / 2, 130, '', 20, { color: '#ffd25e' }).setDepth(102).setAlpha(0),
+      toast: txt(this, GAME_W / 2, 130, '', 20, { color: '#ffd25e', wrap: TOAST_WRAP }).setDepth(102).setAlpha(0),
     };
     const help = [
       `${this.names[0]}: segura ${KEY_LABELS[0].ability} = afrouxa a linha · ${KEY_LABELS[0].action} = rede`,

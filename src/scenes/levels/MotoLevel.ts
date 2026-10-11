@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, ZOOM, RES } from '../../config';
+import { GAME_W, GAME_H, ZOOM, RES, TOAST_WRAP } from '../../config';
 import { LevelInfo, levelById } from '../../data/levels';
 import { MOTOS, MotoConfig, MotoSpot } from '../../data/motos';
 import { Save } from '../../systems/SaveManager';
@@ -11,6 +11,8 @@ import { isTouchDevice } from '../../systems/TouchControls';
 import { TaskList } from '../../ui/TaskList';
 import { attachPilot } from '../../systems/autopilot';
 import { Admin } from '../../systems/Admin';
+import { Shadows } from '../../systems/Shadows';
+import { applyGrade } from '../../systems/Grade';
 
 /**
  * Passeio de Moto Amarela — fase de estrada.
@@ -60,6 +62,7 @@ export class MotoLevel extends Phaser.Scene {
   private moto!: Phaser.GameObjects.Container;
   private riders: Phaser.GameObjects.Sprite[] = [];
   private shadow!: Phaser.GameObjects.Ellipse;
+  private shadows!: Shadows;
   private objs: Obj[] = [];
   private bolts: { img: Phaser.GameObjects.Image; x: number; y: number }[] = [];
   private mx = 120;
@@ -178,8 +181,10 @@ export class MotoLevel extends Phaser.Scene {
 
     this.world = this.add.layer();
     this.ui = this.add.layer();
+    this.shadows = new Shadows(this);
     const cam = this.cameras.main;
     cam.setZoom(ZOOM * RES).centerOn(W / 2, H / 2).setBackgroundColor('#7ccf5a');
+    applyGrade(this, cam, this.info.id);
     cam.ignore(this.ui);
     this.uiCam = this.cameras.add(0, 0, GAME_W * RES, GAME_H * RES).setZoom(RES).centerOn(GAME_W / 2, GAME_H / 2);
     this.uiCam.ignore(this.world);
@@ -247,7 +252,7 @@ export class MotoLevel extends Phaser.Scene {
     this.progressMoto = add(this.add.image(0, 0, 'moto_map').setScale(2));
     add(this.add.image(GAME_W / 2 + 214, 58, this.cfg.goalIcon, 0).setScale(0.5));
     add(txt(this, GAME_W / 2, 24, this.info.name, 18, { color: '#fff4e0' }));
-    this.toastT = add(txt(this, GAME_W / 2, 110, '', 20, { color: '#fff4e0' }).setAlpha(0));
+    this.toastT = add(txt(this, GAME_W / 2, 110, '', 20, { color: '#fff4e0', wrap: TOAST_WRAP }).setAlpha(0));
     this.cdBars = add(this.add.graphics());
     if (this.cfg.bread) {
       add(this.add.image(GAME_W - 200, 66, 'fx_heart').setScale(1.6).setTint(0xffa64a));
@@ -382,6 +387,7 @@ export class MotoLevel extends Phaser.Scene {
     const img = this.add.image(x, y, key).setOrigin(0.5, 1).setDepth(y);
     if (key.startsWith('tree') && top) img.setScale(0.9);
     this.world.add(img);
+    this.shadows.add(img, key.startsWith('tree') ? 22 : 12, { layer: this.world });
     this.objs.push({ kind: 'coin', img, x, y, w: 0, h: 0, vy: 0, dead: false, label: 'decor' });
   }
 
@@ -389,6 +395,8 @@ export class MotoLevel extends Phaser.Scene {
     const img = kind === 'capy' ? this.add.sprite(x, y, key, 0).play(this.animalAnim) : this.add.image(x, y, key);
     img.setDepth(y);
     this.world.add(img);
+    const sw = kind === 'capy' ? (key === 'cow' ? 17 : 15) : kind === 'rock' ? 13 : kind === 'cone' ? 8 : 0;
+    if (sw) this.shadows.add(img, sw, { layer: this.world });
     const o: Obj = { kind, img, x, y, w, h, vy, dead: false };
     this.objs.push(o);
     return o;
@@ -604,6 +612,7 @@ export class MotoLevel extends Phaser.Scene {
     st.walkers = [0, 1].map((i) => {
       const w = this.add.sprite(this.mx, this.my, `char_${i}`, charFrame('side', 0)).setOrigin(0.5, 1).setFlipX(true).setDepth(this.my + 6);
       this.world.add(w);
+      this.shadows.add(w, 11, { layer: this.world });
       return w;
     });
   }
@@ -685,6 +694,7 @@ export class MotoLevel extends Phaser.Scene {
     const decor = this.add.image(x + 20, ROAD_TOP - 10, s.decor, 0).setOrigin(0.5, 1).setDepth(ROAD_TOP - 10);
     if (s.decor === 'big_rock') decor.setScale(0.7);
     this.world.add(decor);
+    this.shadows.add(decor, decor.width * 0.8, { layer: this.world });
     this.objs.push({ kind: 'coin', img: decor, x: x + 20, y: ROAD_TOP - 10, w: 0, h: 0, vy: 0, dead: false, label: 'decor' });
     const o = this.add_('spot', x, ROAD_TOP - 4, 'photo_spot', 0, 0);
     o.label = s.label;
@@ -1071,6 +1081,7 @@ export class MotoLevel extends Phaser.Scene {
       const jo = this.add.sprite(this.mx + 4, this.my + 2, 'char_0', charFrame('side', 1)).setOrigin(0.5, 1).setFlipX(true).setDepth(8003);
       const bread = this.add.image(this.mx + 10, this.my - 14, 'item_bread').setDepth(8004);
       this.world.add([jo, bread]);
+      this.shadows.add(jo, 11, { layer: this.world, alpha: 0.3 });
       this.tweens.add({ targets: jo, x: gateX - 14, duration: 700, onComplete: () => jo.setFrame(charFrame('side', 3)) });
       this.tweens.add({ targets: bread, x: gateX - 6, y: ju.y - 16, duration: 700, delay: 600 });
       this.time.delayedCall(800, () => this.toast(`${this.names[1]}: Você veio mesmo! ♥`, '#ffd6e4'));

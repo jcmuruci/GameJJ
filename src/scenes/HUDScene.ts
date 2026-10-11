@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, PLAYER_COLORS, RES } from '../config';
+import { GAME_W, GAME_H, PLAYER_COLORS, RES, TOAST_WRAP } from '../config';
 import { txt, uiButton } from '../ui/text';
 import { isTouchDevice } from '../systems/TouchControls';
 import type { BaseLevel } from './levels/BaseLevel';
 import { KEY_LABELS } from '../systems/InputManager';
+import { TaskList } from '../ui/TaskList';
 
 interface Bubble {
   c: Phaser.GameObjects.Container;
@@ -64,7 +65,7 @@ export class HUDScene extends Phaser.Scene {
       this.cdBars.push(this.add.graphics());
     }
     this.info = txt(this, GAME_W / 2, 24, '', 22, { color: '#fff4e0' });
-    this.toastText = txt(this, GAME_W / 2, 92, '', 18, { color: '#fff4e0', wrap: 700 }).setAlpha(0).setDepth(50);
+    this.toastText = txt(this, GAME_W / 2, 92, '', 18, { color: '#fff4e0', wrap: TOAST_WRAP }).setAlpha(0).setDepth(50);
     // botão de pausa clicável (no celular a pausa fica nos controles de toque)
     if (!isTouchDevice()) uiButton(this, GAME_W / 2, GAME_H - 20, 'Pausa (Esc)', () => { if (!this.level.ended) this.level.openPause(); }, { size: 13 });
     this.ready = true;
@@ -158,6 +159,7 @@ export class HUDScene extends Phaser.Scene {
     if (!this.ready) return;
     // um aviso novo substitui o anterior (nada de textos sobrepostos)
     this.lastBanner.forEach((o) => { this.tweens.killTweensOf(o); o.destroy(); });
+    TaskList.of(this)?.collapse();
     const g = this.add.graphics().setDepth(60);
     g.fillStyle(0x1b1424, 0.8).fillRect(0, GAME_H / 2 - 60, GAME_W, 120);
     g.fillStyle(0xff9cc2, 1).fillRect(0, GAME_H / 2 - 62, GAME_W, 3).fillRect(0, GAME_H / 2 + 59, GAME_W, 3);
