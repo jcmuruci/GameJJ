@@ -12,6 +12,9 @@ import { LevelInfo, levelById } from '../../data/levels';
 import type { HUDScene } from '../HUDScene';
 import { ItemKind } from '../../data/recipes';
 import { attachPilot } from '../../systems/autopilot';
+import { Shadows } from '../../systems/Shadows';
+import { Ground } from '../../art/Ground';
+import { applyGrade } from '../../systems/Grade';
 
 export interface LevelResult {
   win: boolean;
@@ -55,6 +58,11 @@ export abstract class BaseLevel extends Phaser.Scene {
   rows = 0;
   tilemap!: Phaser.Tilemaps.Tilemap;
   layer!: Phaser.Tilemaps.TilemapLayer;
+  shadows!: Shadows;
+  /** Chão desenhado (variações, bordas, água animada). Existe depois de setup(). */
+  ground: Ground | null = null;
+  /** Para onde a água corre (px/s); as fases podem trocar. */
+  waterFlow: [number, number] = [4, 1.5];
   players: Player[] = [];
   solids!: Phaser.Physics.Arcade.StaticGroup;
   interactables: Interactable[] = [];
@@ -136,6 +144,9 @@ export abstract class BaseLevel extends Phaser.Scene {
     const save = Save.data;
     this.names = [save.looks[0].name, save.looks[1].name];
     this.cameras.main.setBackgroundColor('#1b1424');
+    // sombras no chão para NPCs, bichos e objetos criados daqui em diante
+    this.shadows = new Shadows(this).auto();
+    this.ground = null;
 
     const rows = this.mapRows();
     this.rows = rows.length;
@@ -205,10 +216,12 @@ export abstract class BaseLevel extends Phaser.Scene {
     if (this.scrolling) cam.startFollow(this.camTarget, true, 0.1, 0.1);
     else cam.centerOn(W / 2, H / 2);
     cam.roundPixels = true;
+    applyGrade(this, cam, this.info.id);
 
     this.reviveBars = this.add.graphics().setDepth(9000);
 
     this.setup();
+    this.ground = new Ground(this, this.waterFlow);
 
     this.scene.launch('HUD', { level: this });
     this.hud = this.scene.get('HUD') as HUDScene;
@@ -223,6 +236,13 @@ export abstract class BaseLevel extends Phaser.Scene {
   // ------------------------------------------------------------------ utilidades de mapa
   tileCenter(tx: number, ty: number): { x: number; y: number } {
     return { x: tx * TILE + 8, y: ty * TILE + 8 };
+  }
+
+  /** Troca um tile do mapa: a colisão (camada lógica) e o desenho do chão. */
+  setTile(index: number, tx: number, ty: number): Phaser.Tilemaps.Tile {
+    const t = this.layer.putTileAt(index, tx, ty);
+    this.ground?.refresh(tx, ty);
+    return t;
   }
 
   key(tx: number, ty: number): string {

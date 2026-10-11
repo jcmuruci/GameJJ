@@ -9,7 +9,7 @@ import { KEY_LABELS } from '../../systems/InputManager';
 import { Audio } from '../../systems/Audio';
 import { DEFAULT_TERRAIN } from './BaseLevel';
 import { T } from '../../art/tiles';
-import { rockTop, cliffShadow, plaque } from './Scenery';
+import { rockTop, plaque } from './Scenery';
 
 /**
  * Tutorial interativo ao pé da Pedra Grande; o rapel desce do topo da pedra.
@@ -138,7 +138,6 @@ export class TutorialLevel extends PuzzleLevel {
     if (!this.anims.exists('fire-anim')) this.anims.create({ key: 'fire-anim', frames: this.anims.generateFrameNumbers('fire', { start: 0, end: 1 }), frameRate: 8, repeat: -1 });
     // o topo da Pedra Grande, de onde sai o rapel
     rockTop(this, 34, 1, 42, 8, 'pedra-grande');
-    cliffShadow(this, 10, 33, 42);
     plaque(this, 37, 1, 'PEDRA GRANDE · CAETÉ');
   }
 

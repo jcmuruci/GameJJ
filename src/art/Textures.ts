@@ -5,13 +5,13 @@ import { generateFoodTextures } from './TexturesFood';
 import { generateTrailTextures } from './TexturesTrail';
 import { generateFarmTextures } from './TexturesFarm';
 import { generateCityTextures } from './TexturesCity';
+import { drawTiles } from './TexturesTiles';
 
 /**
  * Toda a arte do jogo é gerada aqui, por código, no carregamento.
  * Assim o jogo não depende de nenhum arquivo de imagem externo.
  */
 
-import { TILE_COUNT } from './tiles';
 export { T, TILE_COUNT, SOLID_TILES } from './tiles';
 
 type Draw = (pg: PG, r: () => number) => void;
@@ -47,149 +47,6 @@ function strSprite(scene: Phaser.Scene, key: string, rows: string[], pal = PAL):
   const w = Math.max(...rows.map((r) => r.length)) + 2;
   const h = rows.length + 2;
   canvas(scene, key, w, h, (pg) => pg.strings(rows, pal, 1, 1), true);
-}
-
-// ---------------------------------------------------------------- TILES
-function drawTiles(scene: Phaser.Scene): void {
-  canvas(scene, 'tiles', 16 * TILE_COUNT, 16, (pg, r) => {
-    const grass = (ox: number, base = '#7ccf5a', dark = '#62b048', light = '#9be070') => {
-      pg.at(ox, 0).rect(0, 0, 16, 16, base);
-      for (let i = 0; i < 14; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), r() > 0.5 ? dark : light);
-    };
-    // 0 grama
-    grass(0);
-    // 1 grama com flores
-    grass(16);
-    pg.at(16, 0);
-    [[3, 4, '#ffffff'], [11, 9, '#ffd25e'], [6, 12, '#ff8fb1']].forEach(([x, y, c]) => {
-      pg.px(x as number, y as number, c as string); pg.px((x as number) - 1, y as number, '#fff7f0'); pg.px((x as number) + 1, y as number, '#fff7f0');
-      pg.px(x as number, (y as number) - 1, '#fff7f0'); pg.px(x as number, (y as number) + 1, '#fff7f0'); pg.px(x as number, y as number, c as string);
-    });
-    // 2 tufo
-    grass(32);
-    pg.at(32, 0);
-    [[4, 6], [10, 11], [12, 3]].forEach(([x, y]) => { pg.px(x, y, '#4a9a3a'); pg.px(x - 1, y + 1, '#4a9a3a'); pg.px(x + 1, y + 1, '#4a9a3a'); pg.px(x, y + 1, '#4a9a3a'); });
-    // 3 caminho de terra
-    pg.at(48, 0).rect(0, 0, 16, 16, '#d8b07a');
-    for (let i = 0; i < 18; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), r() > 0.5 ? '#c49a64' : '#e8c890');
-    // 4 água
-    pg.at(64, 0).rect(0, 0, 16, 16, '#4aa8e8');
-    pg.rect(0, 0, 16, 2, '#6cc4ff');
-    for (let i = 0; i < 4; i++) { const x = Math.floor(r() * 12); const y = 3 + Math.floor(r() * 12); pg.hline(x, x + 3, y, '#8fd8ff'); }
-    // 5 árvore (copa redonda sobre grama)
-    grass(80);
-    pg.at(80, 0);
-    pg.ellipse(8, 7, 7, 7, '#2f7a3a');
-    pg.ellipse(7, 6, 6, 5, '#3f9a48');
-    pg.ellipse(6, 5, 3, 2, '#5bbf4a');
-    pg.px(4, 4, '#9be070'); pg.px(10, 9, '#2a6a30');
-    pg.rect(7, 14, 3, 2, '#5a3a24');
-    // 6 sebe/arbusto
-    grass(96);
-    pg.at(96, 0);
-    pg.ellipse(8, 8, 8, 7, '#3a8a40'); pg.ellipse(8, 7, 7, 6, '#4aa84a');
-    for (let i = 0; i < 6; i++) pg.px(2 + Math.floor(r() * 12), 2 + Math.floor(r() * 10), '#6cc85a');
-    // 7 muro de pedra
-    pg.at(112, 0).rect(0, 0, 16, 16, '#8a8aa0');
-    for (let y = 0; y < 16; y += 5) { pg.hline(0, 15, y, '#5a5a70'); const off = (y / 5) % 2 ? 4 : 0; for (let x = off; x < 16; x += 8) pg.vline(x, y, y + 4, '#5a5a70'); }
-    pg.hline(0, 15, 1, '#aaaac0');
-    // 8 piso de madeira
-    pg.at(128, 0).rect(0, 0, 16, 16, '#c8915a');
-    for (let y = 0; y < 16; y += 4) pg.hline(0, 15, y + 3, '#a8703a');
-    pg.vline(5, 0, 3, '#a8703a'); pg.vline(12, 4, 7, '#a8703a'); pg.vline(3, 8, 11, '#a8703a'); pg.vline(10, 12, 15, '#a8703a');
-    // 9 grama escura (floresta)
-    grass(144, '#4f9a4a', '#3f8a3e', '#62b048');
-    // 10 penhasco
-    pg.at(160, 0).rect(0, 0, 16, 16, '#7a6a5a');
-    pg.rect(0, 0, 16, 4, '#5bbf4a'); pg.rect(0, 4, 16, 1, '#3f8a3e');
-    for (let i = 0; i < 5; i++) { const x = Math.floor(r() * 14); const y = 6 + Math.floor(r() * 9); pg.hline(x, x + 2, y, '#5a4a3a'); }
-    // 11 ponte
-    pg.at(176, 0).rect(0, 0, 16, 16, '#4aa8e8');
-    pg.rect(1, 0, 14, 16, '#b07a4a');
-    for (let y = 0; y < 16; y += 4) pg.hline(1, 14, y, '#7a4a2a');
-    pg.vline(1, 0, 15, '#5a3a24'); pg.vline(14, 0, 15, '#5a3a24');
-    // 12 areia
-    pg.at(192, 0).rect(0, 0, 16, 16, '#f0d8a0');
-    for (let i = 0; i < 12; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), '#d8bc80');
-    // 13 cerca
-    grass(208);
-    pg.at(208, 0);
-    pg.rect(0, 5, 16, 2, '#c8915a'); pg.rect(0, 10, 16, 2, '#c8915a');
-    pg.rect(2, 2, 3, 13, '#e0b07a'); pg.rect(11, 2, 3, 13, '#e0b07a');
-    pg.rect(4, 2, 1, 13, '#a8703a'); pg.rect(13, 2, 1, 13, '#a8703a');
-    // 14 canteiro de flores
-    pg.at(224, 0).rect(0, 0, 16, 16, '#8a5a34');
-    for (let i = 0; i < 7; i++) { const x = 1 + Math.floor(r() * 13); const y = 1 + Math.floor(r() * 13); pg.px(x, y + 1, '#3f9a48'); pg.px(x, y, ['#ff8fb1', '#ffd25e', '#ffffff', '#b25bd6'][i % 4]); }
-    // 15 piso de pedra
-    pg.at(240, 0).rect(0, 0, 16, 16, '#b8b0c8');
-    pg.hline(0, 15, 7, '#9890a8'); pg.hline(0, 15, 15, '#9890a8'); pg.vline(7, 0, 7, '#9890a8'); pg.vline(15, 8, 15, '#9890a8');
-    pg.px(3, 3, '#d0c8e0'); pg.px(11, 11, '#d0c8e0');
-    // 16 céu (vazio)
-    pg.at(256, 0).rect(0, 0, 16, 16, '#2a2a5a');
-    for (let i = 0; i < 3; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), '#fff1a8');
-    // 17 borda de nuvem (chão de nuvem)
-    pg.at(272, 0).rect(0, 0, 16, 16, '#e8e8f8');
-    pg.ellipse(4, 12, 4, 3, '#ffffff'); pg.ellipse(12, 4, 4, 3, '#ffffff'); pg.px(8, 8, '#d0d0e8');
-    // 18 tapete / toalha
-    pg.at(288, 0).rect(0, 0, 16, 16, '#fff7f0');
-    for (let y = 0; y < 16; y += 4) for (let x = 0; x < 16; x += 4) if (((x + y) / 4) % 2 === 0) pg.rect(x, y, 4, 4, '#ff8fb1');
-    // 19 granito (topo da pedrona): cinza claro, grãos e manchas de líquen
-    pg.at(304, 0).rect(0, 0, 16, 16, '#b8b4b0');
-    for (let i = 0; i < 22; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), ['#a8a4a0', '#cac6c2', '#9a9690', '#d8d4cc'][i % 4]);
-    if (r() > 0.4) { const x = Math.floor(r() * 11); const y = Math.floor(r() * 11); pg.rect(x, y, 3, 2, '#c8c890'); pg.px(x + 1, y + 2, '#b0b878'); }
-    // 20 face de rocha: granito em placas verticais, com sombra e borda de cima clara
-    pg.at(320, 0).rect(0, 0, 16, 16, '#8e8a88');
-    pg.rect(0, 0, 16, 2, '#c4c0bc'); pg.hline(0, 15, 2, '#6e6a68');
-    for (let i = 0; i < 4; i++) { const x = 2 + Math.floor(r() * 12); pg.vline(x, 4 + Math.floor(r() * 3), 13 + Math.floor(r() * 3), '#76726f'); pg.vline(x + 1, 5, 12, '#a29e9a'); }
-    pg.hline(0, 15, 15, '#6e6a68');
-    // 21 piso de academia: colchonete azul com costuras
-    pg.at(336, 0).rect(0, 0, 16, 16, '#3f6fb8');
-    pg.hline(0, 15, 0, '#2f5a98'); pg.vline(0, 0, 15, '#2f5a98');
-    pg.px(4, 4, '#5a88cc'); pg.px(11, 10, '#5a88cc'); pg.px(8, 7, '#e8eef8');
-    // 22 parede de escalada indoor: compensado com agarras coloridas
-    pg.at(352, 0).rect(0, 0, 16, 16, '#d8b88a');
-    pg.hline(0, 15, 0, '#b8966a'); pg.vline(0, 0, 15, '#c8a87a');
-    [['#e8424a', 3, 3], ['#ffd25e', 11, 5], ['#3f9a48', 6, 9], ['#3f7fd6', 12, 12], ['#b25bd6', 2, 13]].forEach(([c, x, y]) => {
-      if (r() > 0.25) { pg.rect(x as number, y as number, 2, 2, c as string); pg.px((x as number) + 1, (y as number) + 2, '#7a5a3a'); }
-    });
-    pg.px(8, 2, '#8a8a8a'); pg.px(4, 8, '#8a8a8a');
-    // 23 parede interna pintada (rodapé escuro)
-    pg.at(368, 0).rect(0, 0, 16, 16, '#e8dcc8');
-    pg.rect(0, 12, 16, 4, '#6a5a7a'); pg.hline(0, 15, 11, '#c8bca8');
-    pg.vline(15, 0, 11, '#d8ccb8');
-    // 24 paredão do cânion: blocos de rocha irregulares (ocre/cinza) com sombra e musgo
-    pg.at(384, 0).rect(0, 0, 16, 16, '#9a7c60');
-    [[4, 4, 5, 4, '#b08e6c'], [12, 3, 4, 3, '#a8886a'], [3, 11, 4, 4, '#a4846a'], [11, 11, 5, 4, '#b4967a'], [8, 7, 3, 3, '#8e7058']].forEach(([x, y, rx, ry, c]) => {
-      pg.ellipse(x as number, y as number, rx as number, ry as number, c as string);
-      pg.hline((x as number) - (rx as number) + 2, (x as number) + 1, (y as number) - (ry as number) + 1, '#c8aa88');
-    });
-    pg.hline(0, 15, 7, '#6e5644'); pg.px(7, 6, '#6e5644'); pg.vline(8, 0, 2, '#6e5644'); pg.vline(6, 8, 15, '#6e5644');
-    for (let i = 0; i < 5; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), '#5e4838');
-    if (r() > 0.5) { pg.px(2, 0, '#5bbf4a'); pg.px(3, 0, '#3f9a48'); pg.px(13, 8, '#5bbf4a'); }
-    // 25 campo rupestre: grama baixa com pedrinhas
-    grass(400, '#8cbf5a', '#74a84a', '#a8d070');
-    pg.at(400, 0);
-    for (let i = 0; i < 3; i++) { const x = 1 + Math.floor(r() * 13); const y = 1 + Math.floor(r() * 13); pg.rect(x, y, 2, 1, '#b8b4b0'); pg.px(x, y + 1, '#8e8a88'); }
-    // 26 afloramento de rocha com arbusto
-    grass(416, '#8cbf5a', '#74a84a', '#a8d070');
-    pg.at(416, 0);
-    pg.ellipse(8, 10, 7, 5, '#9a9690'); pg.ellipse(7, 9, 5, 3, '#b8b4b0'); pg.hline(3, 12, 14, '#6e6a68');
-    pg.ellipse(11, 5, 4, 3, '#4a8a3a'); pg.ellipse(10, 4, 2, 2, '#62a848'); pg.px(13, 3, '#ffd25e');
-    // 27 passarela suspensa: tábuas de madeira atravessadas, com frestas
-    pg.at(432, 0).rect(0, 0, 16, 16, '#b8844e');
-    for (let y = 0; y < 16; y += 4) { pg.hline(0, 15, y + 3, '#6a4424'); pg.hline(0, 15, y, '#d0a06a'); }
-    for (let i = 0; i < 4; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), '#8a5a34');
-    pg.px(2, 1, '#5a3a24'); pg.px(13, 1, '#5a3a24'); pg.px(2, 9, '#5a3a24'); pg.px(13, 9, '#5a3a24');
-    // 28 rio lá embaixo: azul profundo com espuma correndo
-    pg.at(448, 0).rect(0, 0, 16, 16, '#24506e');
-    for (let i = 0; i < 4; i++) { const x = Math.floor(r() * 10); const y = Math.floor(r() * 15); pg.hline(x, x + 4, y, '#3a7a9a'); }
-    for (let i = 0; i < 3; i++) { const x = Math.floor(r() * 14); const y = Math.floor(r() * 15); pg.hline(x, x + 1, y, '#cfe8f0'); }
-    // 29 desfiladeiro: parede de pedra caindo até o rio, mais escura embaixo
-    pg.at(464, 0).rect(0, 0, 16, 16, '#6e5a48');
-    for (let x = 0; x < 16; x += 3) { pg.vline(x, 0, 15, '#5a4838'); pg.vline(x + 1, 0, 15, '#7e6a56'); }
-    pg.rect(0, 11, 16, 5, '#4a3a2e');
-    for (let i = 0; i < 4; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 11), '#9a8670');
-  });
 }
 
 // ---------------------------------------------------------------- ITENS

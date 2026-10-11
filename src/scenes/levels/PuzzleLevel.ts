@@ -45,7 +45,7 @@ export class Boulder {
         targets: this.img, x: c.x, y: c.y, duration: 220,
         onComplete: () => {
           this.img.destroy();
-          this.L.layer.putTileAt(T.BRIDGE, nx, ny);
+          this.L.setTile(T.BRIDGE, nx, ny);
           this.L.burst(c.x, c.y, 'fx_pixel', 10, { speed: 50, tint: 0xbfe9ff });
           this.L.sfx('drop');
           this.L.hud?.floatText(c.x, c.y - 10, 'Ponte!', '#8be07a');
@@ -194,7 +194,7 @@ export abstract class PuzzleLevel extends BaseLevel {
       case 'S': this.add.image(c.x, c.y, 'anchor').setDepth(-4); this.anchors.push({ x: c.x, y: c.y }); return true;
       case 'R':
         this.routes.push({ tx, ty, kind: 'rappel' });
-        this.layer.putTileAt(this.cliffTile, tx, ty);
+        this.setTile(this.cliffTile, tx, ty);
         this.add.image(c.x, c.y, 'rope_top').setDepth(c.y + 1);
         // corda pendurada pela face da rocha até o chão
         this.time.delayedCall(0, () => {
@@ -209,7 +209,7 @@ export abstract class PuzzleLevel extends BaseLevel {
       case 'U':
         // rota de escalada: parede com agarras; sobe com o parceiro na segurança
         this.routes.push({ tx, ty, kind: 'climb' });
-        this.layer.putTileAt(this.cliffTile, tx, ty);
+        this.setTile(this.cliffTile, tx, ty);
         this.add.image(c.x, c.y, 'holds').setDepth(c.y + 1);
         this.interactables.push({ x: c.x, y: c.y, priority: 3, reach: 2, interact: (p) => this.tryClimb(p, tx, ty) });
         return true;

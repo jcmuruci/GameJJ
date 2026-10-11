@@ -25,7 +25,7 @@ class Gator implements Interactable {
     const c = L.tileCenter(tx, ty);
     this.x = c.x;
     this.y = c.y;
-    L.layer.putTileAt(T.WATER, tx, ty);
+    L.setTile(T.WATER, tx, ty);
     this.bubbles = L.add.image(c.x, c.y, 'bubbles').setDepth(-5);
     L.tweens.add({ targets: this.bubbles, y: c.y - 1.5, alpha: 0.6, duration: 600, yoyo: true, repeat: -1 });
     this.sprite = L.add.sprite(c.x, c.y, 'gator', 0).setDepth(-6).setVisible(false);
@@ -114,7 +114,7 @@ export class AmazonLevel extends PuzzleLevel {
     const c = this.tileCenter(tx, ty);
     switch (ch) {
       case 'J': { const g = new Gator(this, tx, ty); this.gators.push(g); this.interactables.push(g); return true; }
-      case 'q': this.layer.putTileAt(T.WATER, tx, ty); this.add.image(c.x, c.y, 'lily').setDepth(-5); return true;
+      case 'q': this.setTile(T.WATER, tx, ty); this.add.image(c.x, c.y, 'lily').setDepth(-5); return true;
       case 'j': this.placeFloorItem(new Item(this, 'baby', c.x, c.y), c.x, c.y); return true;
       case 'm': this.enemies.push(new Slime(this, c.x, c.y, 'mosquito', 1, 42, 80)); return true;
       case 'Z': this.add.image(c.x, c.y - 13, 'tree_jungle').setDepth(c.y + 6); this.addSolid(tx, ty); return true;

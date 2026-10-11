@@ -13,7 +13,7 @@ import { charFrame } from '../../art/CharacterArt';
 import { TaskList } from '../../ui/TaskList';
 import { DEFAULT_TERRAIN } from './BaseLevel';
 import { T } from '../../art/tiles';
-import { plaque, scatter, cliffShadow } from './Scenery';
+import { plaque, scatter } from './Scenery';
 import type { Player } from '../../entities/Player';
 
 /** Trilhas da linha do tempo: escalada, cânion, Itacolomi, Topo do Mundo (exploração e enigmas). */
@@ -41,6 +41,7 @@ export class TrailLevel extends PuzzleLevel {
   mapRows(): string[] {
     this.resetPuzzle();
     this.cfg = TRAILS[this.info.id];
+    this.waterFlow = this.cfg.waterFlow ?? [4, 1.5];
     this.cutscene = false;
     this.seats = [];
     this.seated = [];
@@ -75,7 +76,7 @@ export class TrailLevel extends PuzzleLevel {
     if (ch === 'U' || ch === 'R') this.climbSpots.push({ tx, ty });
     if (ch === 'p' || ch === 'q') {
       // pedra no meio do rio: dá pra pisar; as escuras afundam se alguém parar nelas
-      const tile = this.layer.putTileAt(T.WATER, tx, ty);
+      const tile = this.setTile(T.WATER, tx, ty);
       tile.setCollision(false, false, false, false);
       this.layer.calculateFacesAt(tx, ty);
       const img = this.add.image(c.x, c.y + 1, ch === 'p' ? 'step_stone' : 'step_stone_wet').setDepth(-6);
@@ -168,18 +169,6 @@ export class TrailLevel extends PuzzleLevel {
   private decorate(): void {
     const rows = this.cfg.map;
     for (const p of this.cfg.plaques ?? []) plaque(this, p.tx, p.ty, p.text);
-    // sombra embaixo de cada linha de paredão
-    rows.forEach((row, y) => {
-      let x0 = -1;
-      for (let x = 0; x <= row.length; x++) {
-        const cliff = x < row.length && (row[x] === '^' || row[x] === 'U' || row[x] === 'R');
-        if (cliff && x0 < 0) x0 = x;
-        if (!cliff && x0 >= 0) {
-          if (!'^UR'.includes(rows[y + 1]?.[x0] ?? '#')) cliffShadow(this, y, x0, x - 1);
-          x0 = -1;
-        }
-      }
-    });
     const seed = this.info.id;
     switch (this.cfg.decor) {
       case 'gym': {

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_W, GAME_H, ZOOM, RES } from '../../config';
+import { GAME_W, GAME_H, ZOOM, RES, TOAST_WRAP } from '../../config';
 import { LevelInfo, levelById } from '../../data/levels';
 import { Save } from '../../systems/SaveManager';
 import { Input, KEY_LABELS } from '../../systems/InputManager';
@@ -10,6 +10,8 @@ import { isTouchDevice } from '../../systems/TouchControls';
 import { TaskList } from '../../ui/TaskList';
 import { attachPilot } from '../../systems/autopilot';
 import { Admin } from '../../systems/Admin';
+import { Shadows } from '../../systems/Shadows';
+import { applyGrade } from '../../systems/Grade';
 
 /**
  * Mar/2026 — A Medalha de São Bento. A Juliana, sozinha, atravessa a cidade para preparar o presente
@@ -132,6 +134,7 @@ export class MedalLevel extends Phaser.Scene {
   private doorHinted = '';
   private juliana!: Phaser.GameObjects.Sprite;
   private shadow!: Phaser.GameObjects.Ellipse;
+  private shadows!: Shadows;
   private sidewalk!: Phaser.GameObjects.TileSprite;
   private dashes!: Phaser.GameObjects.TileSprite;
   // interface
@@ -186,9 +189,11 @@ export class MedalLevel extends Phaser.Scene {
     this.crossings = [900, 2700, 4700].map((at) => ({ at, red: true, t: RED_TIME, spawned: false, entered: false, counted: false, warned: false, carT: 0.3, cars: [] }));
 
     this.world = this.add.layer();
+    this.shadows = new Shadows(this);
     this.ui = this.add.layer();
     const cam = this.cameras.main;
     cam.setZoom(ZOOM * RES).centerOn(W / 2, H / 2).setBackgroundColor('#9ce0ff');
+    applyGrade(this, cam, this.info.id);
     cam.ignore(this.ui);
     this.uiCam = this.cameras.add(0, 0, GAME_W * RES, GAME_H * RES).setZoom(RES).centerOn(GAME_W / 2, GAME_H / 2);
     this.uiCam.ignore(this.world);
@@ -254,6 +259,7 @@ export class MedalLevel extends Phaser.Scene {
         this.decor.push({ wx: x, img });
         if (Math.random() < 0.35) {
           const tree = this.w(this.add.image(0, SIDE_TOP + 2, Math.random() < 0.5 ? 'tree_ipe' : 'tree_big').setOrigin(0.5, 1).setScale(0.8).setDepth(SIDE_TOP - 1));
+          this.shadows.add(tree, 22, { layer: this.world });
           this.decor.push({ wx: x + 22, img: tree });
         }
       }
@@ -290,6 +296,7 @@ export class MedalLevel extends Phaser.Scene {
   private add_(kind: Kind, wx: number, y: number, key: string, w: number, h: number, frame = 0): Obj {
     const img = this.w(kind === 'dog' || kind === 'pigeon' ? this.add.sprite(0, y, key, frame) : this.add.image(0, y, key, frame));
     img.setOrigin(0.5, 1).setDepth(y);
+    if (kind === 'dog' || kind === 'skater') this.shadows.add(img, kind === 'dog' ? 11 : 9, { layer: this.world });
     const o: Obj = { kind, img, wx, y, w, h, vx: 0, dead: false };
     this.objs.push(o);
     return o;
@@ -328,7 +335,7 @@ export class MedalLevel extends Phaser.Scene {
     this.progressIcon = this.u(this.add.image(0, 0, 'char_1', charFrame('side', 0)).setScale(1.2).setFlipX(true));
     this.u(this.add.image(GAME_W / 2 + 214, 58, 'house_c4').setScale(0.6));
     this.u(txt(this, GAME_W / 2, 24, this.info.name, 18, { color: '#fff4e0' }));
-    this.toastT = this.u(txt(this, GAME_W / 2, 110, '', 20, { color: '#fff4e0', wrap: 820 }).setAlpha(0));
+    this.toastT = this.u(txt(this, GAME_W / 2, 110, '', 20, { color: '#fff4e0', wrap: TOAST_WRAP }).setAlpha(0));
     const help = [
       `${this.names[0]} não sabe de nada... ${KEY_LABELS[0].action}: torcer ♥`,
       `${this.names[1]}: ${KEY_LABELS[1].move} anda · ${KEY_LABELS[1].ability}: xô, pombos! · ${KEY_LABELS[1].action}: entrar / carinho`,

@@ -69,14 +69,6 @@ export function rockTop(L: BaseLevel, tx0: number, ty0: number, tx1: number, ty1
   }
 }
 
-/** Sombra que o paredão projeta no chão logo abaixo (dá a sensação de altura). */
-export function cliffShadow(L: BaseLevel, ty: number, tx0: number, tx1: number): void {
-  const g = L.add.graphics().setDepth(-9);
-  const y = (ty + 1) * TILE;
-  g.fillStyle(0x000000, 0.22).fillRect(tx0 * TILE, y, (tx1 - tx0 + 1) * TILE, 5);
-  g.fillStyle(0x000000, 0.1).fillRect(tx0 * TILE, y + 5, (tx1 - tx0 + 1) * TILE, 4);
-}
-
 /**
  * Espalha enfeites (sem colisão) pelos tiles de chão '.' do mapa, longe de objetos.
  * `keys` são texturas; `density` é a chance por tile.

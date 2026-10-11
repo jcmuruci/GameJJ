@@ -19,6 +19,9 @@ export const RES = (() => {
   return Math.max(1, Math.min(3, Math.round(fit)));
 })();
 
+/** Largura dos avisos no meio da tela: nunca alcançam a lista de tarefas (à esquerda). */
+export const TOAST_WRAP = 440;
+
 export const FONT = '"Pixelify Sans", "Courier New", monospace';
 
 export const COLORS = {

@@ -20,6 +20,13 @@ interface Row {
 
 /** Painel "Tarefas do capítulo" no canto da tela, com caixinhas que viram ✓. */
 export class TaskList {
+  /** A lista de cada cena (o HUD usa para recolher o painel quando um aviso grande aparece). */
+  private static byScene = new WeakMap<Phaser.Scene, TaskList>();
+  static of(scene: Phaser.Scene): TaskList | undefined {
+    const t = TaskList.byScene.get(scene);
+    return t?.container.active ? t : undefined;
+  }
+
   private rows: Row[] = [];
   private bg: Phaser.GameObjects.Graphics;
   private title: Phaser.GameObjects.Text;
@@ -33,15 +40,15 @@ export class TaskList {
     this.bg = scene.add.graphics();
     this.title = txt(scene, 12, 13, '', 13, { origin: [0, 0.5], color: '#ffd25e' });
     this.container = scene.add.container(x, y, [this.bg, this.title]).setDepth(30);
-    tasks.forEach((t, i) => {
-      const ry = 34 + i * 20;
+    tasks.forEach((t) => {
       const box = scene.add.graphics();
-      const label = txt(scene, 30, ry, '', 12, { origin: [0, 0.5], bold: false, wrap: width - 40 });
+      const label = txt(scene, 30, 0, '', 12, { origin: [0, 0], bold: false, wrap: width - 40 });
       this.container.add([box, label]);
-      const row: Row = { task: t, count: 0, done: false, label, box, y: ry };
+      const row: Row = { task: t, count: 0, done: false, label, box, y: 0 };
       this.rows.push(row);
       this.paint(row);
     });
+    TaskList.byScene.set(scene, this);
     this.setExpanded(true);
     this.container.setAlpha(0);
     scene.tweens.add({ targets: this.container, alpha: 1, duration: 400, delay: 300 });
@@ -53,10 +60,31 @@ export class TaskList {
     this.expanded = on;
     this.title.setText(`Tarefas do capítulo  ${this.doneCount}/${this.total}`);
     this.rows.forEach((r) => { r.label.setVisible(on); r.box.setVisible(on); });
-    const h = on ? 26 + this.rows.length * 20 + 6 : 26;
+    const h = on ? this.layout() + 6 : 26;
     this.bg.clear();
     this.bg.fillStyle(0x1b1424, 0.72).fillRoundedRect(0, 0, this.w, h, 10);
     this.bg.lineStyle(2, 0xffd6e4, 0.5).strokeRoundedRect(0, 0, this.w, h, 10);
+  }
+
+  /** Empilha as linhas pela altura real do texto (tarefas longas quebram em duas linhas). Retorna o fim. */
+  private layout(): number {
+    let y = 26;
+    for (const r of this.rows) {
+      const lines = Math.max(1, r.label.getWrappedText().length);
+      const lineH = r.label.height / lines;
+      r.label.setY(y + 2);
+      const cy = y + 2 + lineH / 2;
+      if (cy !== r.y) { r.y = cy; this.paintBox(r); }
+      y += Math.max(20, r.label.height + 4);
+    }
+    return y;
+  }
+
+  /** Recolhe já (ex.: um aviso grande vai ocupar a tela). */
+  collapse(): void {
+    this.hideEv?.remove();
+    this.hideEv = null;
+    if (this.expanded) this.setExpanded(false);
   }
 
   /** Abre o painel por um tempo e depois recolhe. */
@@ -70,6 +98,11 @@ export class TaskList {
     const goal = r.task.goal;
     r.label.setText(goal ? `${r.task.text} ${Math.min(r.count, goal)}/${goal}` : r.task.text);
     r.label.setColor(r.done ? '#8be07a' : '#fff4e0');
+    this.paintBox(r);
+    if (this.expanded && this.bg) this.setExpanded(true);
+  }
+
+  private paintBox(r: Row): void {
     r.box.clear();
     r.box.lineStyle(2, r.done ? 0x8be07a : 0xd8c8e8, 1).strokeRect(12, r.y - 6, 12, 12);
     if (r.done) {
