@@ -175,6 +175,20 @@ function drawTiles(scene: Phaser.Scene): void {
     pg.at(416, 0);
     pg.ellipse(8, 10, 7, 5, '#9a9690'); pg.ellipse(7, 9, 5, 3, '#b8b4b0'); pg.hline(3, 12, 14, '#6e6a68');
     pg.ellipse(11, 5, 4, 3, '#4a8a3a'); pg.ellipse(10, 4, 2, 2, '#62a848'); pg.px(13, 3, '#ffd25e');
+    // 27 passarela suspensa: tábuas de madeira atravessadas, com frestas
+    pg.at(432, 0).rect(0, 0, 16, 16, '#b8844e');
+    for (let y = 0; y < 16; y += 4) { pg.hline(0, 15, y + 3, '#6a4424'); pg.hline(0, 15, y, '#d0a06a'); }
+    for (let i = 0; i < 4; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), '#8a5a34');
+    pg.px(2, 1, '#5a3a24'); pg.px(13, 1, '#5a3a24'); pg.px(2, 9, '#5a3a24'); pg.px(13, 9, '#5a3a24');
+    // 28 rio lá embaixo: azul profundo com espuma correndo
+    pg.at(448, 0).rect(0, 0, 16, 16, '#24506e');
+    for (let i = 0; i < 4; i++) { const x = Math.floor(r() * 10); const y = Math.floor(r() * 15); pg.hline(x, x + 4, y, '#3a7a9a'); }
+    for (let i = 0; i < 3; i++) { const x = Math.floor(r() * 14); const y = Math.floor(r() * 15); pg.hline(x, x + 1, y, '#cfe8f0'); }
+    // 29 desfiladeiro: parede de pedra caindo até o rio, mais escura embaixo
+    pg.at(464, 0).rect(0, 0, 16, 16, '#6e5a48');
+    for (let x = 0; x < 16; x += 3) { pg.vline(x, 0, 15, '#5a4838'); pg.vline(x + 1, 0, 15, '#7e6a56'); }
+    pg.rect(0, 11, 16, 5, '#4a3a2e');
+    for (let i = 0; i < 4; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 11), '#9a8670');
   });
 }
 

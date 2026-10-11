@@ -43,8 +43,8 @@ export const LEVELS: LevelInfo[] = [
     map: { x: 400, y: R1 }, icon: { key: 'house_c0', scale: 0.5 }, coinsPerStar: 15, goal: 'Atravessem o cânion e cheguem em Lavras Novas.',
   },
   {
-    id: 'medal', month: 'Mar 2026', name: 'A Medalha de São Bento', short: 'A Medalha', subtitle: 'A Juliana, sozinha, busca o presente de aniversário dele', scene: 'MedalLevel', story: 'medal', endStory: 'medal_end', music: 'map',
-    map: { x: 545, y: R1 }, icon: { key: 'item_medal', scale: 2 }, coinsPerStar: 15, goal: 'Só a Juliana joga: escolher a medalha, benzer, embrulhar e entregar no prédio dele.', reward: 'medalha',
+    id: 'medal', month: 'Mar 2026', name: 'A Medalha de São Bento', short: 'A Medalha', subtitle: 'A Juliana, sozinha, prepara o presente de aniversário dele', scene: 'MedalLevel', story: 'medal', endStory: 'medal_end', music: 'map',
+    map: { x: 545, y: R1 }, icon: { key: 'item_medal', scale: 2 }, coinsPerStar: 15, goal: 'Só a Juliana joga: medalha, papel de presente, uma carta e um motoboy levando tudo até a casa dele.', reward: 'medalha',
   },
   {
     id: 'bread', month: 'Mar 2026', name: 'O Pão de Moto', short: 'Pão de Moto', subtitle: 'Agora é ele, sozinho: um pão e a carne de lata da família', scene: 'MotoLevel', story: 'bread', endStory: 'bread_end', music: 'road',
@@ -75,16 +75,20 @@ export const LEVELS: LevelInfo[] = [
     map: { x: 255, y: R2 }, icon: { key: 'waterfall', scale: 0.5 }, coinsPerStar: 25, goal: 'Atravessem o rio pelas pedras e curtam a cachoeira.',
   },
   {
+    id: 'volta', month: 'Ago 2026', name: 'A Volta da Lapinha', short: 'Volta de Moto', subtitle: 'A moto morreu na estrada de terra... e pegou no tranco', scene: 'MotoLevel', story: 'volta', endStory: 'volta_end', music: 'road',
+    map: { x: 110, y: R2 }, icon: { key: 'moto_map', scale: 1.4 }, coinsPerStar: 25, goal: 'Voltem de moto pela estrada de terra. Se a moto morrer, empurrem juntos!',
+  },
+  {
     id: 'farm', month: 'Set 2026', name: 'Hotel Fazenda', short: 'Hotel Fazenda', subtitle: 'A avestruz brava e o pedalinho', scene: 'FarmLevel', story: 'farm', endStory: 'farm_end', music: 'map',
-    map: { x: 110, y: R2 }, icon: { key: 'ostrich', scale: 0.8 }, coinsPerStar: 25, goal: 'Carinho nos bichos, fuja da avestruz e mandem bem no pedalinho.',
+    map: { x: 110, y: R3 }, icon: { key: 'ostrich', scale: 0.8 }, coinsPerStar: 25, goal: 'Carinho nos bichos, fuja da avestruz e mandem bem no pedalinho.',
   },
   {
     id: 'storm', month: 'Em breve', name: 'Próximo capítulo', short: '???', subtitle: 'Ainda vai acontecer...', scene: 'BossLevel', story: 'storm', endStory: 'ending', music: 'boss',
-    map: { x: 110, y: R3 }, icon: { key: 'boss', scale: 0.4 }, coinsPerStar: 40, goal: 'Este capítulo ainda está sendo vivido.', soon: true,
+    map: { x: 255, y: R3 }, icon: { key: 'boss', scale: 0.4 }, coinsPerStar: 40, goal: 'Este capítulo ainda está sendo vivido.', soon: true,
   },
   {
     id: 'amazon', month: 'Em breve', name: 'Amazônia', short: 'Amazônia', subtitle: 'O sonho dos jacarés', scene: 'AmazonLevel', story: 'amazon', endStory: 'amazon_end', music: 'jungle',
-    map: { x: 255, y: R3 }, icon: { key: 'gator', scale: 1.4 }, coinsPerStar: 40, goal: 'A viagem dos sonhos da Juliana. Em breve!', soon: true,
+    map: { x: 400, y: R3 }, icon: { key: 'gator', scale: 1.4 }, coinsPerStar: 40, goal: 'A viagem dos sonhos da Juliana. Em breve!', soon: true,
   },
 ];
 

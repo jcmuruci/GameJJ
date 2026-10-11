@@ -154,6 +154,14 @@ function drawBust(pg: PG, L: CharacterLook, mood: Mood): void {
     pg.hline(30, 34, 42, lip); pg.px(29, 41, lip); pg.px(35, 41, lip);
   }
 
+  // marquinhas de expressão (pais do João, 68 anos)
+  if ((L.age ?? 0) >= 60) {
+    const line = shade(skin, -0.22);
+    for (const ex of eyes) { const o = ex < 32 ? -1 : 1; pg.px(ex + 6 * o, eyeY + 1, line); pg.px(ex + 6 * o, eyeY + 3, line); }
+    pg.px(26, 39, line); pg.px(25, 41, line); pg.px(38, 39, line); pg.px(39, 41, line);
+    pg.hline(28, 36, 19, line);
+  }
+
   // óculos
   if (L.glasses) {
     for (const ex of eyes) { pg.hline(ex - 5, ex + 5, eyeY - 4, ink); pg.hline(ex - 5, ex + 5, eyeY + 6, ink); pg.vline(ex - 5, eyeY - 4, eyeY + 6, ink); pg.vline(ex + 5, eyeY - 4, eyeY + 6, ink); }

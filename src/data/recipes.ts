@@ -23,6 +23,8 @@ export interface Recipe {
   /** Ícones exibidos no pedido. */
   icons: ItemKind[];
   how: string;
+  /** Passo a passo mostrado no painel de receitas durante a fase. */
+  steps?: string[];
 }
 
 export const RECIPES: Record<RecipeId, Recipe> = {
@@ -30,9 +32,12 @@ export const RECIPES: Record<RecipeId, Recipe> = {
   fruit_salad: { id: 'fruit_salad', name: 'Salada de Frutas', needs: ['apple_cut', 'berry'], base: 32, icons: ['apple_cut', 'berry'], how: 'Maçã cortada + amoras no prato' },
   soup: { id: 'soup', name: 'Sopa de Cogumelo', needs: ['soup'], base: 38, icons: ['soup'], how: 'Cogumelo → corte → panela no fogo → prato' },
   pie: { id: 'pie', name: 'Torta de Amora', needs: ['pie'], base: 48, icons: ['pie'], how: 'Farinha + amoras → forno aceso → prato' },
-  sugo: { id: 'sugo', name: 'Macarrão ao Sugo', needs: ['pasta_cooked', 'tomato_cut'], base: 40, icons: ['pasta_cooked', 'tomato_cut'], how: 'Massa na panela + tomate picado no prato' },
-  pizza: { id: 'pizza', name: 'Pizza Margherita', needs: ['pizza'], base: 52, icons: ['pizza'], how: 'Massa + tomate picado + queijo ralado → forno' },
-  bruschetta: { id: 'bruschetta', name: 'Bruschetta', needs: ['bread_cut', 'tomato_cut'], base: 28, icons: ['bread_cut', 'tomato_cut'], how: 'Pão fatiado + tomate picado no prato' },
+  sugo: { id: 'sugo', name: 'Macarrão ao Sugo', needs: ['pasta_cooked', 'tomato_cut'], base: 40, icons: ['pasta_cooked', 'tomato_cut'], how: 'Massa na panela + tomate picado no prato',
+    steps: ['Macarrão na panela com fogo aceso (apagou? {p2} acende com MAGIA)', 'Tomate na tábua: {p1} corta (segura AÇÃO)', 'Prato: macarrão cozido + tomate picado → balcão'] },
+  pizza: { id: 'pizza', name: 'Pizza Margherita', needs: ['pizza'], base: 52, icons: ['pizza'], how: 'Massa + tomate picado + queijo ralado → forno',
+    steps: ['Tomate e queijo na tábua: {p1} corta e rala', 'No forno aceso: massa + tomate picado + queijo ralado', 'Pizza pronta no prato → balcão'] },
+  bruschetta: { id: 'bruschetta', name: 'Bruschetta', needs: ['bread_cut', 'tomato_cut'], base: 28, icons: ['bread_cut', 'tomato_cut'], how: 'Pão fatiado + tomate picado no prato',
+    steps: ['Pão e tomate na tábua: {p1} corta (segura AÇÃO)', 'Pegue um prato e junte pão fatiado + tomate picado', 'Leve o prato ao balcão do salão'] },
   milho: { id: 'milho', name: 'Milho Cozido', needs: ['corn_cooked'], base: 24, icons: ['corn_cooked'], how: 'Milho → panela no fogo → prato' },
   canjica: { id: 'canjica', name: 'Canjica', needs: ['canjica'], base: 40, icons: ['canjica'], how: 'Leite + milho na panela (o leite primeiro!)' },
   peixe_brasa: { id: 'peixe_brasa', name: 'Peixe na Brasa', needs: ['fish_grilled'], base: 48, icons: ['fish_grilled'], how: '{p2} pesca → {p1} limpa na tábua → brasa' },

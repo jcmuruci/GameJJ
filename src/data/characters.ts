@@ -39,6 +39,8 @@ export interface CharacterLook {
   glasses: boolean;
   accessory: Accessory;
   accessoryColor: string;
+  /** Idade (personagens secundários): a partir dos 60 o retrato ganha marquinhas de expressão. */
+  age?: number;
 }
 
 /**

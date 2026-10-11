@@ -13,7 +13,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const ALL = {
   tutorial: 'TutorialLevel', climb: 'TrailLevel', canyon: 'TrailLevel', medal: 'MedalLevel', bread: 'MotoLevel',
   itacolomi: 'TrailLevel', italiano: 'KitchenLevel', junina: 'FishingLevel', roca: 'MotoLevel',
-  topo: 'TrailLevel', lapinha: 'TrailLevel', farm: 'FarmLevel',
+  topo: 'TrailLevel', lapinha: 'TrailLevel', volta: 'MotoLevel', farm: 'FarmLevel',
 };
 const pick = process.argv.slice(2);
 const levels = pick.length ? pick : Object.keys(ALL);

@@ -19,8 +19,14 @@ export const T = {
   ROCKY_GRASS: 25,
   /** Afloramento de rocha com arbustos (borda das trilhas de montanha). */
   SHRUB_ROCK: 26,
+  /** Passarela suspensa de madeira (cânion). */
+  WALKWAY: 27,
+  /** Rio lá embaixo, no fundo do desfiladeiro. */
+  RIVER_DEEP: 28,
+  /** Desfiladeiro: a parede de pedra que cai até o rio. */
+  CHASM: 29,
 } as const;
-export const TILE_COUNT = 27;
-export const SOLID_TILES: number[] = [T.WATER, T.TREE, T.HEDGE, T.STONE_WALL, T.CLIFF, T.FENCE, T.SKY, T.ROCK_FACE, T.CLIMB_WALL, T.INDOOR_WALL, T.CANYON_WALL, T.SHRUB_ROCK];
+export const TILE_COUNT = 30;
+export const SOLID_TILES: number[] = [T.WATER, T.TREE, T.HEDGE, T.STONE_WALL, T.CLIFF, T.FENCE, T.SKY, T.ROCK_FACE, T.CLIMB_WALL, T.INDOOR_WALL, T.CANYON_WALL, T.SHRUB_ROCK, T.RIVER_DEEP, T.CHASM];
 /** Tiles de "penhasco": dá para descer de rapel ou subir escalando. */
 export const CLIFF_TILES: number[] = [T.CLIFF, T.ROCK_FACE, T.CLIMB_WALL];

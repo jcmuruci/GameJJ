@@ -229,6 +229,7 @@ try {
   await press('KeyK');
   await wait(2800);
   const started = await evalG(() => window.__game.scene.getScene('KitchenLevel').started);
+  check('Cozinha: painel de receitas na tela', (await evalG(() => window.__game.scene.getScene('KitchenLevel').recipeBook.length)) > 5);
   check('Cozinha inicia quando os dois confirmam', started === true);
   // J1: tomate -> tábua -> corta
   const cut = async (srcX, boardX) => {
@@ -319,38 +320,42 @@ try {
   await startScene(TL, { levelId: 'canyon' });
   await wait(500);
   await shot('13-canyon');
-  await place(1, 14, 7, 1, 0, TL);
-  await place(0, 13, 8, 1, 0, TL);
+  check('Cânion: passarela suspensa no mapa', await evalG(() => window.__game.scene.getScene('TrailLevel').layer.getTileAt(12, 30).index === 27));
+  // espinhos na passarela (12,39): ela queima com a magia
+  await place(1, 12, 40, 0, -1, TL);
+  await place(0, 11, 42, 0, -1, TL);
   await wait(100);
   await press('KeyL');
   await wait(900);
-  const thorn = await evalG(() => window.__game.scene.getScene('TrailLevel').occupied.has('15,7'));
+  const thorn = await evalG(() => window.__game.scene.getScene('TrailLevel').occupied.has('12,39'));
   check('Magia queima os espinhos', thorn === false);
-  // J1 empurra a pedra grande para baixo
-  await place(0, 40, 5, 0, 1, TL);
-  await place(1, 38, 5, 0, 1, TL);
+  // J2 não consegue empurrar a pedra grande (17,53)
+  await place(1, 17, 54, 0, -1, TL);
+  await place(0, 15, 56, 0, -1, TL);
   await wait(100);
-  await page.keyboard.down('KeyS');
-  await wait(2200);
-  await page.keyboard.up('KeyS');
-  const by = await evalG(() => window.__game.scene.getScene('TrailLevel').boulders.find((b) => b.tx === 40)?.ty);
-  check('J1 empurra pedra', by > 6, `linha=${by}`);
-  // J2 não consegue empurrar
-  await place(0, 30, 3, 0, 1, TL);
-  await place(1, 45, 2, 1, 0, TL);
-  await wait(100);
-  await page.keyboard.down('ArrowRight');
+  await page.keyboard.down('ArrowUp');
   await wait(900);
-  await page.keyboard.up('ArrowRight');
-  const nook = await evalG(() => window.__game.scene.getScene('TrailLevel').boulders.find((b) => b.ty === 2)?.tx);
-  check('J2 não empurra pedra (só o João)', nook === 46, `coluna=${nook}`);
+  await page.keyboard.up('ArrowUp');
+  const nook = await evalG(() => window.__game.scene.getScene('TrailLevel').boulders[0]?.ty);
+  check('J2 não empurra pedra (só o João)', nook === 53, `linha=${nook}`);
+  // J1 empurra a pedra para cima, em direção à placa
+  await place(1, 15, 56, 0, -1, TL);
+  await place(0, 17, 54, 0, -1, TL);
+  await wait(100);
+  await page.keyboard.down('KeyW');
+  await wait(2200);
+  await page.keyboard.up('KeyW');
+  const by = await evalG(() => window.__game.scene.getScene('TrailLevel').boulders[0]?.ty);
+  check('J1 empurra pedra', by < 53, `linha=${by}`);
   await shot('14-canyon-push');
   // desmaio e reviver
   await evalG(() => { const s = window.__game.scene.getScene('TrailLevel'); s.players[1].hp = 1; s.damagePlayer(s.players[1], 1, 0, 0); });
-  await place(0, 44, 2, 1, 0, TL);
+  await wait(500);
+  await place(0, 16, 56, 1, 0, TL);
+  await place(1, 17, 56, 1, 0, TL);
   await wait(100);
   await page.keyboard.down('KeyF');
-  await wait(1700);
+  await page.waitForFunction(() => !window.__game.scene.getScene('TrailLevel').players[1].fainted, null, { timeout: 6000 }).catch(() => undefined);
   await page.keyboard.up('KeyF');
   const fainted = await evalG(() => window.__game.scene.getScene('TrailLevel').players[1].fainted);
   check('Reviver o parceiro segurando AÇÃO', fainted === false);
@@ -440,41 +445,41 @@ try {
   await press('KeyK');
   check('Escolhe a medalha de São Bento', await ms(() => window.__game.scene.getScene('MedalLevel').tasks.isDone('medal')));
   await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'walk', null, { timeout: 6000 }).catch(() => undefined);
-  // igreja: segurar K até o sino tocar 3 vezes
+  // papelaria: escolhe o papel de presente
   await ms(() => { const s = window.__game.scene.getScene('MedalLevel'); s.dist = 99999; });
   await page.waitForFunction(() => { const s = window.__game.scene.getScene('MedalLevel'); return s.dist < 99999 && s.stops[1].spawned; }, null, { timeout: 5000 }).catch(() => undefined);
   await press('KeyK');
-  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'bless', null, { timeout: 5000 }).catch(() => undefined);
-  await page.keyboard.down('KeyK');
-  await wait(1200);
-  await shot('20d-medalha-bencao');
-  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').tasks.isDone('bless'), null, { timeout: 12000 }).catch(() => undefined);
-  await page.keyboard.up('KeyK');
-  check('Medalha abençoada na igreja', await ms(() => window.__game.scene.getScene('MedalLevel').tasks.isDone('bless')));
+  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'paper', null, { timeout: 5000 }).catch(() => undefined);
+  await press('ArrowRight');
+  await shot('20d-medalha-papelaria');
+  await press('KeyK');
+  check('Papel de presente na papelaria', await ms(() => window.__game.scene.getScene('MedalLevel').tasks.isDone('paper')));
   await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'walk', null, { timeout: 6000 }).catch(() => undefined);
-  // papelaria: setas na ordem
+  // em casa: escreve a carta (3 frases), embrulha com a carta dentro e chama o motoboy
   await ms(() => { const s = window.__game.scene.getScene('MedalLevel'); s.dist = 99999; });
   await page.waitForFunction(() => { const s = window.__game.scene.getScene('MedalLevel'); return s.dist < 99999 && s.stops[2].spawned; }, null, { timeout: 5000 }).catch(() => undefined);
+  await shot('20e-medalha-casa');
   await press('KeyK');
-  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'wrap', null, { timeout: 5000 }).catch(() => undefined);
+  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'letter', null, { timeout: 5000 }).catch(() => undefined);
+  await press('KeyK');
+  await press('ArrowRight');
+  await press('KeyK');
+  await shot('20f-medalha-carta');
+  await press('KeyK');
+  check('Carta escrita com 3 frases', (await ms(() => window.__game.scene.getScene('MedalLevel').letter.length)) === 3);
+  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'wrap', null, { timeout: 6000 }).catch(() => undefined);
   const seq = await ms(() => window.__game.scene.getScene('MedalLevel').seq);
   const arrowKey = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
   for (let i = 0; i < seq.length; i++) {
     await press(arrowKey[seq[i]], 40);
     await page.waitForFunction((n) => window.__game.scene.getScene('MedalLevel').seqIdx >= n, i + 1, { timeout: 3000 }).catch(() => undefined);
-    if (i === 2) await shot('20e-medalha-embrulho');
   }
-  check('Presente embrulhado', await ms(() => window.__game.scene.getScene('MedalLevel').tasks.isDone('wrap')));
-  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'walk', null, { timeout: 6000 }).catch(() => undefined);
-  // portaria do prédio dele
-  await ms(() => { const s = window.__game.scene.getScene('MedalLevel'); s.dist = 99999; });
-  await page.waitForFunction(() => { const s = window.__game.scene.getScene('MedalLevel'); return s.dist < 99999 && s.stops[3].spawned; }, null, { timeout: 5000 }).catch(() => undefined);
-  await shot('20f-medalha-predio');
-  await press('KeyK');
-  await wait(1600);
-  await shot('20g-medalha-portaria');
-  await page.waitForFunction(() => window.__game.scene.isActive('Result'), null, { timeout: 12000 }).catch(() => undefined);
-  check('Entregar a medalha leva ao resultado', (await activeScenes()).includes('Result'));
+  check('Presente embrulhado com a carta dentro', await ms(() => window.__game.scene.getScene('MedalLevel').tasks.isDone('wrap')));
+  await page.waitForFunction(() => window.__game.scene.getScene('MedalLevel').state === 'send', null, { timeout: 6000 }).catch(() => undefined);
+  await wait(3000);
+  await shot('20g-medalha-motoboy');
+  await page.waitForFunction(() => window.__game.scene.isActive('Result'), null, { timeout: 15000 }).catch(() => undefined);
+  check('Motoboy leva o presente: resultado', (await activeScenes()).includes('Result'));
 
   // ---------------------------------------------------------------- MOTO (pão)
   const M = 'MotoLevel';
@@ -505,8 +510,11 @@ try {
   await evalG(() => { window.__game.scene.getScene('MotoLevel').catchT = 1.2; });
   await press('KeyF');
   check('O João segura o pão que pulou', (await evalG(() => window.__game.scene.getScene('MotoLevel').catches)) === 1);
-  await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = s.cfg.total; });
-  await wait(3200);
+  await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = s.cfg.total; s.invuln = 99; });
+  await wait(3000);
+  await shot('21b-portaria');
+  check('Pão: ela esperando na portaria', (await evalG(() => window.__game.scene.getScene('MotoLevel').arriving)) === true);
+  await page.waitForFunction(() => window.__game.scene.isActive('Result'), null, { timeout: 15000 }).catch(() => undefined);
   check('Entregar o pão à noite leva ao resultado', (await activeScenes()).includes('Result'));
 
   // ---------------------------------------------------------------- PNEU FURADO E ROÇA (moto na terra)
@@ -538,6 +546,27 @@ try {
   await shot('22c-curva');
   check('Curva na estrada de terra', !!(await evalG(() => window.__game.scene.getScene('MotoLevel').curve)));
 
+  // ---------------------------------------------------------------- VOLTA DA LAPINHA (moto no tranco)
+  await startScene(M, { levelId: 'volta' });
+  await press('KeyF');
+  await press('KeyK');
+  await page.waitForFunction(() => window.__game.scene.getScene('MotoLevel').started, null, { timeout: 5000 }).catch(() => undefined);
+  await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); s.dist = s.cfg.total * 0.43; s.invuln = 99; s.curveT = 99; });
+  await page.waitForFunction(() => !!window.__game.scene.getScene('MotoLevel').stall, null, { timeout: 8000 }).catch(() => undefined);
+  check('Volta da Lapinha: a moto morre', !!(await evalG(() => window.__game.scene.getScene('MotoLevel').stall)));
+  await press('KeyF');
+  await wait(300);
+  await press('KeyF');
+  await page.waitForFunction(() => window.__game.scene.getScene('MotoLevel').stall?.phase === 'push', null, { timeout: 5000 }).catch(() => undefined);
+  check('Não liga na partida: vão no tranco', (await evalG(() => window.__game.scene.getScene('MotoLevel').stall?.phase)) === 'push');
+  for (let i = 0; i < 8; i++) { await page.keyboard.down('KeyF'); await page.keyboard.down('KeyK'); await wait(30); await page.keyboard.up('KeyF'); await page.keyboard.up('KeyK'); await wait(30); }
+  await shot('22d-tranco');
+  await page.waitForFunction(() => (window.__game.scene.getScene('MotoLevel').stall?.push ?? 0) >= 0.65, null, { timeout: 4000 }).catch(() => undefined);
+  await evalG(() => { const s = window.__game.scene.getScene('MotoLevel'); if (s.stall) s.stall.push = 0.9; });
+  await press('KeyG');
+  await page.waitForFunction(() => window.__game.scene.getScene('MotoLevel').stallDone, null, { timeout: 5000 }).catch(() => undefined);
+  check('Empurrando juntos, pega no tranco', (await evalG(() => window.__game.scene.getScene('MotoLevel').stallDone)) === true);
+
   // ---------------------------------------------------------------- PESCARIA (Juiz de Fora) + ARRAIÁ
   const FI = 'FishingLevel';
   const fs_ = (f) => evalG(f);
@@ -561,15 +590,16 @@ try {
   await press('KeyF', 30);
   await wait(300);
   await shot('12b-pescaria-peixe');
-  check('João pega o peixe com o puçá', (await fs_(() => window.__game.scene.getScene('FishingLevel').caught)) === 1);
+  check('João pega o peixe com a rede', (await fs_(() => window.__game.scene.getScene('FishingLevel').caught)) === 1);
   await fs_(() => { const s = window.__game.scene.getScene('FishingLevel'); s.state = 'aim'; s.timeLeft = 0.05; });
   await page.waitForFunction(() => { const s = window.__game.scene.getScene('FishingLevel'); return s.state === 'party' && s.callWin > 0.6; }, null, { timeout: 15000 }).catch(() => undefined);
-  await page.keyboard.down('KeyF'); await page.keyboard.down('KeyK');
-  await wait(80);
-  await page.keyboard.up('KeyF'); await page.keyboard.up('KeyK');
-  await wait(300);
   await shot('12c-arraia');
-  check('Quadrilha no arraiá: BALANCÊ com os dois', (await fs_(() => window.__game.scene.getScene('FishingLevel').dances)) === 1);
+  // BALANCÊ: seta para a esquerda (João: A · Juliana: ←)
+  await page.keyboard.down('KeyA'); await page.keyboard.down('ArrowLeft');
+  await wait(80);
+  await page.keyboard.up('KeyA'); await page.keyboard.up('ArrowLeft');
+  await wait(300);
+  check('Quadrilha no arraiá: BALANCÊ com a seta', (await fs_(() => window.__game.scene.getScene('FishingLevel').dances)) === 1);
 
   // ---------------------------------------------------------------- LAPINHA DA SERRA
   await startScene(TL, { levelId: 'lapinha' });

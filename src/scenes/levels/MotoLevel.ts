@@ -151,6 +151,8 @@ export class MotoLevel extends Phaser.Scene {
     this.repair = -1;
     this.flatDone = false;
     this.repairUi = [];
+    this.stall = null;
+    this.stallDone = false;
     this.repairBar = null;
     this.tasks = null;
     this.warmth = 100;
@@ -172,6 +174,7 @@ export class MotoLevel extends Phaser.Scene {
     this.balanceUi = null;
     this.camRot = 0;
     this.headlight = null;
+    this.arriving = false;
 
     this.world = this.add.layer();
     this.ui = this.add.layer();
@@ -432,7 +435,7 @@ export class MotoLevel extends Phaser.Scene {
     this.riders.forEach((r, i) => r.setFrame(charFrame('side', i === 0 && this.boltCd > 0.3 ? 3 : 0)).setY((i === 0 ? -13 : -11) + (col === 1 ? -0.5 : 0)));
     this.refreshUi();
     if (!this.started || this.ended) {
-      this.moto.y = this.my + Math.sin(time / 120) * 0.5;
+      this.moto.setPosition(this.mx, this.my + Math.sin(time / 120) * 0.5).setDepth(this.my + 4);
       this.shadow.setPosition(this.moto.x, this.my + 12);
       return;
     }
@@ -441,6 +444,8 @@ export class MotoLevel extends Phaser.Scene {
     const p2 = Input.players[1];
     if (this.cfg.flatTireAt !== undefined && !this.flatDone && this.repair < 0 && this.dist / this.cfg.total >= this.cfg.flatTireAt) this.flatTire();
     if (this.repair >= 0) { this.updateRepair(dt, time); return; }
+    if (this.cfg.stallAt !== undefined && !this.stallDone && !this.stall && this.dist / this.cfg.total >= this.cfg.stallAt) this.startStall();
+    if (this.stall) { this.updateStall(dt, time); return; }
     this.invuln = Math.max(0, this.invuln - dt);
     this.jumpCd = Math.max(0, this.jumpCd - dt);
     this.boltCd = Math.max(0, this.boltCd - dt);
@@ -509,6 +514,114 @@ export class MotoLevel extends Phaser.Scene {
     if (this.dist >= this.cfg.total) this.arrive();
   }
 
+  /** A moto morreu: não liga na partida; os dois empurram e ele solta a embreagem (tranco). */
+  stall: { phase: 'crank' | 'push' | 'go'; tries: number; push: number; t: number; walkers: Phaser.GameObjects.Sprite[]; bar: Phaser.GameObjects.Graphics; hint: Phaser.GameObjects.Text } | null = null;
+  stallDone = false;
+
+  private startStall(): void {
+    this.speed = 0;
+    this.curve = null;
+    this.camRot = 0;
+    this.cameras.main.setRotation(0).shake(250, 0.006);
+    for (const o of this.objs) if (o.label !== 'decor') o.dead = true;
+    Audio.play('hurt');
+    this.toast('Pof... pof... a moto morreu!', '#ff9c9c');
+    const add = <T extends Phaser.GameObjects.GameObject>(o: T): T => { this.ui.add(o); this.repairUi.push(o); return o; };
+    add(panel(this, GAME_W / 2 - 300, 370, 600, 130));
+    add(txt(this, GAME_W / 2, 394, 'A moto não liga!', 22, { color: '#ffd23a' }));
+    const hint = add(txt(this, GAME_W / 2, 424, `${this.names[0]}: aperte ${KEY_LABELS[0].action} para dar a partida`, 15, { bold: false, wrap: 560 }));
+    const bar = add(this.add.graphics());
+    this.stall = { phase: 'crank', tries: 0, push: 0, t: 0, walkers: [], bar, hint };
+  }
+
+  private updateStall(dt: number, time: number): void {
+    const st = this.stall!;
+    const [p1, p2] = Input.players;
+    st.t += dt;
+    if (st.phase === 'crank') {
+      this.moto.setAngle(Math.sin(time / 90) * 0.6);
+      if (p1.actionPressed) {
+        st.tries++;
+        Audio.play('wrong');
+        this.cameras.main.shake(120, 0.004);
+        this.toast(st.tries < 2 ? 'Trrr... trrr... nada.' : 'Trrr... trrr... morreu de vez!', '#ff9c9c');
+        if (st.tries >= 2) this.time.delayedCall(900, () => this.toPush());
+      }
+      return;
+    }
+    if (st.phase === 'push') {
+      // os dois empurram: cada aperto dá um embalo; parado, a moto perde velocidade
+      if (p1.actionPressed) st.push += 0.05;
+      if (p2.actionPressed) st.push += 0.05;
+      st.push = Phaser.Math.Clamp(st.push - 0.22 * dt, 0, 1);
+      const ready = st.push >= 0.65;
+      if (p1.abilityPressed) {
+        if (ready) {
+          st.phase = 'go';
+          Audio.play('horn');
+          this.cameras.main.shake(200, 0.005);
+          this.toast('VRUUUM! Pegou no tranco! ♥', '#8be07a');
+          this.say1(`${this.names[1]}: Sobe, amor! Corre!`);
+          this.tasks?.done('pushstart');
+          this.time.delayedCall(1100, () => this.endStall());
+        } else {
+          st.push *= 0.4;
+          Audio.play('wrong');
+          this.toast('Engasgou! Empurrem mais rápido!', '#ff9c9c');
+        }
+      }
+      // a moto anda devagar com o empurrão, os dois a pé ao lado
+      const v = st.push * 70;
+      const dx = v * dt;
+      this.dist += dx;
+      this.grass.tilePositionX += dx;
+      this.dashes.forEach((d) => { d.tilePositionX += dx; });
+      this.updateObjs(dt, dx);
+      const step = Math.floor(time / 140) % 2 ? 1 : 2;
+      // ele empurra pelo guidão (do outro lado da moto), ela empurra por trás
+      st.walkers[0]?.setFrame(charFrame('side', st.push > 0.05 ? step : 0)).setPosition(this.mx + 6, this.my - 12).setDepth(this.my - 2);
+      st.walkers[1]?.setFrame(charFrame('side', st.push > 0.05 ? 3 - step : 0)).setPosition(this.mx - 24, this.my + 4).setDepth(this.my + 8);
+      st.bar.clear().fillStyle(0x1b1424, 1).fillRoundedRect(GAME_W / 2 - 200, 456, 400, 22, 8)
+        .fillStyle(0x3a6a3a, 1).fillRect(GAME_W / 2 - 196 + 392 * 0.65, 460, 392 * 0.35, 14)
+        .fillStyle(ready ? 0x8be07a : 0xffd25e, 1).fillRoundedRect(GAME_W / 2 - 196, 460, 392 * st.push, 14, 6);
+      st.hint.setText(ready
+        ? `AGORA! ${this.names[0]}: ${KEY_LABELS[0].ability} para soltar a embreagem!`
+        : `Empurrem juntos: ${this.names[0]} aperta ${KEY_LABELS[0].action} e ${this.names[1]} aperta ${KEY_LABELS[1].action} sem parar!`);
+    }
+  }
+
+  private say1(text: string): void {
+    this.time.delayedCall(500, () => this.toast(text, '#ffd6e4'));
+  }
+
+  private toPush(): void {
+    const st = this.stall;
+    if (!st || st.phase !== 'crank') return;
+    st.phase = 'push';
+    this.toast('Não liga! Vamos no tranco!', '#ffd23a');
+    // os dois descem e empurram a moto
+    this.riders.forEach((r) => r.setVisible(false));
+    st.walkers = [0, 1].map((i) => {
+      const w = this.add.sprite(this.mx, this.my, `char_${i}`, charFrame('side', 0)).setOrigin(0.5, 1).setFlipX(true).setDepth(this.my + 6);
+      this.world.add(w);
+      return w;
+    });
+  }
+
+  private endStall(): void {
+    const st = this.stall;
+    if (!st) return;
+    st.walkers.forEach((w) => w.destroy());
+    this.riders.forEach((r, i) => r.setVisible(!(this.solo && i === 0)));
+    this.repairUi.forEach((o) => o.destroy());
+    this.repairUi = [];
+    this.stall = null;
+    this.stallDone = true;
+    this.speed = 120;
+    this.spawnT = 1.5;
+    this.curveT = 6;
+  }
+
   /** O pneu furou: os dois consertam juntos. */
   private flatTire(): void {
     this.repair = 0;
@@ -524,9 +637,9 @@ export class MotoLevel extends Phaser.Scene {
     this.camRot = 0;
     this.cameras.main.setRotation(0);
     const add = <T extends Phaser.GameObjects.GameObject>(o: T): T => { this.ui.add(o); this.repairUi.push(o); return o; };
-    add(panel(this, GAME_W / 2 - 280, 150, 560, 170));
-    add(txt(this, GAME_W / 2, 182, 'Consertem o pneu juntos!', 24, { color: '#ffd23a' }));
-    add(txt(this, GAME_W / 2, 216, `${this.names[0]}: SEGURE ${KEY_LABELS[0].action} (segura a moto)  ·  ${this.names[this.hi]}: aperte ${KEY_LABELS[this.hi].action} sem parar (bomba de ar)`, 14, { bold: false, wrap: 520 }));
+    add(panel(this, GAME_W / 2 - 300, 370, 600, 130));
+    add(txt(this, GAME_W / 2, 394, 'Consertem o pneu juntos!', 22, { color: '#ffd23a' }));
+    add(txt(this, GAME_W / 2, 424, `${this.names[0]}: SEGURE ${KEY_LABELS[0].action} (segura a moto)  ·  ${this.names[this.hi]}: aperte ${KEY_LABELS[this.hi].action} sem parar (bomba de ar)`, 14, { bold: false, wrap: 520 }));
     this.repairBar = add(this.add.graphics());
   }
 
@@ -543,8 +656,8 @@ export class MotoLevel extends Phaser.Scene {
       }
     }
     this.moto.setAngle(holding ? 0 : Math.sin(time / 80) * 3);
-    this.repairBar?.clear().fillStyle(0x1b1424, 1).fillRoundedRect(GAME_W / 2 - 200, 262, 400, 22, 8)
-      .fillStyle(0x8be07a, 1).fillRoundedRect(GAME_W / 2 - 196, 266, 392 * this.repair, 14, 6);
+    this.repairBar?.clear().fillStyle(0x1b1424, 1).fillRoundedRect(GAME_W / 2 - 200, 456, 400, 22, 8)
+      .fillStyle(0x8be07a, 1).fillRoundedRect(GAME_W / 2 - 196, 460, 392 * this.repair, 14, 6);
     if (this.repair >= 1) {
       this.repair = -1;
       this.flatDone = true;
@@ -923,11 +1036,51 @@ export class MotoLevel extends Phaser.Scene {
   }
 
   private arrive(): void {
-    if (this.ended) return;
+    if (this.ended || this.arriving) return;
     this.tasks?.done('arrive');
     if (this.cfg.bread && this.warmth >= 50) this.tasks?.done('warm');
+    if (this.cfg.arrival === 'portaria') { this.portaria(); return; }
     this.toast(this.cfg.arriveText, '#ffd23a');
     this.finish(true);
+  }
+
+  /** Chegada no condomínio dela: ela está esperando na portaria para receber o pão. */
+  private arriving = false;
+  private portaria(): void {
+    this.arriving = true;
+    this.started = false;
+    this.headlight?.clear();
+    this.catchT = 0;
+    this.flyingBread?.destroy();
+    this.flyingBread = null;
+    for (const o of this.objs) if (o.label !== 'decor') o.dead = true;
+    const gateX = W * 0.62;
+    const condo = this.add.image(W + 90, ROAD_TOP - 2, 'condo').setOrigin(0.5, 1).setScale(1.7).setDepth(ROAD_TOP - 3);
+    const glow = this.add.ellipse(W + 90, ROAD_TOP + 2, 150, 70, 0xffe8a0, 0.12).setDepth(8001).setBlendMode(Phaser.BlendModes.ADD);
+    const ju = this.add.sprite(W + 76, ROAD_TOP + 14, 'char_1', charFrame('side', 0)).setOrigin(0.5, 1).setDepth(8003);
+    const juGlow = this.add.ellipse(W + 76, ROAD_TOP + 14, 30, 8, 0x000000, 0.3).setDepth(8002);
+    this.world.add([condo, glow, ju, juGlow]);
+    // o condomínio entra na tela e a moto encosta na portaria
+    this.tweens.add({ targets: [condo, glow], x: gateX + 14, duration: 1600, ease: 'Sine.Out' });
+    this.tweens.add({ targets: [ju, juGlow], x: gateX, duration: 1600, ease: 'Sine.Out' });
+    this.tweens.add({ targets: this, mx: gateX - 46, my: ROAD_TOP + 18, duration: 1600, ease: 'Sine.Out' });
+    this.toast(`${this.names[1]} já está esperando na portaria!`, '#ffd6e4');
+    this.time.delayedCall(1700, () => {
+      // ele desce da moto e entrega o pão
+      this.riders[1].setVisible(false);
+      const jo = this.add.sprite(this.mx + 4, this.my + 2, 'char_0', charFrame('side', 1)).setOrigin(0.5, 1).setFlipX(true).setDepth(8003);
+      const bread = this.add.image(this.mx + 10, this.my - 14, 'item_bread').setDepth(8004);
+      this.world.add([jo, bread]);
+      this.tweens.add({ targets: jo, x: gateX - 14, duration: 700, onComplete: () => jo.setFrame(charFrame('side', 3)) });
+      this.tweens.add({ targets: bread, x: gateX - 6, y: ju.y - 16, duration: 700, delay: 600 });
+      this.time.delayedCall(800, () => this.toast(`${this.names[1]}: Você veio mesmo! ♥`, '#ffd6e4'));
+      this.time.delayedCall(2200, () => {
+        this.toast(`${this.names[0]}: Pão quentinho com carne de lata, pra você.`, '#bfe6ff');
+        Audio.play('hug');
+        for (let i = 0; i < 10; i++) this.time.delayedCall(i * 90, () => this.burst(gateX - 7 + Phaser.Math.Between(-8, 8), ju.y - 24, 'fx_heart', 2));
+      });
+      this.time.delayedCall(4200, () => { this.toast(this.cfg.arriveText, '#ffd23a'); this.finish(true); });
+    });
   }
 
   private finish(win: boolean): void {

@@ -12,10 +12,10 @@ import { attachPilot } from '../../systems/autopilot';
 import { Admin } from '../../systems/Admin';
 
 /**
- * Mar/2026 — A Medalha de São Bento. A Juliana, sozinha, atravessa a cidade para buscar o presente
- * de aniversário do João: escolhe a medalha na loja, leva para benzer na igreja, embrulha na
- * papelaria e entrega na portaria do prédio dele. Só atravessa a rua no sinal verde!
- * O João não sabe de nada (no sofá, ele só pode torcer).
+ * Mar/2026 — A Medalha de São Bento. A Juliana, sozinha, atravessa a cidade para preparar o presente
+ * de aniversário do João: escolhe a medalha na loja, o papel de presente na papelaria e, em casa,
+ * escreve uma carta, embrulha tudo junto e manda um motoboy entregar na casa dele.
+ * Só atravessa a rua no sinal verde! O João não sabe de nada (no sofá, ele só pode torcer).
  */
 
 type Kind = 'puddle' | 'pigeon' | 'skater' | 'heart' | 'coin' | 'dog';
@@ -33,7 +33,7 @@ interface Obj {
 }
 
 interface Stop {
-  id: 'shop' | 'church' | 'papelaria' | 'predio';
+  id: 'shop' | 'papelaria' | 'casa';
   at: number;
   label: string;
   tex: string;
@@ -57,7 +57,7 @@ interface Crossing {
   cars: { img: Phaser.GameObjects.Image; y: number; vy: number }[];
 }
 
-type State = 'intro' | 'walk' | 'shop' | 'bless' | 'wrap' | 'deliver' | 'end';
+type State = 'intro' | 'walk' | 'shop' | 'paper' | 'letter' | 'wrap' | 'send' | 'end';
 type Dir = 'up' | 'down' | 'left' | 'right';
 
 const W = GAME_W / ZOOM; // 480
@@ -67,10 +67,18 @@ const SIDE_TOP = 98;
 const SIDE_BOT = 178;
 const LANES = [116, 142, 168];
 const JX = 150;
-const TOTAL = 7400;
+const TOTAL = 5700;
 const RED_TIME = 3.6;
 const GREEN_TIME = 3.2;
 const COURAGE_GOAL = 8;
+
+/** Papéis de presente da papelaria. */
+const PAPERS = [
+  { name: 'Rosa com bolinhas', color: 0xff6f9f, dots: 3 },
+  { name: 'Azul com estrelas', color: 0x5a8ae8, dots: 2 },
+  { name: 'Dourado', color: 0xe8b83a, dots: 1 },
+  { name: 'Verde', color: 0x5bbf6a, dots: 2 },
+];
 
 /** Medalhas da vitrine (frame da textura 'medals'). A certa é a 0. */
 const MEDALS = ['Medalha de São Bento', 'Medalha Milagrosa', 'Medalha de São Jorge', 'Terço'];
@@ -98,14 +106,17 @@ export class MedalLevel extends Phaser.Scene {
   // mini-jogos
   sel = 0;
   shopOrder: number[] = [];
-  bless = 0;
+  /** Carta: linha atual e frases escolhidas. */
+  letterLine = 0;
+  letter: string[] = [];
+  /** Papel de presente escolhido (cor). */
+  paperColor = 0xff6f9f;
   seq: Dir[] = [];
   seqIdx = 0;
   private overlay: Phaser.GameObjects.GameObject[] = [];
   private overlayG: Phaser.GameObjects.Graphics | null = null;
   private overlayText: Phaser.GameObjects.Text | null = null;
   private busy = false;
-  private bellsRung = 0;
   // mundo
   private world!: Phaser.GameObjects.Layer;
   private ui!: Phaser.GameObjects.Layer;
@@ -166,11 +177,13 @@ export class MedalLevel extends Phaser.Scene {
     this.doorHinted = '';
     this.stops = [
       { id: 'shop', at: 1700, label: 'Artigos Religiosos', tex: 'shop_rel', done: false, spawned: false },
-      { id: 'church', at: 3700, label: 'Igreja', tex: 'church', done: false, spawned: false },
-      { id: 'papelaria', at: 5700, label: 'Papelaria', tex: 'papelaria', done: false, spawned: false },
-      { id: 'predio', at: TOTAL, label: `Prédio do ${this.names[0]}`, tex: 'predio', done: false, spawned: false },
+      { id: 'papelaria', at: 3700, label: 'Papelaria', tex: 'papelaria', done: false, spawned: false },
+      { id: 'casa', at: TOTAL, label: `Casa da ${this.names[1]}`, tex: 'house_c4', done: false, spawned: false },
     ];
-    this.crossings = [900, 2700, 4700, 6600].map((at) => ({ at, red: true, t: RED_TIME, spawned: false, entered: false, counted: false, warned: false, carT: 0.3, cars: [] }));
+    this.letterLine = 0;
+    this.letter = [];
+    this.paperColor = 0xff6f9f;
+    this.crossings = [900, 2700, 4700].map((at) => ({ at, red: true, t: RED_TIME, spawned: false, entered: false, counted: false, warned: false, carT: 0.3, cars: [] }));
 
     this.world = this.add.layer();
     this.ui = this.add.layer();
@@ -313,7 +326,7 @@ export class MedalLevel extends Phaser.Scene {
     this.courageText = this.u(txt(this, GAME_W - 24, 32, '', 18, { origin: [1, 0.5], color: '#ffd6e4' }));
     this.progress = this.u(this.add.graphics());
     this.progressIcon = this.u(this.add.image(0, 0, 'char_1', charFrame('side', 0)).setScale(1.2).setFlipX(true));
-    this.u(this.add.image(GAME_W / 2 + 214, 58, 'predio').setScale(0.45));
+    this.u(this.add.image(GAME_W / 2 + 214, 58, 'house_c4').setScale(0.6));
     this.u(txt(this, GAME_W / 2, 24, this.info.name, 18, { color: '#fff4e0' }));
     this.toastT = this.u(txt(this, GAME_W / 2, 110, '', 20, { color: '#fff4e0', wrap: 820 }).setAlpha(0));
     const help = [
@@ -345,7 +358,7 @@ export class MedalLevel extends Phaser.Scene {
     const y0 = (GAME_H - h) / 2;
     add(panel(this, x0, y0, w, h));
     add(txt(this, GAME_W / 2, y0 + 34, 'A Medalha de São Bento', 28, { color: '#ffd25e' }));
-    add(txt(this, GAME_W / 2, y0 + 66, `${this.names[1]} sozinha pela cidade: escolher a medalha, benzer, embrulhar e entregar no prédio do ${this.names[0]}.`, 14, { bold: false, wrap: 600 }));
+    add(txt(this, GAME_W / 2, y0 + 66, `${this.names[1]} sozinha pela cidade: escolher a medalha e o papel de presente; em casa, escrever uma carta e mandar entregar na casa do ${this.names[0]}.`, 14, { bold: false, wrap: 600 }));
     const lines: [string, string, string][] = [
       [`${this.names[1]} anda pela calçada`, `${KEY_LABELS[1].move}: anda e desvia · ${KEY_LABELS[1].ability}: espanta os pombos · ${KEY_LABELS[1].action}: entra nas lojas e faz carinho no cachorro`, '#ffd6e4'],
       ['Faixa de pedestre', 'Só atravessa com o bonequinho VERDE. No vermelho, espera!', '#ffd25e'],
@@ -368,11 +381,12 @@ export class MedalLevel extends Phaser.Scene {
           this.state = 'walk';
           this.tasks = new TaskList(this, 12, 64, [
             { id: 'medal', text: 'Escolher a medalha de São Bento' },
-            { id: 'bless', text: 'Benzer a medalha na igreja' },
-            { id: 'wrap', text: 'Embrulhar o presente' },
+            { id: 'paper', text: 'Papel de presente na papelaria' },
+            { id: 'letter', text: `Escrever uma carta pro ${this.names[0]}` },
+            { id: 'wrap', text: 'Embrulhar com a carta dentro' },
             { id: 'cross', text: 'Atravessar no sinal verde', goal: this.crossings.length },
             { id: 'courage', text: 'Juntar coragem (corações)', goal: COURAGE_GOAL },
-            { id: 'deliver', text: `Entregar no prédio do ${this.names[0]}` },
+            { id: 'send', text: `Mandar entregar na casa do ${this.names[0]}` },
           ]);
           this.ui.add(this.tasks.container);
           this.toast(`(O aniversário dele tá chegando... ${this.names[1]}, bora buscar o presente!)`, '#ffd6e4', 2600);
@@ -391,9 +405,10 @@ export class MedalLevel extends Phaser.Scene {
     if (Input.players[0].actionPressed) this.cheer();
 
     if (this.state === 'shop') { this.updateShop(); return; }
-    if (this.state === 'bless') { this.updateBless(dt); return; }
+    if (this.state === 'paper') { this.updatePaper(); return; }
+    if (this.state === 'letter') { this.updateLetter(); return; }
     if (this.state === 'wrap') { this.updateWrap(); return; }
-    if (this.state === 'deliver') return;
+    if (this.state === 'send') return;
 
     const p = Input.players[1];
     this.invuln = Math.max(0, this.invuln - dt);
@@ -412,8 +427,8 @@ export class MedalLevel extends Phaser.Scene {
       if (this.doorHinted !== next.id) {
         this.doorHinted = next.id;
         Audio.play('bell');
-        this.toast(next.id === 'predio'
-          ? `Prédio do ${this.names[0]}! ${this.names[1]}, aperte ${KEY_LABELS[1].action} na portaria.`
+        this.toast(next.id === 'casa'
+          ? `Em casa! ${this.names[1]}, aperte ${KEY_LABELS[1].action} para escrever a carta.`
           : `${next.label}! ${this.names[1]}, aperte ${KEY_LABELS[1].action} para entrar.`, '#ffd25e', 2400);
       }
     }
@@ -618,13 +633,13 @@ export class MedalLevel extends Phaser.Scene {
     if (this.busy) return;
     this.juliana.setFrame(charFrame('up', 0));
     if (s.id === 'shop') this.openShop();
-    else if (s.id === 'church') this.openBless();
-    else if (s.id === 'papelaria') this.openWrap();
-    else this.openDeliver();
+    else if (s.id === 'papelaria') this.openPaper();
+    else this.openLetter();
   }
 
   private openOverlay(title: string, color: string): void {
     this.closeOverlay();
+    this.tasks?.container.setVisible(false);
     const add = <T extends Phaser.GameObjects.GameObject>(o: T): T => { this.ui.add(o); this.overlay.push(o); return o; };
     add(panel(this, GAME_W / 2 - 320, 120, 640, 320).setDepth(200));
     add(txt(this, GAME_W / 2, 150, title, 24, { color }).setDepth(201));
@@ -640,6 +655,7 @@ export class MedalLevel extends Phaser.Scene {
   }
 
   private closeOverlay(): void {
+    this.tasks?.container.setVisible(true);
     this.overlay.forEach((o) => o.destroy());
     this.overlay = [];
     this.overlayG = null;
@@ -647,14 +663,16 @@ export class MedalLevel extends Phaser.Scene {
   }
 
   /** Cartinha com o item conquistado; depois volta a andar. */
-  private finishStop(s: Stop, item: string, frame: number, text: string): void {
+  private finishStop(s: Stop, item: string, frame: number, text: string, tint?: number): void {
     this.busy = true;
     s.done = true;
     Audio.play('crystal');
     const c = this.u(this.add.container(GAME_W / 2, GAME_H / 2 - 10).setDepth(260));
     const g = this.add.graphics();
     g.fillStyle(0x1b1424, 0.92).fillRoundedRect(-150, -80, 300, 160, 14).lineStyle(3, 0xffd25e, 1).strokeRoundedRect(-150, -80, 300, 160, 14);
-    c.add([g, this.add.image(0, -18, item, frame).setScale(5), txt(this, 0, 52, text, 16, { color: '#ffd25e', wrap: 280 })]);
+    const icon = this.add.image(0, -18, item, frame).setScale(5);
+    if (tint !== undefined) icon.setTint(tint);
+    c.add([g, icon, txt(this, 0, 52, text, 16, { color: '#ffd25e', wrap: 280 })]);
     c.setScale(0.3);
     this.tweens.add({ targets: c, scale: 1, duration: 260, ease: 'Back.Out' });
     this.time.delayedCall(1700, () => {
@@ -702,50 +720,117 @@ export class MedalLevel extends Phaser.Scene {
     }
   }
 
-  // igreja: segurar AÇÃO (mãos juntas) enquanto o padre abençoa
-  private openBless(): void {
-    this.state = 'bless';
-    this.bless = 0;
-    this.bellsRung = 0;
-    this.openOverlay('Bênção na igreja', '#c8a0f0');
-    this.overlayAdd(this.add.sprite(GAME_W / 2 - 160, 330, 'npc_padre', charFrame('down', 0)).setScale(4).setOrigin(0.5, 1));
-    this.overlayAdd(this.add.sprite(GAME_W / 2 + 160, 330, 'char_1', charFrame('up', 0)).setScale(4).setOrigin(0.5, 1));
-    this.overlayAdd(this.add.image(GAME_W / 2, 250, 'item_medal').setScale(4));
-    this.overlayText?.setText(`Padre: "Vamos abençoar essa medalha." · ${this.names[1]}: SEGURE ${KEY_LABELS[1].action} com as mãos juntas até o sino tocar 3 vezes.`);
+  // papelaria: escolhe o papel de presente (e leva caixinha e papel de carta)
+  private openPaper(): void {
+    this.state = 'paper';
+    this.sel = 0;
+    this.openOverlay('Qual papel de presente?', '#ff8fb1');
+    PAPERS.forEach((pp, i) => {
+      const g = this.overlayAdd(this.add.graphics());
+      const x = this.shopX(i);
+      g.fillStyle(pp.color, 1).fillRoundedRect(x - 32, 222, 64, 76, 6);
+      g.fillStyle(0xffffff, 0.55);
+      for (let k = 0; k < 6; k++) g.fillCircle(x - 20 + (k % 3) * 20, 236 + Math.floor(k / 3) * 28 + (k % 2) * 8, pp.dots);
+      this.overlayAdd(txt(this, x, 312, pp.name, 12, { bold: false }));
+    });
+    this.overlayAdd(this.add.sprite(GAME_W / 2 - 270, 330, 'npc_vendedora', charFrame('down', 0)).setScale(3).setOrigin(0.5, 1));
+    this.overlayText?.setText(`Vendedora: "Qual ele vai gostar?" (também vão: uma caixinha e papel de carta)  ${KEY_LABELS[1].move}: escolher · ${KEY_LABELS[1].action}: levar`);
   }
 
-  private updateBless(dt: number): void {
+  private updatePaper(): void {
+    const p = Input.players[1];
     if (this.busy) return;
-    const hold = Input.players[1].action;
-    this.bless = Phaser.Math.Clamp(this.bless + (hold ? 0.34 : -0.25) * dt, 0, 1);
-    const bells = Math.floor(this.bless * 3 + 0.001);
-    if (bells > this.bellsRung) {
-      this.bellsRung = bells;
-      Audio.play('bell');
-      this.burst(this.juliana.x, this.juliana.y - 20, 'fx_spark', 4);
-    }
-    const g = this.overlayG;
-    if (g) {
-      g.clear().fillStyle(0x1b1424, 1).fillRoundedRect(GAME_W / 2 - 160, 344, 320, 20, 8)
-        .fillStyle(0xc8a0f0, 1).fillRoundedRect(GAME_W / 2 - 156, 348, 312 * this.bless, 12, 6);
-      if (hold) g.fillStyle(0xfff4a0, 0.25).fillCircle(GAME_W / 2, 250, 36 + Math.sin(this.time.now / 120) * 4);
-    }
-    if (this.bless >= 1) {
-      this.tasks?.done('bless');
-      this.toast('Padre: "Que São Bento proteja quem vai usar."', '#c8a0f0', 2000);
-      this.finishStop(this.stops[1], 'item_medal', 0, 'Medalha abençoada! ♥');
+    if (p.leftPressed) { this.sel = (this.sel + 3) % 4; Audio.play('blip'); }
+    if (p.rightPressed) { this.sel = (this.sel + 1) % 4; Audio.play('blip'); }
+    this.overlayG?.clear().lineStyle(3, 0xffd6e4, 1).strokeRoundedRect(this.shopX(this.sel) - 40, 214, 80, 112, 10);
+    if (p.actionPressed) {
+      this.paperColor = PAPERS[this.sel].color;
+      this.tasks?.done('paper');
+      this.finishStop(this.stops[1], 'gift', 0, 'Papel de presente, caixinha e papel de carta ♥', this.paperColor);
     }
   }
 
-  // papelaria: embrulhar o presente seguindo as setas
+  // em casa: escreve a carta, embrulha com a medalha e chama o motoboy
+  private openLetter(): void {
+    this.state = 'letter';
+    this.letterLine = 0;
+    this.letter = [];
+    this.sel = 0;
+    this.letterTexts = [];
+    this.openOverlay(`Uma carta para o ${this.names[0]}`, '#ffd6e4');
+    this.overlayText?.setText(`${KEY_LABELS[1].move}: escolher a frase · ${KEY_LABELS[1].action}: escrever`);
+    this.renderLetter();
+  }
+
+  /** Frases que ela pode escolher para cada linha da carta. */
+  letterOptions(line: number): string[] {
+    const [jo, ju] = this.names;
+    return [
+      [`Feliz aniversário, ${jo}!`, `Oi, ${jo}... feliz aniversário.`, `${jo}, hoje o dia é seu!`],
+      ['Essa medalha é pra te proteger em todo caminho.', 'Que São Bento te guarde sempre.', 'Mesmo longe, eu penso em você.'],
+      [`Com carinho, ${ju}.`, `Um abraço apertado, ${ju}.`, `Com saudade, ${ju}.`],
+    ][line] ?? [];
+  }
+
+  private updateLetter(): void {
+    if (this.busy) return;
+    const p = Input.players[1];
+    const opts = this.letterOptions(this.letterLine);
+    let changed = this.letterTexts.length === 0;
+    if (p.leftPressed || p.upPressed) { this.sel = (this.sel + opts.length - 1) % opts.length; Audio.play('blip'); changed = true; }
+    if (p.rightPressed || p.downPressed) { this.sel = (this.sel + 1) % opts.length; Audio.play('blip'); changed = true; }
+    if (p.actionPressed) {
+      changed = true;
+      this.letter.push(opts[this.sel]);
+      this.letterLine++;
+      this.sel = 0;
+      Audio.play('pick');
+      if (this.letterLine >= 3) {
+        this.tasks?.done('letter');
+        this.busy = true;
+        this.time.delayedCall(1300, () => { this.busy = false; this.openWrap(); });
+      }
+    }
+    if (changed) this.renderLetter();
+  }
+
+  /** Folha de carta com as linhas escritas e as opções da linha atual. */
+  private renderLetter(): void {
+    const opts = this.letterOptions(this.letterLine);
+    const g = this.overlayG;
+    if (!g) return;
+    g.clear();
+    g.fillStyle(0xfff7e6, 1).fillRoundedRect(GAME_W / 2 - 240, 176, 480, 120, 8).lineStyle(2, 0xc9a87a, 1).strokeRoundedRect(GAME_W / 2 - 240, 176, 480, 120, 8);
+    for (let k = 0; k < 3; k++) g.lineStyle(1, 0xe8d8c0, 1).lineBetween(GAME_W / 2 - 220, 214 + k * 30, GAME_W / 2 + 220, 214 + k * 30);
+    this.letterTexts.forEach((t) => t.destroy());
+    this.overlay = this.overlay.filter((o) => !this.letterTexts.includes(o as Phaser.GameObjects.Text));
+    this.letterTexts = [];
+    const add = (t: Phaser.GameObjects.Text) => { this.letterTexts.push(this.overlayAdd(t)); };
+    this.letter.forEach((l, k) => add(txt(this, GAME_W / 2, 202 + k * 30, l, 15, { color: '#3a2a3e', stroke: '#fff7e6', strokeW: 0, bold: false })));
+    if (this.letterLine < 3) {
+      opts.forEach((o, k) => {
+        const y = 318 + k * 24;
+        const on = k === this.sel;
+        if (on) g.fillStyle(0xffd6e4, 0.25).fillRoundedRect(GAME_W / 2 - 250, y - 11, 500, 22, 6);
+        add(txt(this, GAME_W / 2, y, `${on ? '> ' : ''}${o}`, 13, { color: on ? '#ffd25e' : '#fff4e0', bold: on }));
+      });
+    }
+  }
+
+  private letterTexts: Phaser.GameObjects.Text[] = [];
+
+  // embrulha: a carta vai dentro da caixinha, junto com a medalha
   private openWrap(): void {
     this.state = 'wrap';
     const dirs: Dir[] = ['up', 'down', 'left', 'right'];
     this.seq = Array.from({ length: 6 }, () => Phaser.Utils.Array.GetRandom(dirs));
     this.seqIdx = 0;
+    this.letterTexts = [];
     this.openOverlay('Embrulhar o presente', '#ff8fb1');
-    this.overlayAdd(this.add.image(GAME_W / 2, 230, 'gift').setScale(4).setAlpha(0.25));
-    this.overlayText?.setText(`Dobra o papel, fita e laço: ${this.names[1]}, aperte as setas na ordem!`);
+    this.overlayAdd(this.add.image(GAME_W / 2 - 70, 230, 'item_medal').setScale(3));
+    this.overlayAdd(this.add.image(GAME_W / 2 + 70, 230, 'item_poem').setScale(3));
+    this.overlayAdd(this.add.image(GAME_W / 2, 236, 'gift').setScale(4).setAlpha(0.2).setTint(this.paperColor));
+    this.overlayText?.setText(`A medalha e a carta vão dentro da caixinha. Papel, fita e laço: ${this.names[1]}, aperte as setas na ordem!`);
   }
 
   private updateWrap(): void {
@@ -757,7 +842,7 @@ export class MedalLevel extends Phaser.Scene {
         this.seqIdx++;
         Audio.play('pick');
         const gift = this.overlay.find((o) => o instanceof Phaser.GameObjects.Image && o.texture.key === 'gift') as Phaser.GameObjects.Image | undefined;
-        gift?.setAlpha(0.25 + 0.75 * (this.seqIdx / this.seq.length));
+        gift?.setAlpha(0.2 + 0.8 * (this.seqIdx / this.seq.length));
       } else {
         this.wrapMistakes++;
         Audio.play('wrong');
@@ -776,8 +861,47 @@ export class MedalLevel extends Phaser.Scene {
     }
     if (this.seqIdx >= this.seq.length) {
       this.tasks?.done('wrap');
-      this.finishStop(this.stops[2], 'gift', 0, 'Presente embrulhado com laço! ♥');
+      this.busy = true;
+      this.toast('Presente embrulhado, com a carta dentro! ♥', '#ffd6e4', 1500);
+      this.time.delayedCall(1500, () => { this.busy = false; this.openSend(); });
     }
+  }
+
+  // o motoboy busca o presente e leva até a casa do João
+  private openSend(): void {
+    this.state = 'send';
+    this.busy = true;
+    this.openOverlay(`Entrega para o ${this.names[0]}`, '#9ce8ff');
+    const ju = this.overlayAdd(this.add.sprite(GAME_W / 2 + 170, 340, 'char_1', charFrame('down', 0)).setScale(4).setOrigin(0.5, 1));
+    const gift = this.overlayAdd(this.add.image(GAME_W / 2 + 120, 300, 'gift').setScale(3).setTint(this.paperColor));
+    const moto = this.overlayAdd(this.add.image(-80, 318, 'moto').setScale(4));
+    const rider = this.overlayAdd(this.add.sprite(-90, 290, 'npc_motoboy', charFrame('side', 0)).setScale(4).setOrigin(0.5, 1).setFlipX(true));
+    this.tweens.add({ targets: [moto, rider], x: `+=${GAME_W / 2 - 40}`, duration: 1100, ease: 'Sine.Out' });
+    void ju;
+    const lines = [
+      'Motoboy: "Entrega pra quem?"',
+      `${this.names[1]}: "Pro ${this.names[0]}, nesse endereço. É presente de aniversário!"`,
+      'Motoboy: "Pode deixar, chega hoje ainda!"',
+      `${this.names[1]}: "(Será que ele vai gostar da carta?)"`,
+    ];
+    lines.forEach((l, i) => this.time.delayedCall(1200 + i * 1500, () => {
+      this.overlayText?.setText(l);
+      Audio.play('blip');
+      if (i === 2) {
+        // o presente vai para o baú da moto
+        this.tweens.add({ targets: gift, x: GAME_W / 2 - 150, y: 280, scale: 2, duration: 500 });
+      }
+    }));
+    this.time.delayedCall(1200 + lines.length * 1500, () => {
+      Audio.play('horn');
+      this.tweens.add({ targets: [moto, rider, gift], x: `+=${GAME_W}`, duration: 1200, ease: 'Sine.In' });
+      this.time.delayedCall(1200, () => {
+        this.stops[2].done = true;
+        this.tasks?.done('send');
+        if (this.courage >= COURAGE_GOAL) this.tasks?.done('courage');
+        this.finish(true);
+      });
+    });
   }
 
   private arrow(g: Phaser.GameObjects.Graphics, x: number, y: number, d: Dir, color: number): void {
@@ -787,28 +911,6 @@ export class MedalLevel extends Phaser.Scene {
     if (d === 'down') g.fillTriangle(x, y + s, x - s, y - 2, x + s, y - 2).fillRect(x - 4, y - s, 8, s);
     if (d === 'left') g.fillTriangle(x - s, y, x + 2, y - s, x + 2, y + s).fillRect(x, y - 4, s, 8);
     if (d === 'right') g.fillTriangle(x + s, y, x - 2, y - s, x - 2, y + s).fillRect(x - s, y - 4, s, 8);
-  }
-
-  // portaria: entrega o presente
-  private openDeliver(): void {
-    this.state = 'deliver';
-    this.busy = true;
-    this.openOverlay(`Portaria do prédio do ${this.names[0]}`, '#9ce8ff');
-    this.overlayAdd(this.add.sprite(GAME_W / 2 - 160, 330, 'npc_porteiro', charFrame('down', 0)).setScale(4).setOrigin(0.5, 1));
-    this.overlayAdd(this.add.sprite(GAME_W / 2 + 160, 330, 'char_1', charFrame('down', 0)).setScale(4).setOrigin(0.5, 1));
-    this.overlayAdd(this.add.image(GAME_W / 2, 270, 'gift').setScale(4));
-    const lines = [
-      `${this.names[1]}: "Oi! É um presente de aniversário pro ${this.names[0]}."`,
-      'Porteiro: "Pode deixar, entrego pra ele hoje!"',
-      `${this.names[1]}: "(Será que ele vai gostar?)"`,
-    ];
-    lines.forEach((l, i) => this.time.delayedCall(i * 1500, () => { this.overlayText?.setText(l); Audio.play('blip'); }));
-    this.time.delayedCall(lines.length * 1500, () => {
-      this.stops[3].done = true;
-      this.tasks?.done('deliver');
-      if (this.courage >= COURAGE_GOAL) this.tasks?.done('courage');
-      this.finish(true);
-    });
   }
 
   // ------------------------------------------------------------------ fim
@@ -835,7 +937,7 @@ export class MedalLevel extends Phaser.Scene {
         lines: [
           `Coragem: ${this.courage}/${COURAGE_GOAL} ${this.courage >= COURAGE_GOAL ? '(estrela!)' : ''}`,
           `Sinal vermelho: ${this.infractions} · Tropeços: ${this.hits} ${clean ? '(estrela!)' : '(meta: nenhum vermelho e no máximo 1 tropeço)'}`,
-          win ? 'Ela mesma foi buscar a medalha. ♥' : `Moedas na calçada: ${this.coins}`,
+          win ? 'A medalha foi... e uma carta junto. ♥' : `Moedas na calçada: ${this.coins}`,
           this.tasks ? this.tasks.summary() : '',
         ].filter(Boolean),
         stats: { hugs: 0, faints: 0, revives: 0, crystals: 0, coins: this.coins * 2 },

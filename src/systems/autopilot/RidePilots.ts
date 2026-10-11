@@ -20,6 +20,7 @@ interface MotoView {
   boltCd: number;
   hornCd: number;
   curve: { dir: number; b: number } | null;
+  stall: { phase: string; push: number } | null;
 }
 
 const LANES = [112, 152, 192];
@@ -37,6 +38,16 @@ export class MotoPilot extends Pilot {
     const helper: 0 | 1 = s.solo ? 0 : 1;
     // pneu furado: ele segura a moto, ela bombeia
     if (s.repair >= 0) { this.hold(0, 'action'); this.press(1, 'action', 0.1); return; }
+    // moto morreu: tenta a partida, depois empurram juntos e ele solta a embreagem no embalo
+    if (s.stall) {
+      if (s.stall.phase === 'crank') this.press(0, 'action', 0.8);
+      else if (s.stall.phase === 'push') {
+        this.press(0, 'action', 0.12);
+        this.press(1, 'action', 0.12);
+        if (s.stall.push >= 0.72) this.press(0, 'ability', 0.6);
+      }
+      return;
+    }
 
     const ahead = (o: MotoObj, from: number, to: number) => !o.dead && o.x > s.mx + from && o.x < s.mx + to;
     let busy = false;
@@ -86,7 +97,7 @@ interface FishView {
   callWin: number;
 }
 
-/** Pescaria: ela lança na força certa, fisga e recolhe; ele afrouxa a linha e usa o puçá. Depois, quadrilha. */
+/** Pescaria: ela lança na força certa, fisga e recolhe; ele afrouxa a linha e pega com a rede. Depois, quadrilha. */
 export class FishPilot extends Pilot {
   get v(): FishView { return this.s as unknown as FishView; }
 
@@ -114,11 +125,8 @@ export class FishPilot extends Pilot {
       }
       case 'party': {
         const c = CALLS[s.callIdx];
-        if (!c || c.need === 'none' || s.callWin <= 0 || s.callWin > 1.25) break;
-        for (const i of [0, 1] as const) {
-          const what = c.need === 'action' ? 'action' : c.need === 'ability' ? 'ability' : c.need;
-          this.press(i, what, 3, `call${s.callIdx}-${i}`);
-        }
+        if (!c || c.need === 'none' || s.callWin <= 0 || s.callWin > 1.6) break;
+        for (const i of [0, 1] as const) this.press(i, c.need, 3, `call${s.callIdx}-${i}`);
         break;
       }
     }
@@ -138,13 +146,17 @@ interface MedalView {
   shopOrder: number[];
   seq: ('up' | 'down' | 'left' | 'right')[];
   seqIdx: number;
+  letterLine: number;
 }
 
 const M_LANES = [116, 142, 168];
 const JX = 150;
 
-/** Medalha: ela anda pela calçada, espera o sinal verde, espanta pombos e resolve cada parada. */
+/** Medalha: ela anda pela calçada, espera o sinal verde, espanta pombos, escolhe, escreve a carta e embrulha. */
 export class MedalPilot extends Pilot {
+  private paperPick = Phaser.Math.Between(0, 3);
+  private linePick = [0, 1, 2].map(() => Phaser.Math.Between(0, 2));
+
   get v(): MedalView { return this.s as unknown as MedalView; }
 
   step(): void {
@@ -163,8 +175,15 @@ export class MedalPilot extends Pilot {
         else this.press(1, 'action', 0.8);
         break;
       }
-      case 'bless':
-        this.hold(1, 'action');
+      case 'paper':
+        // escolhe um papel diferente a cada vez e leva
+        if (s.sel < this.paperPick) this.press(1, 'right', 0.4);
+        else this.press(1, 'action', 0.9);
+        break;
+      case 'letter':
+        // escreve a carta: às vezes troca a frase antes de escrever
+        if (s.sel < (this.linePick[s.letterLine] ?? 0)) this.press(1, 'right', 0.5);
+        else this.press(1, 'action', 1.1);
         break;
       case 'wrap': {
         const d = s.seq[s.seqIdx];

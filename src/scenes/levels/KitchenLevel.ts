@@ -627,6 +627,7 @@ export class KitchenLevel extends BaseLevel {
     this.rings = { state: 'wait', img: null };
     this.dance = { t: 0, pressed: [-1, -1], next: 30 };
     this.guestT = 8;
+    this.recipeBook = [];
     for (const pq of this.cfg.plaques ?? []) plaque(this, pq.tx, pq.ty, pq.text);
     this.guests = (this.cfg.guests ?? []).map((g) => {
       const c = this.tileCenter(g.tx, g.ty);
@@ -811,11 +812,47 @@ export class KitchenLevel extends BaseLevel {
         hud.tweens.add({ targets: t, scale: { from: 1.6, to: 1 }, alpha: { from: 1, to: 0 }, duration: 580, onComplete: () => t.destroy() });
         if (i === 3) {
           this.started = true;
+          this.buildRecipeBook();
           // painel de tarefas aparece quando a cozinha abre (sem cobrir o cardápio inicial)
           if (!this.tasks) this.tasks = new TaskList(hud, 12, 92, this.cfg.tasks.map((t) => ({ ...t, text: fillNames(t.text, this.names) })));
         }
       });
     });
+  }
+
+  /** Painel "Receitas" no canto: o passo a passo de cada prato que pode ser pedido. */
+  private recipeBook: Phaser.GameObjects.GameObject[] = [];
+  private buildRecipeBook(): void {
+    const hud = this.hud;
+    if (!hud?.ready) return;
+    this.recipeBook.forEach((o) => o.destroy());
+    this.recipeBook = [];
+    const w = 330;
+    const x0 = GAME_W - w - 10;
+    const y0 = 66;
+    const lines: { t: string; title: boolean; icons?: ItemKind[] }[] = [];
+    for (const r of this.active) {
+      const rec = RECIPES[r];
+      lines.push({ t: rec.name, title: true, icons: rec.icons });
+      (rec.steps ?? [rec.how]).forEach((st, i) => lines.push({ t: `${i + 1}. ${fillNames(st, this.names)}`, title: false }));
+    }
+    let y = y0 + 32;
+    for (const l of lines) {
+      if (l.title) {
+        y += 4;
+        this.recipeBook.push(txt(hud, x0 + 12, y, l.t, 13, { origin: [0, 0.5], color: '#ffd6e4' }).setDepth(21));
+        l.icons?.forEach((k, i) => this.recipeBook.push(hud.add.image(x0 + w - 20 - i * 22, y, `item_${k}`).setScale(1.5).setDepth(21)));
+        y += 16;
+      } else {
+        const t = txt(hud, x0 + 18, y, l.t, 11, { origin: [0, 0], bold: false, wrap: w - 30 }).setDepth(21);
+        this.recipeBook.push(t);
+        y += t.height + 1;
+      }
+    }
+    const h = y - y0 + 8;
+    const g = hud.add.graphics().setDepth(20);
+    g.fillStyle(0x1b1424, 0.78).fillRoundedRect(x0, y0, w, h, 10).lineStyle(2, 0xffd6e4, 0.5).strokeRoundedRect(x0, y0, w, h, 10);
+    this.recipeBook.push(g, txt(hud, x0 + 12, y0 + 14, 'Receitas', 14, { origin: [0, 0.5], color: '#ffd25e' }).setDepth(21));
   }
 
   // ------------------------------------------------------------------ regras
@@ -923,6 +960,13 @@ export class KitchenLevel extends BaseLevel {
   tick(dt: number): void {
     // contador e barras da HUD
     this.updateHudInfo();
+    // receitas: aparecem na cozinha e somem quando alguém vai ao salão (para não cobrir as mesas)
+    const inKitchen = this.players.every((p) => p.x < 16 * TILE);
+    const a = inKitchen ? 1 : 0.12;
+    for (const o of this.recipeBook) {
+      const g = o as unknown as Phaser.GameObjects.Components.Alpha;
+      g.setAlpha?.(Phaser.Math.Linear(g.alpha ?? 1, a, Math.min(1, dt * 6)));
+    }
     for (const c of this.cookers) c.update(dt, this.raining > 0 ? 2.5 : 1);
     for (const b of this.surfaces) {
       if (b instanceof Board && b.progress > 0 && b.choppable()) this.drawBar(b.x, b.y + 9, b.progress, 0x8be07a);
@@ -943,6 +987,7 @@ export class KitchenLevel extends BaseLevel {
       const r = this.cfg.unlocks[this.unlockIdx++].recipe;
       this.active.push(r);
       this.hud.banner('Novo prato!', `${RECIPES[r].name}: ${RECIPES[r].how}`, 2600);
+      this.buildRecipeBook();
       this.nextOrder = 1;
     }
 
