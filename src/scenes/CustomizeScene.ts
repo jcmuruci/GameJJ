@@ -91,7 +91,7 @@ export class CustomizeScene extends Phaser.Scene {
       panel(this, cx - 225, 80, 450, 440, 0x2a1d3a, 0.9, Phaser.Display.Color.HexStringToColor(PLAYER_COLORS[i]).color);
       txt(this, cx, 102, `Jogador ${i + 1} · ${left ? 'Guardião' : 'Maga'} (${KEY_LABELS[i].move} + ${KEY_LABELS[i].action})`, 14, { color: PLAYER_COLORS[i] });
       const px = left ? cx - 140 : cx + 140;
-      const pv = this.add.sprite(px, 300, `char_${i}`, 0).setScale(7);
+      const pv = this.add.sprite(px, 300, `char_${i}`, 0).setScale(5);
       this.previews.push(pv);
       this.add.image(px, 382, 'shadow').setScale(6).setAlpha(0.25).setDepth(-1);
       const lx = left ? cx + 60 : cx - 60;

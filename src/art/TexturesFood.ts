@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { PG, PAL } from './pixel';
+import { makeCanvas } from './canvasTex';
 
 /** Ingredientes e pratos das cozinhas da linha do tempo (O Italiano, Festa Junina, Roça). */
 
@@ -211,25 +212,12 @@ const SPRITES: Record<string, string[]> = {
 };
 
 function strSprite(scene: Phaser.Scene, key: string, rows: string[]): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
   const w = Math.max(...rows.map((r) => r.length)) + 2;
-  const h = rows.length + 2;
-  const tex = scene.textures.createCanvas(key, w, h)!;
-  const pg = new PG(tex.getContext());
-  pg.strings(rows, P, 1, 1);
-  pg.outline(0, 0, w, h);
-  tex.refresh();
+  makeCanvas(scene, key, w, rows.length + 2, (pg) => pg.strings(rows, P, 1, 1), { outline: true });
 }
 
 function canvas(scene: Phaser.Scene, key: string, w: number, h: number, draw: (pg: PG) => void, outline = true): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const tex = scene.textures.createCanvas(key, w, h)!;
-  const ctx = tex.getContext();
-  ctx.imageSmoothingEnabled = false;
-  const pg = new PG(ctx);
-  draw(pg);
-  if (outline) pg.at(0, 0).outline(0, 0, w, h);
-  tex.refresh();
+  makeCanvas(scene, key, w, h, draw, { outline });
 }
 
 export function generateFoodTextures(scene: Phaser.Scene): void {

@@ -13,6 +13,7 @@ import { Admin } from '../../systems/Admin';
 import { Shadows } from '../../systems/Shadows';
 import { applyGrade } from '../../systems/Grade';
 import { irisOut } from '../TransitionScene';
+import { RAMP, gradientTexture } from '../../art/palette';
 
 /**
  * Mar/2026 — A Medalha de São Bento. A Juliana, sozinha, atravessa a cidade para preparar o presente
@@ -245,9 +246,8 @@ export class MedalLevel extends Phaser.Scene {
 
   // ------------------------------------------------------------------ cenário
   private drawCity(): void {
-    const g = this.w(this.add.graphics().setDepth(-5));
     // céu em degradê, nuvens, morros de BH e prédios ao longe (cada camada numa velocidade)
-    [0x7cc6f0, 0x8ccff2, 0x9cd8f5, 0xaee0f7, 0xbfe8f9, 0xcdeffb].forEach((c, i) => g.fillStyle(c, 1).fillRect(0, i * 16, W, 16));
+    this.w(this.add.image(0, 0, gradientTexture(this, 'sky_medal', W, BLDG_BOT, RAMP.skyDay)).setOrigin(0).setDepth(-5));
     this.clouds = [0, 1, 2].map((i) => ({
       img: this.w(this.add.image(0, 10 + i * 9, 'cloud_big').setDepth(-4.9).setAlpha(0.95).setScale(i === 1 ? 0.8 : 1)),
       x0: i * 170 + Phaser.Math.Between(0, 60),
@@ -908,7 +908,7 @@ export class MedalLevel extends Phaser.Scene {
     const ju = this.overlayAdd(this.add.sprite(GAME_W / 2 + 170, 340, 'char_1', charFrame('down', 0)).setScale(4).setOrigin(0.5, 1));
     const gift = this.overlayAdd(this.add.image(GAME_W / 2 + 120, 300, 'gift').setScale(3).setTint(this.paperColor));
     const moto = this.overlayAdd(this.add.image(-80, 318, 'moto').setScale(4));
-    const rider = this.overlayAdd(this.add.sprite(-90, 290, 'npc_motoboy', charFrame('side', 0)).setScale(4).setOrigin(0.5, 1).setFlipX(true));
+    const rider = this.overlayAdd(this.add.sprite(-90, 290, 'npc_motoboy', charFrame('side', 0)).setScale(3).setOrigin(0.5, 1).setFlipX(true));
     this.tweens.add({ targets: [moto, rider], x: `+=${GAME_W / 2 - 40}`, duration: 1100, ease: 'Sine.Out' });
     void ju;
     const lines = [

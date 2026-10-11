@@ -41,7 +41,7 @@ export class ResultScene extends Phaser.Scene {
 
     // personagens
     [0, 1].forEach((i) => {
-      const s = this.add.sprite(GAME_W / 2 + (i === 0 ? -230 : 230), 210, `char_${i}`, charFrame('down', d.win ? 3 : 0)).setScale(4);
+      const s = this.add.sprite(GAME_W / 2 + (i === 0 ? -230 : 230), 210, `char_${i}`, charFrame('down', d.win ? 3 : 0)).setScale(3);
       if (d.win) this.tweens.add({ targets: s, y: 196, duration: 300, yoyo: true, repeat: -1, ease: 'Sine.Out', delay: i * 150 });
       else s.setAngle(i === 0 ? -8 : 8);
     });

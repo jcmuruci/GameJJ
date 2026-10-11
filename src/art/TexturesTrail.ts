@@ -1,17 +1,11 @@
 import Phaser from 'phaser';
 import { PG, shade } from './pixel';
+import { makeCanvas } from './canvasTex';
 
 /** Arte das trilhas da linha do tempo: escalada, cânion, Lavras Novas, Itacolomi, Topo do Mundo. */
 
 function canvas(scene: Phaser.Scene, key: string, w: number, h: number, draw: (pg: PG) => void, outline = true): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const tex = scene.textures.createCanvas(key, w, h)!;
-  const ctx = tex.getContext();
-  ctx.imageSmoothingEnabled = false;
-  const pg = new PG(ctx);
-  draw(pg);
-  if (outline) pg.at(0, 0).outline(0, 0, w, h);
-  tex.refresh();
+  makeCanvas(scene, key, w, h, draw, { outline });
 }
 
 export const HOUSE_COLORS = ['#ff8fb1', '#ffd25e', '#6cc4ff', '#8be07a', '#c8a0f0', '#f4a261'];

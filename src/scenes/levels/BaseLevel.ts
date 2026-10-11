@@ -377,7 +377,7 @@ export abstract class BaseLevel extends Phaser.Scene {
 
   say(p: Player | { x: number; y: number }, text: string, ms = 1800, color?: string): void {
     if (!this.hud?.ready) return;
-    const target = p instanceof Player ? () => ({ x: p.x, y: p.y - 30 }) : () => ({ x: p.x, y: p.y - 12 });
+    const target = p instanceof Player ? () => ({ x: p.x, y: p.y - 38 }) : () => ({ x: p.x, y: p.y - 12 });
     this.hud.bubble(target, text, ms, color ?? (p instanceof Player ? (p.id === 0 ? '#bfe6ff' : '#ffd6e4') : '#fff4e0'));
   }
 
@@ -426,11 +426,11 @@ export abstract class BaseLevel extends Phaser.Scene {
     if (kind === 'coin') {
       this.stats.coins += 5;
       this.sfx('coin');
-      this.hud?.floatText(p.x, p.y - 24, '+5', '#ffd25e');
+      this.hud?.floatText(p.x, p.y - 32, '+5', '#ffd25e');
     } else if (kind === 'heart') {
       this.players.forEach((pl) => { if (!pl.fainted) pl.hp = Math.min(pl.maxHp, pl.hp + 1); });
       this.sfx('heart');
-      this.hud?.floatText(p.x, p.y - 24, '+1 ♥', '#ff7aa8');
+      this.hud?.floatText(p.x, p.y - 32, '+1 ♥', '#ff7aa8');
     } else {
       this.stats.crystals++;
       this.sfx('crystal');
@@ -451,7 +451,7 @@ export abstract class BaseLevel extends Phaser.Scene {
       p.pushBack(fromX, fromY, 100, 0.12);
       this.sfx('crystal');
       this.burst(p.x, p.y - 12, 'fx_spark', 14, { speed: 60, tint: 0xffd25e });
-      this.hud?.floatText(p.x, p.y - 34, 'A medalha de São Bento protegeu!', '#ffd25e');
+      this.hud?.floatText(p.x, p.y - 42, 'A medalha de São Bento protegeu!', '#ffd25e');
       return;
     }
     p.hp -= n;
@@ -460,7 +460,7 @@ export abstract class BaseLevel extends Phaser.Scene {
     p.pushBack(fromX, fromY);
     this.sfx('hurt');
     this.hitstop(90);
-    this.burst(p.x, p.y - 10, 'fx_pixel', 8, { speed: 70, lifespan: 300, tint: 0xff6a6a });
+    this.burst(p.x, p.y - 14, 'fx_pixel', 8, { speed: 70, lifespan: 300, tint: 0xff6a6a });
     Input.rumble(p.id, 150, 0.6);
     this.cameras.main.shake(120, 0.004);
     if (p.hp <= 0) this.faint(p);
@@ -488,7 +488,7 @@ export abstract class BaseLevel extends Phaser.Scene {
     p.invuln = 2;
     this.stats.revives++;
     this.sfx('revive');
-    for (let i = 0; i < 6; i++) this.time.delayedCall(i * 90, () => this.floatHeart(p.x + Phaser.Math.Between(-8, 8), p.y - 16));
+    for (let i = 0; i < 6; i++) this.time.delayedCall(i * 90, () => this.floatHeart(p.x + Phaser.Math.Between(-8, 8), p.y - 24));
     this.say(p, Phaser.Utils.Array.GetRandom(REVIVE_LINES), 1800);
     void by;
   }
@@ -503,7 +503,7 @@ export abstract class BaseLevel extends Phaser.Scene {
       p.hugRequest = -999;
       o.hugRequest = -999;
     } else {
-      this.floatHeart(p.x, p.y - 26);
+      this.floatHeart(p.x, p.y - 34);
     }
     return true;
   }
@@ -516,16 +516,16 @@ export abstract class BaseLevel extends Phaser.Scene {
     a.actTimer = b.actTimer = 0.4;
     const mx = (a.x + b.x) / 2;
     const my = (a.y + b.y) / 2;
-    for (let i = 0; i < 8; i++) this.time.delayedCall(i * 70, () => this.floatHeart(mx + Phaser.Math.Between(-10, 10), my - 20));
-    this.burst(mx, my - 18, 'fx_heart', 10, { speed: 50, lifespan: 900 });
+    for (let i = 0; i < 8; i++) this.time.delayedCall(i * 70, () => this.floatHeart(mx + Phaser.Math.Between(-10, 10), my - 28));
+    this.burst(mx, my - 26, 'fx_heart', 10, { speed: 50, lifespan: 900 });
     if (this.hugCd <= 0) {
       let healed = false;
       const heal = Save.data.relics.aliancas ? 2 : 1;
       for (const p of [a, b]) if (p.hp < p.maxHp) { p.hp = Math.min(p.maxHp, p.hp + heal); healed = true; }
-      this.hud?.floatText(mx, my - 34, healed ? `Abraço! +${heal} ♥` : 'Abraço!', '#ff9cc2');
+      this.hud?.floatText(mx, my - 42, healed ? `Abraço! +${heal} ♥` : 'Abraço!', '#ff9cc2');
       this.hugCd = Save.data.relics.aliancas ? 8 : 12;
     } else {
-      this.hud?.floatText(mx, my - 34, 'Abraço!', '#ffd6e4');
+      this.hud?.floatText(mx, my - 42, 'Abraço!', '#ffd6e4');
     }
     this.onHug();
   }
@@ -697,7 +697,7 @@ export abstract class BaseLevel extends Phaser.Scene {
         p.working = true;
         this.reviveProgress[p.id] += dt;
         const t = Math.min(1, this.reviveProgress[p.id] / 1.4);
-        this.drawBar(o.x, o.y - 22, t, 0xff7aa8);
+        this.drawBar(o.x, o.y - 30, t, 0xff7aa8);
         if (Math.random() < dt * 6) this.floatHeart(o.x + Phaser.Math.Between(-6, 6), o.y - 14);
         if (t >= 1) { this.reviveProgress[p.id] = 0; this.revive(o, p); }
       } else this.reviveProgress[p.id] = 0;
@@ -746,7 +746,7 @@ export abstract class BaseLevel extends Phaser.Scene {
     this.tweens.add({ targets: to.sprite, y: to.sprite.y - 6, duration: 110, yoyo: true, ease: 'Quad.Out' });
     to.sprite.setTint(0xffb0c0);
     this.time.delayedCall(900, () => to.sprite.clearTint());
-    const blush = this.add.text(to.x, to.y - 30, '>///<', { fontFamily: 'monospace', fontSize: '8px', color: '#ff5c8a', stroke: '#fff4e0', strokeThickness: 2, fontStyle: 'bold' })
+    const blush = this.add.text(to.x, to.y - 38, '>///<', { fontFamily: 'monospace', fontSize: '8px', color: '#ff5c8a', stroke: '#fff4e0', strokeThickness: 2, fontStyle: 'bold' })
       .setOrigin(0.5).setDepth(9800).setResolution(ZOOM * RES + 1);
     this.tweens.add({ targets: blush, y: blush.y - 10, alpha: 0, delay: 500, duration: 700, onComplete: () => blush.destroy() });
     const [nameFrom] = [this.names[from.id]];
@@ -758,7 +758,7 @@ export abstract class BaseLevel extends Phaser.Scene {
       : ['Hihi', 'Foi sem querer!', 'Ops, escorregou...', '(assobia)', 'Troco! ♥'];
     this.time.delayedCall(150, () => this.say(to, Phaser.Utils.Array.GetRandom(reaction), 1800, to.id === 1 ? '#ffd6e4' : '#bfe6ff'));
     this.time.delayedCall(900, () => this.say(from, Phaser.Utils.Array.GetRandom(reply), 1400, from.id === 1 ? '#ffd6e4' : '#bfe6ff'));
-    for (let i = 0; i < 4; i++) this.time.delayedCall(200 + i * 90, () => this.floatHeart(to.x + Phaser.Math.Between(-6, 6), to.y - 24));
+    for (let i = 0; i < 4; i++) this.time.delayedCall(200 + i * 90, () => this.floatHeart(to.x + Phaser.Math.Between(-6, 6), to.y - 32));
   }
 
   drawBar(x: number, y: number, t: number, color = 0x8be07a): void {
@@ -824,7 +824,7 @@ export abstract class BaseLevel extends Phaser.Scene {
       for (let i = 0; i < 14; i++) {
         this.time.delayedCall(i * 80, () => {
           const p = this.players[i % 2];
-          this.floatHeart(p.x + Phaser.Math.Between(-10, 10), p.y - 20);
+          this.floatHeart(p.x + Phaser.Math.Between(-10, 10), p.y - 28);
         });
       }
     }
@@ -840,7 +840,7 @@ export abstract class BaseLevel extends Phaser.Scene {
 
   /** Cria um item novo nas mãos do jogador. */
   give(p: Player, kind: ItemKind): Item {
-    const it = new Item(this, kind, p.x, p.y - 26);
+    const it = new Item(this, kind, p.x, p.y - 34);
     p.held = it;
     this.sfx('pick');
     return it;

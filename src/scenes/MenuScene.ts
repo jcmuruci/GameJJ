@@ -67,7 +67,7 @@ export class MenuScene extends Phaser.Scene {
 
     // personagens
     this.chars = [0, 1].map((i) => {
-      const s = this.add.sprite(i === 0 ? 300 : 660, 440, `char_${i}`, charFrame('side', 0)).setScale(4);
+      const s = this.add.sprite(i === 0 ? 300 : 660, 440, `char_${i}`, charFrame('side', 0)).setScale(3);
       s.setFlipX(i === 0);
       return s;
     });

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PG, PAL, rng, shade, OUTLINE } from './pixel';
+import { PG, PAL, shade, OUTLINE } from './pixel';
 import { generateExtraTextures } from './TexturesExtra';
 import { generateFoodTextures } from './TexturesFood';
 import { generateTrailTextures } from './TexturesTrail';
@@ -7,6 +7,7 @@ import { generateFarmTextures } from './TexturesFarm';
 import { generateCityTextures } from './TexturesCity';
 import { drawTiles } from './TexturesTiles';
 import { generateSkyTextures, makeSwayTextures } from './TexturesSky';
+import { makeCanvas, makeSheet } from './canvasTex';
 
 /**
  * Toda a arte do jogo é gerada aqui, por código, no carregamento.
@@ -18,30 +19,12 @@ export { T, TILE_COUNT, SOLID_TILES } from './tiles';
 type Draw = (pg: PG, r: () => number) => void;
 
 function canvas(scene: Phaser.Scene, key: string, w: number, h: number, draw: Draw, outline = false, seed = 7): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const tex = scene.textures.createCanvas(key, w, h)!;
-  const ctx = tex.getContext();
-  ctx.imageSmoothingEnabled = false;
-  const pg = new PG(ctx);
-  draw(pg, rng(seed));
-  if (outline) pg.at(0, 0).outline(0, 0, w, h);
-  tex.refresh();
+  makeCanvas(scene, key, w, h, draw, { outline, seed });
 }
 
 /** Folha com N quadros lado a lado. */
 function sheet(scene: Phaser.Scene, key: string, fw: number, fh: number, frames: Draw[], outline = true): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const tex = scene.textures.createCanvas(key, fw * frames.length, fh)!;
-  const ctx = tex.getContext();
-  ctx.imageSmoothingEnabled = false;
-  const pg = new PG(ctx);
-  frames.forEach((f, i) => {
-    pg.at(i * fw, 0);
-    f(pg, rng(13 + i));
-    if (outline) pg.outline(0, 0, fw, fh);
-    tex.add(i, 0, i * fw, 0, fw, fh);
-  });
-  tex.refresh();
+  makeSheet(scene, key, fw, fh, frames, { outline, seed: 13 });
 }
 
 function strSprite(scene: Phaser.Scene, key: string, rows: string[], pal = PAL): void {

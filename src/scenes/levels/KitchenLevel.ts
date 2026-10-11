@@ -634,7 +634,7 @@ export class KitchenLevel extends BaseLevel {
     this.guests = (this.cfg.guests ?? []).map((g) => {
       const c = this.tileCenter(g.tx, g.ty);
       this.addSolid(g.tx, g.ty);
-      return { s: this.add.sprite(c.x, c.y - 8, `npc_${g.npc}`, charFrame('down', 0)).setDepth(c.y), lines: g.lines };
+      return { s: this.add.sprite(c.x, c.y - 12, `npc_${g.npc}`, charFrame('down', 0)).setDepth(c.y), lines: g.lines };
     });
   }
 
@@ -691,7 +691,7 @@ export class KitchenLevel extends BaseLevel {
     }
     if (R.state === 'carried' && R.img) {
       const j = this.players[0];
-      R.img.setPosition(j.x + 8, j.y - 30 + Math.sin(this.time.now / 150) * 1.5).setDepth(j.y + 20);
+      R.img.setPosition(j.x + 8, j.y - 38 + Math.sin(this.time.now / 150) * 1.5).setDepth(j.y + 20);
     }
   }
 
@@ -1136,7 +1136,7 @@ export class KitchenLevel extends BaseLevel {
       if (this.cartT <= 0) {
         this.cartWarn?.destroy();
         this.cartWarn = null;
-        this.cart = this.add.image((this.cfg.cart?.fromX ?? 0) * TILE - 20, y - 4, this.cfg.cart?.tex ?? 'cart').setDepth(y + 4);
+        this.cart = this.add.image((this.cfg.cart?.fromX ?? 0) * TILE - 20, y - 8, this.cfg.cart?.tex ?? 'cart').setDepth(y + 4);
         this.cartT = every + Phaser.Math.Between(-4, 4);
         this.sfx('push');
       }

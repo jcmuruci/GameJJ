@@ -15,6 +15,7 @@ import { Shadows } from '../../systems/Shadows';
 import { Darkness, Light } from '../../systems/NightLight';
 import { applyGrade } from '../../systems/Grade';
 import { irisOut } from '../TransitionScene';
+import { RAMP, gradientTexture } from '../../art/palette';
 
 /**
  * Passeio de Moto Amarela — fase de estrada.
@@ -212,9 +213,9 @@ export class MotoLevel extends Phaser.Scene {
     this.world.add([this.grass, road]);
     // horizonte: céu em faixas e a serra (ou a cidade acesa, à noite) lá longe
     const night = !!this.cfg.night;
-    const sky = this.add.graphics();
-    const bands = night ? [0x0c0e2c, 0x12143a, 0x181a46, 0x1e2254] : [0x86c8f0, 0x9ad4f4, 0xaedef7, 0xc4e8f9];
-    bands.forEach((c, i) => sky.fillStyle(c, 1).fillRect(0, i * 7, W, i === bands.length - 1 ? HORIZON - i * 7 : 7));
+    const dusk = this.info.id === 'volta'; // a volta da Lapinha é no fim da tarde
+    const skyKey = gradientTexture(this, `sky_moto_${night ? 'night' : dusk ? 'dusk' : 'day'}`, W, HORIZON, night ? RAMP.night.slice(1) : dusk ? RAMP.skyDusk : RAMP.skyDay);
+    const sky = this.add.image(0, 0, skyKey).setOrigin(0);
     this.horizon = this.add.tileSprite(W / 2, HORIZON / 2, W, HORIZON, night ? 'far_city' : 'far_hills');
     this.world.add([sky, this.horizon]);
     // sombras de nuvem passando por cima de tudo (de dia)
@@ -241,7 +242,7 @@ export class MotoLevel extends Phaser.Scene {
 
     // moto com o casal
     this.shadow = this.add.ellipse(0, 0, 36, 8, 0x000000, 0.25);
-    this.riders = [1, 0].map((i) => this.add.sprite(i === 0 ? 5 : -5, i === 0 ? -11 : -13, `char_${i}`, charFrame('side', 0)).setFlipX(true));
+    this.riders = [1, 0].map((i) => this.add.sprite(i === 0 ? 5 : -5, i === 0 ? -15 : -17, `char_${i}`, charFrame('side', 0)).setFlipX(true));
     const motoImg = this.add.image(0, 0, 'moto');
     this.moto = this.add.container(this.mx, this.my, [...this.riders, motoImg]);
     if (this.solo) this.riders[0].setVisible(false);
@@ -1135,12 +1136,12 @@ export class MotoLevel extends Phaser.Scene {
       this.world.add([jo, bread]);
       this.shadows.add(jo, 11, { layer: this.world, alpha: 0.3 });
       this.tweens.add({ targets: jo, x: gateX - 14, duration: 700, onComplete: () => jo.setFrame(charFrame('side', 3)) });
-      this.tweens.add({ targets: bread, x: gateX - 6, y: ju.y - 16, duration: 700, delay: 600 });
+      this.tweens.add({ targets: bread, x: gateX - 6, y: ju.y - 18, duration: 700, delay: 600 });
       this.time.delayedCall(800, () => this.toast(`${this.names[1]}: Você veio mesmo! ♥`, '#ffd6e4'));
       this.time.delayedCall(2200, () => {
         this.toast(`${this.names[0]}: Pão quentinho com carne de lata, pra você.`, '#bfe6ff');
         Audio.play('hug');
-        for (let i = 0; i < 10; i++) this.time.delayedCall(i * 90, () => this.burst(gateX - 7 + Phaser.Math.Between(-8, 8), ju.y - 24, 'fx_heart', 2));
+        for (let i = 0; i < 10; i++) this.time.delayedCall(i * 90, () => this.burst(gateX - 7 + Phaser.Math.Between(-8, 8), ju.y - 32, 'fx_heart', 2));
       });
       this.time.delayedCall(4200, () => { this.toast(this.cfg.arriveText, '#ffd23a'); this.finish(true); });
     });

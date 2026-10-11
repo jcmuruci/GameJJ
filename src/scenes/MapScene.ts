@@ -84,7 +84,7 @@ export class MapScene extends Phaser.Scene {
       }
     });
 
-    const riders = [1, 0].map((i) => this.add.sprite(i === 0 ? 5 : -5, i === 0 ? -11 : -13, `char_${i}`, charFrame('side', 0)).setFlipX(true));
+    const riders = [1, 0].map((i) => this.add.sprite(i === 0 ? 5 : -5, i === 0 ? -15 : -17, `char_${i}`, charFrame('side', 0)).setFlipX(true));
     this.moto = this.add.container(0, 0, [...riders, this.add.image(0, 0, 'moto')]).setScale(1.6).setDepth(10);
     this.placeCouple(false);
 

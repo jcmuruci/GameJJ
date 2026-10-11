@@ -169,7 +169,7 @@ export class TutorialLevel extends PuzzleLevel {
     if (s && s.done() && this.step < this.steps.length - 1) {
       this.step++;
       Audio.play('confirm');
-      this.hud?.floatText((this.players[0].x + this.players[1].x) / 2, this.players[0].y - 30, 'Muito bem!', '#8be07a');
+      this.hud?.floatText((this.players[0].x + this.players[1].x) / 2, this.players[0].y - 38, 'Muito bem!', '#8be07a');
       this.showStep();
     }
   }

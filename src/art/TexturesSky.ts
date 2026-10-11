@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { PG, rng } from './pixel';
+import { PG } from './pixel';
+import { makeCanvas, makeSheet } from './canvasTex';
 
 /**
  * Céu, horizonte, luz e transições: nuvens, serras e cidades ao longe, luz suave para a
@@ -7,23 +8,12 @@ import { PG, rng } from './pixel';
  */
 
 function canvas(scene: Phaser.Scene, key: string, w: number, h: number, draw: (pg: PG, r: () => number) => void, seed = 31): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const tex = scene.textures.createCanvas(key, w, h)!;
-  const ctx = tex.getContext();
-  ctx.imageSmoothingEnabled = false;
-  draw(new PG(ctx), rng(seed));
-  tex.refresh();
+  makeCanvas(scene, key, w, h, draw, { seed });
 }
 
 /** Folha com quadros lado a lado (para animações). */
 function sheet(scene: Phaser.Scene, key: string, fw: number, fh: number, frames: ((pg: PG) => void)[]): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const tex = scene.textures.createCanvas(key, fw * frames.length, fh)!;
-  const ctx = tex.getContext();
-  ctx.imageSmoothingEnabled = false;
-  const pg = new PG(ctx);
-  frames.forEach((f, i) => { pg.at(i * fw, 0); f(pg); tex.add(i, 0, i * fw, 0, fw, fh); });
-  tex.refresh();
+  makeSheet(scene, key, fw, fh, frames, { outline: false });
 }
 
 /** Linha de horizonte que emenda nas bordas (período = largura). */
