@@ -5,6 +5,7 @@ import { GAME_W, GAME_H, RES } from './config';
 import { installHiRes } from './systems/HiRes';
 import { Save } from './systems/SaveManager';
 import { Input, KEY_LABELS } from './systems/InputManager';
+import { Admin } from './systems/Admin';
 import { Audio } from './systems/Audio';
 import { TouchControls, isTouchDevice } from './systems/TouchControls';
 import { BootScene } from './scenes/BootScene';
@@ -37,7 +38,9 @@ async function boot(): Promise<void> {
   }
 
   Save.load();
+  Admin.init();
   Input.attach(window);
+  Input.onKeyTyped = (k) => Admin.typed(k);
   Input.padSwap = Save.data.settings.padSwap;
   Audio.setVolumes(Save.data.settings.music, Save.data.settings.sfx);
   Input.onFirstGesture = () => { if (!Audio.running) Audio.unlock(); };
@@ -73,6 +76,7 @@ async function boot(): Promise<void> {
   (window as unknown as { __game: Phaser.Game; __input: typeof Input }).__game = game;
   (window as unknown as { __input: typeof Input }).__input = Input;
   (window as unknown as { __audio: typeof Audio }).__audio = Audio;
+  (window as unknown as { __admin: typeof Admin }).__admin = Admin;
   document.getElementById('loading')?.remove();
 }
 

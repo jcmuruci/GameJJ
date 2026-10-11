@@ -132,6 +132,8 @@ export abstract class PuzzleLevel extends BaseLevel {
   private exitHintCd = 0;
   protected gateSound = new Set<string>();
   anchors: { x: number; y: number }[] = [];
+  /** Rotas de escalada (U) e rapel (R) do mapa. */
+  routes: { tx: number; ty: number; kind: 'climb' | 'rappel' }[] = [];
   rappels = 0;
   boulderTex = 'boulder';
   boulderFillsWater = false;
@@ -156,6 +158,7 @@ export abstract class PuzzleLevel extends BaseLevel {
     this.exitHintCd = 0;
     this.gateSound = new Set();
     this.anchors = [];
+    this.routes = [];
     this.rappels = 0;
     this.belayCd = 0;
     this.rope = null;
@@ -190,6 +193,7 @@ export abstract class PuzzleLevel extends BaseLevel {
       }
       case 'S': this.add.image(c.x, c.y, 'anchor').setDepth(-4); this.anchors.push({ x: c.x, y: c.y }); return true;
       case 'R':
+        this.routes.push({ tx, ty, kind: 'rappel' });
         this.layer.putTileAt(this.cliffTile, tx, ty);
         this.add.image(c.x, c.y, 'rope_top').setDepth(c.y + 1);
         // corda pendurada pela face da rocha até o chão
@@ -204,6 +208,7 @@ export abstract class PuzzleLevel extends BaseLevel {
       case 'V': this.spawnVines(tx, ty); return true;
       case 'U':
         // rota de escalada: parede com agarras; sobe com o parceiro na segurança
+        this.routes.push({ tx, ty, kind: 'climb' });
         this.layer.putTileAt(this.cliffTile, tx, ty);
         this.add.image(c.x, c.y, 'holds').setDepth(c.y + 1);
         this.interactables.push({ x: c.x, y: c.y, priority: 3, reach: 2, interact: (p) => this.tryClimb(p, tx, ty) });
@@ -237,7 +242,7 @@ export abstract class PuzzleLevel extends BaseLevel {
     const zone = this.addSolid(tx, ty);
     let hint = 0;
     const it: Interactable = {
-      x: c.x, y: c.y,
+      x: c.x, y: c.y, tag: 'thorns',
       selectable: () => false,
       onMagic: (p) => {
         if (p.id !== 1) return false;
@@ -266,7 +271,7 @@ export abstract class PuzzleLevel extends BaseLevel {
     let hp = 2;
     let hint = 0;
     const it: Interactable = {
-      x: c.x, y: c.y,
+      x: c.x, y: c.y, tag: 'cracked',
       selectable: () => false,
       onStrike: (p) => {
         if (p.id !== 0) return false;
@@ -337,7 +342,7 @@ export abstract class PuzzleLevel extends BaseLevel {
     const zone = this.addSolid(tx, ty);
     let hint = 0;
     const it: Interactable = {
-      x: c.x, y: c.y,
+      x: c.x, y: c.y, tag: 'vines',
       selectable: () => false,
       onStrike: (p) => {
         if (p.id !== 0) return false;

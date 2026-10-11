@@ -9,6 +9,8 @@ import { charFrame } from '../../art/CharacterArt';
 import { txt, panel, uiButton } from '../../ui/text';
 import { isTouchDevice } from '../../systems/TouchControls';
 import { TaskList } from '../../ui/TaskList';
+import { attachPilot } from '../../systems/autopilot';
+import { Admin } from '../../systems/Admin';
 
 /**
  * Passeio de Moto Amarela — fase de estrada.
@@ -227,6 +229,7 @@ export class MotoLevel extends Phaser.Scene {
     this.showIntro();
     Audio.music('road');
     cam.fadeIn(400, 27, 20, 36);
+    attachPilot(this);
   }
 
   // ------------------------------------------------------------------ interface
@@ -730,7 +733,7 @@ export class MotoLevel extends Phaser.Scene {
     if (Math.abs(c.b) >= 1 && !c.failed) {
       c.failed = true;
       c.b = 0;
-      this.hp--;
+      this.hp = Admin.on ? Math.max(1, this.hp - 1) : this.hp - 1;
       this.hits++;
       this.invuln = 1;
       Audio.play('hurt');
@@ -894,7 +897,8 @@ export class MotoLevel extends Phaser.Scene {
   }
 
   private crash(o: Obj): void {
-    this.hp--;
+    // modo admin: o piloto automático nunca perde a fase
+    this.hp = Admin.on ? Math.max(1, this.hp - 1) : this.hp - 1;
     this.hits++;
     this.invuln = 1.4;
     this.speed *= 0.6;

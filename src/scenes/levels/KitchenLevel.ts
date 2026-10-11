@@ -32,10 +32,12 @@ class Surface implements Interactable {
   x: number;
   y: number;
   priority = 1;
+  tag: string;
   constructor(public L: KitchenLevel, public tx: number, public ty: number, tex: string) {
     const c = L.tileCenter(tx, ty);
     this.x = c.x;
     this.y = c.y;
+    this.tag = tex;
     this.img = L.add.image(c.x, c.y, tex).setDepth(c.y - 8);
     L.addSolid(tx, ty, this);
   }
@@ -116,7 +118,9 @@ class Source implements Interactable {
   x: number;
   y: number;
   priority = 1;
+  tag: string;
   constructor(public L: KitchenLevel, tx: number, ty: number, tex: string, public kind: ItemKind) {
+    this.tag = `src:${kind}`;
     const c = L.tileCenter(tx, ty);
     this.x = c.x;
     this.y = c.y;
@@ -187,6 +191,7 @@ class Deliver implements Interactable {
   x: number;
   y: number;
   priority = 2;
+  tag = 'deliver';
   constructor(public L: KitchenLevel, tx: number, ty: number) {
     const c = L.tileCenter(tx, ty);
     this.x = c.x; this.y = c.y;
@@ -667,7 +672,7 @@ export class KitchenLevel extends BaseLevel {
       this.hud?.banner('Hora das alianças! ♥', `${this.names[0]}: pegue a caixinha na mesa e dê um abraço na ${this.names[1]}`, 3000);
       Audio.play('bell');
       const box: Interactable = {
-        x: t.x, y: t.y, priority: 4, reach: 2,
+        x: t.x, y: t.y, priority: 4, reach: 2, tag: 'rings',
         selectable: () => R.state === 'table',
         interact: (p: Player) => {
           if (R.state !== 'table') return false;

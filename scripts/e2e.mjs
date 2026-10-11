@@ -741,6 +741,29 @@ try {
   await mp.waitForTimeout(400);
   check('Celular: botão de pausa', await mp.evaluate(() => window.__game.scene.isActive('Pause')));
   await mob.close();
+
+  // ---------------------------------------------------------------- MODO ADMIN (piloto automático)
+  await startScene('Menu', {});
+  await wait(500);
+  check('Admin começa desligado', (await evalG(() => window.__admin.on)) === false);
+  await page.keyboard.type('admin', { delay: 40 });
+  await wait(300);
+  check('Digitar "admin" liga o modo admin', await evalG(() => window.__admin.on));
+  check('Admin: selo na tela', await evalG(() => [...document.querySelectorAll('div')].some((d) => d.textContent.startsWith('ADMIN') && d.style.display !== 'none')));
+  await startScene('Map', {});
+  check('Admin: todos os capítulos liberados', (await evalG(() => window.__game.scene.getScene('Map').unlockedCount())) >= 12);
+  await shot('28-admin-mapa');
+  // o mapa começa o primeiro capítulo sozinho e a história passa sozinha
+  await page.waitForFunction(() => window.__game.scene.isActive('Story'), null, { timeout: 15000 }).catch(() => undefined);
+  check('Admin: o capítulo começa sozinho', (await activeScenes()).includes('Story'));
+  await page.waitForFunction(() => window.__game.scene.isActive('TutorialLevel'), null, { timeout: 40000 }).catch(() => undefined);
+  check('Admin: a história passa sozinha', (await activeScenes()).includes('TutorialLevel'));
+  await page.waitForFunction(() => window.__game.scene.getScene('TutorialLevel').step >= 2, null, { timeout: 40000 }).catch(() => undefined);
+  await shot('29-admin-tutorial');
+  check('Admin: os personagens jogam sozinhos', (await evalG(() => window.__game.scene.getScene('TutorialLevel').step)) >= 2);
+  await page.keyboard.type('admin', { delay: 40 });
+  await wait(300);
+  check('Digitar "admin" de novo desliga', (await evalG(() => window.__admin.on)) === false);
 } catch (e) {
   failures++;
   console.error('Erro no teste:', e);

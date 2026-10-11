@@ -21,6 +21,8 @@ export interface Interactable {
   onStrike?(p: Player, dmg: number): boolean;
   /** Texto curto de dica exibido ao selecionar. */
   hint?(p: Player): string | null;
+  /** Etiqueta para o piloto automático (modo admin) reconhecer o objeto. */
+  tag?: string;
 }
 
 export class Player {

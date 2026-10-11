@@ -69,6 +69,20 @@ function emptyState(): PlayerState {
 
 interface PadSnapshot { buttons: boolean[]; ax: number; ay: number }
 
+/** Comando do piloto automático (modo admin) para um jogador, válido por um quadro. */
+export interface BotCmd {
+  x?: number;
+  y?: number;
+  action?: boolean;
+  ability?: boolean;
+  actionPressed?: boolean;
+  abilityPressed?: boolean;
+  up?: boolean;
+  down?: boolean;
+  left?: boolean;
+  right?: boolean;
+}
+
 class InputManagerImpl {
   private down = new Set<string>();
   private pending = new Set<string>();
@@ -77,16 +91,21 @@ class InputManagerImpl {
   private padCur: PadSnapshot[] = [];
   private textListener: ((e: KeyboardEvent) => void) | null = null;
   readonly players: [PlayerState, PlayerState] = [emptyState(), emptyState()];
+  /** Piloto automático: quando presente, substitui a entrada do jogador neste quadro. */
+  botCmd: [BotCmd | null, BotCmd | null] = [null, null];
   padSwap = false;
   pausePressed = false;
   anyPressed = false;
   /** Código físico da última tecla pressionada (para menus). */
   lastCode = '';
   onFirstGesture: (() => void) | null = null;
+  /** Recebe cada tecla digitada (o modo admin escuta "admin"). */
+  onKeyTyped: ((key: string) => void) | null = null;
 
   attach(target: Window = window): void {
     target.addEventListener('keydown', (e) => {
       if (this.onFirstGesture) { this.onFirstGesture(); }
+      this.onKeyTyped?.(e.key);
       if (this.textListener) {
         this.textListener(e);
         e.preventDefault();
@@ -177,6 +196,22 @@ class InputManagerImpl {
       if (len > 1) { x /= len; y /= len; }
       st.x = x;
       st.y = y;
+      const bot = this.botCmd[i];
+      if (bot) {
+        // piloto automático: os personagens jogam sozinhos
+        st.x = bot.x ?? 0;
+        st.y = bot.y ?? 0;
+        st.actionPressed = !!bot.actionPressed;
+        st.abilityPressed = !!bot.abilityPressed;
+        st.action = !!bot.action || st.actionPressed;
+        st.ability = !!bot.ability || st.abilityPressed;
+        st.secretPressed = false;
+        st.upPressed = !!bot.up;
+        st.downPressed = !!bot.down;
+        st.leftPressed = !!bot.left;
+        st.rightPressed = !!bot.right;
+        this.botCmd[i] = null;
+      }
     }
     this.pausePressed = this.anyFresh(PAUSE_KEYS) || this.fresh.has('PadStart');
     this.anyPressed = this.fresh.size > 0 || this.players.some((p) => p.actionPressed || p.abilityPressed);

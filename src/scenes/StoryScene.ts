@@ -8,6 +8,7 @@ import { Audio, TrackName } from '../systems/Audio';
 import { Save } from '../systems/SaveManager';
 import { cozyBackground } from './MenuScene';
 import { Mood } from '../art/Portrait';
+import { Admin } from '../systems/Admin';
 
 interface StoryData {
   id: string;
@@ -76,6 +77,8 @@ export class StoryScene extends Phaser.Scene {
   private names!: [string, string];
   private done = false;
   private titleCard = false;
+  /** Modo admin: tempo com a fala completa na tela antes de passar sozinha. */
+  private autoT = 0;
 
   constructor() {
     super('Story');
@@ -246,6 +249,12 @@ export class StoryScene extends Phaser.Scene {
     if (this.done) return;
     if (Input.backPressed() || Input.pausePressed) { this.finish(); return; }
     if (this.titleCard) return;
+    if (Admin.on && this.shown >= this.full.length) {
+      // modo admin: as falas passam sozinhas (estrofes do poema ficam mais tempo)
+      this.autoT += delta / 1000;
+      const verse = this.lines[this.idx]?.who === 'poema';
+      if (this.autoT > (verse ? 4 : 1.6)) { this.autoT = 0; this.advance(); return; }
+    } else this.autoT = 0;
     if (this.shown < this.full.length) {
       const prev = Math.floor(this.shown);
       this.shown = Math.min(this.full.length, this.shown + delta * 0.05);

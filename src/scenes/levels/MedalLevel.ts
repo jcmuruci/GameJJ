@@ -8,6 +8,8 @@ import { charFrame } from '../../art/CharacterArt';
 import { txt, panel, uiButton } from '../../ui/text';
 import { isTouchDevice } from '../../systems/TouchControls';
 import { TaskList } from '../../ui/TaskList';
+import { attachPilot } from '../../systems/autopilot';
+import { Admin } from '../../systems/Admin';
 
 /**
  * Mar/2026 — A Medalha de São Bento. A Juliana, sozinha, atravessa a cidade para buscar o presente
@@ -187,6 +189,7 @@ export class MedalLevel extends Phaser.Scene {
     this.showIntro();
     Audio.music('map');
     cam.fadeIn(400, 27, 20, 36);
+    attachPilot(this);
   }
 
   // ------------------------------------------------------------------ utilidades
@@ -557,7 +560,8 @@ export class MedalLevel extends Phaser.Scene {
 
   private hurt(line: string): void {
     if (this.invuln > 0) return;
-    this.hp--;
+    // modo admin: o piloto automático nunca perde a fase
+    this.hp = Admin.on ? Math.max(1, this.hp - 1) : this.hp - 1;
     this.hits++;
     this.invuln = 1.2;
     Audio.play('hurt');

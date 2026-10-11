@@ -7,6 +7,7 @@ import { Audio } from '../systems/Audio';
 import { txt, panel, fillNames, uiButton } from '../ui/text';
 import { MenuList } from '../ui/MenuList';
 import { charFrame } from '../art/CharacterArt';
+import { Admin } from '../systems/Admin';
 
 /** Mapa-mundi: escolha de fases e loja de melhorias. */
 export class MapScene extends Phaser.Scene {
@@ -28,6 +29,12 @@ export class MapScene extends Phaser.Scene {
     const unlocked = this.unlockedCount();
     const idx = data.select ? LEVELS.findIndex((l) => l.id === data.select) : -1;
     this.sel = idx >= 0 ? Math.min(idx, unlocked - 1) : unlocked - 1;
+    // modo admin: começa pelo primeiro capítulo ainda não assistido
+    if (Admin.on && idx < 0) {
+      const first = LEVELS.findIndex((l, i) => i < unlocked && !Admin.watched.has(l.id));
+      if (first >= 0) this.sel = first;
+    }
+    this.autoT = -1;
     this.shop = null;
     this.shopBox = null;
     this.moving = false;
@@ -35,8 +42,14 @@ export class MapScene extends Phaser.Scene {
   }
 
   unlockedCount(): number {
+    // modo admin: todos os capítulos liberados (menos os "em breve")
+    if (Admin.on) return unlockedCount(() => true);
     return unlockedCount((id) => !!Save.data.levels[id]?.done);
   }
+
+  /** Modo admin: contagem para o próximo capítulo começar sozinho (-1 = parado). */
+  private autoT = -1;
+  private autoText: Phaser.GameObjects.Text | null = null;
 
   create(): void {
     this.drawWorld();
@@ -116,6 +129,14 @@ export class MapScene extends Phaser.Scene {
     this.refreshInfo();
     Audio.music('map');
     this.cameras.main.fadeIn(300, 27, 20, 36);
+    const off = Admin.onChange(() => this.scene.restart({}));
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, off);
+    this.autoText = null;
+    if (Admin.on) {
+      // assiste a história inteira: o próximo capítulo não assistido começa sozinho
+      if (!Admin.watched.has(LEVELS[this.sel].id) && this.sel < this.unlockedCount()) this.autoT = 3.5;
+      this.autoText = txt(this, GAME_W / 2, GAME_H - 150, '', 15, { color: '#2a1d2e', stroke: '#ffd25e', strokeW: 6 }).setDepth(50);
+    }
   }
 
   /** Mostra no painel por que um capítulo está bloqueado. */
@@ -215,8 +236,21 @@ export class MapScene extends Phaser.Scene {
     Audio.play('back');
   }
 
-  update(time: number): void {
+  update(time: number, delta: number): void {
     if (this.leaving) return;
+    if (this.autoText) {
+      if (this.autoT >= 0) {
+        // qualquer tecla de menu cancela o começo automático
+        if (Input.menuLeft() || Input.menuRight() || Input.menuUp() || Input.menuDown() || Input.backPressed()) this.autoT = -1;
+        else {
+          this.autoT -= delta / 1000;
+          if (this.autoT <= 0) { this.autoT = -1; this.playSelected(); return; }
+        }
+      }
+      this.autoText.setText(this.autoT >= 0
+        ? `ADMIN: "${LEVELS[this.sel].name}" começa sozinho em ${Math.ceil(this.autoT)}... (setas: escolher outro)`
+        : 'ADMIN: escolha um capítulo e os dois jogam sozinhos');
+    }
     if (this.moving) {
       this.moto.setAngle(Math.sin(time / 50) * 2);
       if (Math.random() < 0.3) {
@@ -254,6 +288,7 @@ export class MapScene extends Phaser.Scene {
   private playSelected(): void {
     if (this.moving || this.leaving || this.shop) return;
     const l = LEVELS[this.sel];
+    if (Admin.on) Admin.watched.add(l.id);
     Audio.play('confirm');
     this.leaving = true;
     Audio.play('horn');
