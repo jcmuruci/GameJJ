@@ -1,34 +1,17 @@
 import Phaser from 'phaser';
-import { PG, PAL, rng } from './pixel';
+import { PG, PAL } from './pixel';
+import { makeCanvas, makeSheet } from './canvasTex';
 
 /** Arte das fases inspiradas na história do casal: rapel, moto amarela, cachoeiras, restaurante e Amazônia. */
 
 type Draw = (pg: PG, r: () => number) => void;
 
 function canvas(scene: Phaser.Scene, key: string, w: number, h: number, draw: Draw, outline = true): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const tex = scene.textures.createCanvas(key, w, h)!;
-  const ctx = tex.getContext();
-  ctx.imageSmoothingEnabled = false;
-  const pg = new PG(ctx);
-  draw(pg, rng(31));
-  if (outline) pg.at(0, 0).outline(0, 0, w, h);
-  tex.refresh();
+  makeCanvas(scene, key, w, h, draw, { outline, seed: 31 });
 }
 
 function sheet(scene: Phaser.Scene, key: string, fw: number, fh: number, frames: Draw[], outline = true): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const tex = scene.textures.createCanvas(key, fw * frames.length, fh)!;
-  const ctx = tex.getContext();
-  ctx.imageSmoothingEnabled = false;
-  const pg = new PG(ctx);
-  frames.forEach((f, i) => {
-    pg.at(i * fw, 0);
-    f(pg, rng(57 + i));
-    if (outline) pg.outline(0, 0, fw, fh);
-    tex.add(i, 0, i * fw, 0, fw, fh);
-  });
-  tex.refresh();
+  makeSheet(scene, key, fw, fh, frames, { outline, seed: 57 });
 }
 
 export function generateExtraTextures(scene: Phaser.Scene): void {

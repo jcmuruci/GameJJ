@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
-import { PG, PAL, rng, shade, OUTLINE } from './pixel';
+import { PG, PAL, shade, OUTLINE } from './pixel';
 import { generateExtraTextures } from './TexturesExtra';
 import { generateFoodTextures } from './TexturesFood';
 import { generateTrailTextures } from './TexturesTrail';
 import { generateFarmTextures } from './TexturesFarm';
 import { generateCityTextures } from './TexturesCity';
 import { drawTiles } from './TexturesTiles';
+import { generateSkyTextures, makeSwayTextures } from './TexturesSky';
+import { makeCanvas, makeSheet } from './canvasTex';
 
 /**
  * Toda a arte do jogo é gerada aqui, por código, no carregamento.
@@ -17,30 +19,12 @@ export { T, TILE_COUNT, SOLID_TILES } from './tiles';
 type Draw = (pg: PG, r: () => number) => void;
 
 function canvas(scene: Phaser.Scene, key: string, w: number, h: number, draw: Draw, outline = false, seed = 7): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const tex = scene.textures.createCanvas(key, w, h)!;
-  const ctx = tex.getContext();
-  ctx.imageSmoothingEnabled = false;
-  const pg = new PG(ctx);
-  draw(pg, rng(seed));
-  if (outline) pg.at(0, 0).outline(0, 0, w, h);
-  tex.refresh();
+  makeCanvas(scene, key, w, h, draw, { outline, seed });
 }
 
 /** Folha com N quadros lado a lado. */
 function sheet(scene: Phaser.Scene, key: string, fw: number, fh: number, frames: Draw[], outline = true): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const tex = scene.textures.createCanvas(key, fw * frames.length, fh)!;
-  const ctx = tex.getContext();
-  ctx.imageSmoothingEnabled = false;
-  const pg = new PG(ctx);
-  frames.forEach((f, i) => {
-    pg.at(i * fw, 0);
-    f(pg, rng(13 + i));
-    if (outline) pg.outline(0, 0, fw, fh);
-    tex.add(i, 0, i * fw, 0, fw, fh);
-  });
-  tex.refresh();
+  makeSheet(scene, key, fw, fh, frames, { outline, seed: 13 });
 }
 
 function strSprite(scene: Phaser.Scene, key: string, rows: string[], pal = PAL): void {
@@ -434,7 +418,6 @@ function drawCreatures(scene: Phaser.Scene): void {
     pg.px(7, 12, '#2a1d2e'); pg.px(8, 12, '#2a1d2e');
   };
   sheet(scene, 'slime', 16, 16, [slime(0, '#7ad86a', '#4aa84a'), slime(1, '#7ad86a', '#4aa84a')]);
-  sheet(scene, 'slime_storm', 16, 16, [slime(0, '#8aa8e8', '#5a78c8'), slime(1, '#8aa8e8', '#5a78c8')]);
   const crow = (up: boolean): Draw => (pg) => {
     pg.ellipse(8, 9, 4, 3, '#2a2a3a'); pg.ellipse(4, 7, 2, 2, '#2a2a3a'); pg.px(1, 7, '#ffd25e'); pg.px(2, 7, '#ffd25e'); pg.px(4, 6, '#ffffff');
     if (up) { pg.rect(7, 3, 6, 4, '#3a3a4a'); pg.px(13, 3, '#3a3a4a'); }
@@ -442,37 +425,6 @@ function drawCreatures(scene: Phaser.Scene): void {
     pg.rect(11, 8, 3, 2, '#2a2a3a');
   };
   sheet(scene, 'crow', 16, 16, [crow(true), crow(false)]);
-
-  const cloud = (mood: 'angry' | 'dizzy' | 'happy'): Draw => (pg) => {
-    const base = mood === 'happy' ? '#ffffff' : '#8a8aa8';
-    const hi = mood === 'happy' ? '#ffffff' : '#a8a8c8';
-    const lo = mood === 'happy' ? '#d8e0f4' : '#6a6a88';
-    pg.ellipse(32, 26, 28, 10, lo);
-    pg.ellipse(18, 20, 12, 10, base); pg.ellipse(46, 20, 12, 10, base); pg.ellipse(32, 15, 15, 12, base);
-    pg.ellipse(28, 10, 8, 5, hi); pg.ellipse(16, 16, 5, 3, hi);
-    pg.ellipse(32, 25, 24, 8, base);
-    // rosto
-    if (mood === 'angry') {
-      pg.rect(22, 18, 4, 5, '#2a1d2e'); pg.rect(38, 18, 4, 5, '#2a1d2e'); pg.px(23, 19, '#ffffff'); pg.px(39, 19, '#ffffff');
-      pg.hline(20, 26, 16, '#2a1d2e'); pg.px(26, 17, '#2a1d2e'); pg.hline(38, 44, 16, '#2a1d2e'); pg.px(38, 17, '#2a1d2e');
-      pg.hline(28, 36, 27, '#2a1d2e'); pg.px(27, 28, '#2a1d2e'); pg.px(37, 28, '#2a1d2e');
-    } else if (mood === 'dizzy') {
-      const x = (cx: number) => { pg.px(cx, 18, '#2a1d2e'); pg.px(cx + 2, 18, '#2a1d2e'); pg.px(cx + 1, 19, '#2a1d2e'); pg.px(cx, 20, '#2a1d2e'); pg.px(cx + 2, 20, '#2a1d2e'); };
-      x(22); x(38);
-      pg.ellipse(32, 27, 3, 2, '#2a1d2e');
-    } else {
-      pg.hline(21, 25, 19, '#2a1d2e'); pg.px(20, 20, '#2a1d2e'); pg.px(26, 20, '#2a1d2e');
-      pg.hline(38, 42, 19, '#2a1d2e'); pg.px(37, 20, '#2a1d2e'); pg.px(43, 20, '#2a1d2e');
-      pg.ellipse(18, 23, 2, 1, '#ff8fb1'); pg.ellipse(46, 23, 2, 1, '#ff8fb1');
-      pg.hline(29, 35, 25, '#2a1d2e'); pg.hline(30, 34, 26, '#2a1d2e'); pg.hline(31, 33, 27, '#e8424a');
-    }
-  };
-  sheet(scene, 'boss', 64, 40, [cloud('angry'), cloud('dizzy'), cloud('happy')]);
-
-  sheet(scene, 'scrystal', 16, 24, [
-    (pg) => { pg.rect(4, 20, 8, 4, '#5a5a70'); pg.strings(['...uu...', '..ucUu..', '.ucccUu.', '.ucccUu.', 'ucccUUUu', 'uccUUUUu', 'uccUUUUu', 'ucUUUUUu', '.uUUUUu.', '.uUUUUu.', '..uUUu..', '..uUUu..', '...uu...'], PAL, 4, 3); },
-    (pg) => { pg.rect(4, 20, 8, 4, '#5a5a70'); pg.strings(['...uu...', '..ucUu..', '.uchcUu.', '.ukccUu.', 'ucckUUUu', 'uccUkUUu', 'uckUUkUu', 'ucUUkUUu', '.uUkUUu.', '.uUUkUu.', '..ukUu..', '..uUUu..', '...uu...'], { ...PAL, c: '#ffd6e4', u: '#ff7aa8', U: '#c94a7a' }, 4, 3); },
-  ]);
 }
 
 // ---------------------------------------------------------------- EFEITOS E UI
@@ -536,4 +488,6 @@ export function generateAllTextures(scene: Phaser.Scene): void {
   generateTrailTextures(scene);
   generateFarmTextures(scene);
   generateCityTextures(scene);
+  generateSkyTextures(scene);
+  makeSwayTextures(scene);
 }

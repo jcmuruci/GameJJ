@@ -1,24 +1,13 @@
 import Phaser from 'phaser';
 import { PG, shade } from './pixel';
+import { makeSheet } from './canvasTex';
 
 /** Cidade (BH, de dia): lojas, igreja, prédio, semáforo, pombos, skate e a medalha de São Bento. */
 
 type Draw = (pg: PG) => void;
 
 function sheet(scene: Phaser.Scene, key: string, fw: number, fh: number, frames: Draw[], outline = true): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const tex = scene.textures.createCanvas(key, fw * frames.length, fh)!;
-  const ctx = tex.getContext();
-  ctx.imageSmoothingEnabled = false;
-  const pg = new PG(ctx);
-  frames.forEach((f, i) => {
-    pg.at(i * fw, 0);
-    f(pg);
-    if (outline) pg.outline(0, 0, fw, fh);
-    tex.add(i, 0, i * fw, 0, fw, fh);
-  });
-  pg.at(0, 0);
-  tex.refresh();
+  makeSheet(scene, key, fw, fh, frames, { outline });
 }
 
 /** Fachada de loja com toldo listrado, vitrine e porta. */

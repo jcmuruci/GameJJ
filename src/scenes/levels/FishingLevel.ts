@@ -10,7 +10,10 @@ import { isTouchDevice } from '../../systems/TouchControls';
 import { TaskList } from '../../ui/TaskList';
 import { attachPilot } from '../../systems/autopilot';
 import { Shadows } from '../../systems/Shadows';
+import { Darkness } from '../../systems/NightLight';
 import { applyGrade } from '../../systems/Grade';
+import { irisOut } from '../TransitionScene';
+import { RAMP, gradientTexture } from '../../art/palette';
 
 /**
  * Jun/2026 — Juiz de Fora: a Juliana aprende a pescar no lago, com os pais do João olhando.
@@ -126,11 +129,11 @@ export class FishingLevel extends Phaser.Scene {
 
     this.drawScenery();
     // casal no pier (de lado, olhando para o lago)
-    this.chars = [0, 1].map((i) => this.add.sprite(i === 0 ? 236 : 300, 266, `char_${i}`, charFrame('side', 0)).setScale(3).setOrigin(0.5, 1).setFlipX(true).setDepth(20));
+    this.chars = [0, 1].map((i) => this.add.sprite(i === 0 ? 236 : 300, 266, `char_${i}`, charFrame('side', 0)).setScale(2).setOrigin(0.5, 1).setFlipX(true).setDepth(20));
     // pais do João na margem
-    this.parents = ['pai', 'mae'].map((k, i) => this.add.sprite(60 + i * 46, 262, `npc_${k}`, charFrame('down', 0)).setScale(3).setOrigin(0.5, 1).setDepth(15));
+    this.parents = ['pai', 'mae'].map((k, i) => this.add.sprite(60 + i * 46, 262, `npc_${k}`, charFrame('down', 0)).setScale(2).setOrigin(0.5, 1).setDepth(15));
     const shadows = new Shadows(this);
-    [...this.chars, ...this.parents].forEach((c) => shadows.add(c, 11, { alpha: 0.2 }));
+    [...this.chars, ...this.parents].forEach((c) => shadows.add(c, 14, { alpha: 0.2 }));
     this.rodTip = { x: 352, y: 196 };
     this.line = this.add.graphics().setDepth(25);
     this.bobber = this.add.image(this.rodTip.x, this.rodTip.y, 'bobber').setScale(3).setDepth(26).setVisible(false);
@@ -149,8 +152,12 @@ export class FishingLevel extends Phaser.Scene {
   private drawScenery(): void {
     const g = this.add.graphics().setDepth(0);
     // céu e morros de Juiz de Fora
-    g.fillStyle(0x9ce0ff, 1).fillRect(0, 0, GAME_W, WATER_Y);
-    g.fillStyle(0xc8f0ff, 1).fillRect(0, 150, GAME_W, 150);
+    this.add.image(0, 0, gradientTexture(this, 'sky_fishing', GAME_W, WATER_Y, RAMP.skyDay)).setOrigin(0).setDepth(-1);
+    // nuvens passando devagar
+    for (let i = 0; i < 3; i++) {
+      const c = this.add.image(i * 340 + Phaser.Math.Between(0, 120), 40 + i * 34, 'cloud_big').setScale(3 - i * 0.4).setDepth(0.5).setAlpha(0.95);
+      this.tweens.add({ targets: c, x: { from: c.x, to: c.x + GAME_W + 200 }, duration: 160000 + i * 30000, repeat: -1, onRepeat: () => c.setX(-150) });
+    }
     g.fillStyle(0x6cbf5a, 1).fillEllipse(200, 250, 520, 160).fillEllipse(640, 260, 620, 150).fillEllipse(960, 240, 400, 170);
     g.fillStyle(0x5aa84a, 1).fillEllipse(420, 280, 700, 90);
     // casa dos pais ao fundo
@@ -164,6 +171,13 @@ export class FishingLevel extends Phaser.Scene {
     for (let i = 0; i < 6; i++) w.fillStyle([0x4aa8e8, 0x3f98d8, 0x3488c8, 0x2a78b8, 0x226aa8, 0x1b5a98][i], 1).fillRect(0, WATER_Y + i * 42, GAME_W, 42);
     w.fillStyle(0x8fd8ff, 1).fillRect(0, WATER_Y, GAME_W, 3);
     for (let i = 0; i < 14; i++) w.fillStyle(0x8fd8ff, 0.5).fillRect(Phaser.Math.Between(0, GAME_W), Phaser.Math.Between(WATER_Y + 10, GAME_H - 10), Phaser.Math.Between(8, 24), 2);
+    // brilhos do sol no lago
+    for (let i = 0; i < 12; i++) {
+      const sp = this.add.image(0, 0, 'fx_spark').setScale(1.4).setAlpha(0).setDepth(4);
+      const move = () => sp.setPosition(Phaser.Math.Between(360, GAME_W - 20), Phaser.Math.Between(WATER_Y + 8, WATER_Y + 120));
+      move();
+      this.tweens.add({ targets: sp, alpha: { from: 0, to: 0.85 }, duration: 420, yoyo: true, delay: Phaser.Math.Between(0, 3000), repeat: -1, repeatDelay: Phaser.Math.Between(900, 2600), onRepeat: move });
+    }
     // pier de madeira
     const p = this.add.graphics().setDepth(18);
     p.fillStyle(0xc8915a, 1).fillRect(170, 266, PIER_END - 170, 12);
@@ -398,7 +412,11 @@ export class FishingLevel extends Phaser.Scene {
       this.nightLayer.push(this.add.image(GAME_W / 2, 330, 'bonfire').setScale(5).setDepth(44));
       const fire = this.add.sprite(GAME_W / 2, 300, 'fire', 0).setScale(5).setDepth(45).play('fire-anim');
       this.nightLayer.push(fire);
-      this.nightLayer.push(txt(this, GAME_W / 2, 76, 'ARRAIÁ DE BH', 24, { color: '#ffd25e' }).setDepth(46));
+      // a fogueira ilumina o terreiro e tremula; longe dela fica escuro
+      const dark = new Darkness(this, GAME_W, GAME_H, { color: 0x080818, alpha: 0.55, depth: 47 });
+      dark.add(fire, 300, { flicker: 0.05, glow: 0xffa040, glowAlpha: 0.16, dy: 40 });
+      this.nightLayer.push(dark.rt);
+      this.nightLayer.push(txt(this, GAME_W / 2, 76, 'ARRAIÁ DE BH', 24, { color: '#ffd25e' }).setDepth(61));
       this.callText = txt(this, GAME_W / 2, 150, '', 40, { color: '#ffd6e4', strokeW: 8 }).setDepth(60);
       this.nightLayer.push(this.callText);
       this.callArrow = this.add.graphics().setDepth(60);
@@ -622,7 +640,7 @@ export class FishingLevel extends Phaser.Scene {
       const j = this.chars[0];
       const nx = PIER_END + 26;
       const ny = WATER_Y - 22;
-      g.lineStyle(3, 0x8a5a34, 1).lineBetween(j.x + 14, j.y - 42, nx - 10, ny - 6);
+      g.lineStyle(3, 0x8a5a34, 1).lineBetween(j.x + 10, j.y - 26, nx - 10, ny - 6);
       g.lineStyle(2, 0xd8d8e0, 1).strokeEllipse(nx, ny, 22, 12);
       g.lineStyle(1, 0xd8d8e0, 0.7);
       for (let k = -8; k <= 8; k += 4) g.lineBetween(nx + k, ny - 5, nx + k * 0.6, ny + 10);
@@ -662,8 +680,7 @@ export class FishingLevel extends Phaser.Scene {
     Audio.play('win');
     const stars = 1 + (this.caught >= 5 ? 1 : 0) + (this.dances >= 5 ? 1 : 0);
     this.time.delayedCall(1200, () => {
-      this.cameras.main.fadeOut(400, 27, 20, 36);
-      this.time.delayedCall(420, () => this.scene.start('Result', {
+      irisOut(this, () => this.scene.start('Result', {
         levelId: this.info.id, win: true, stars, score: this.score,
         title: 'Pescaria e arraiá!',
         lines: [

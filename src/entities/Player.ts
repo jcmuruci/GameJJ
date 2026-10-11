@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { CharacterLook } from '../data/characters';
-import { charFrame, Dir } from '../art/CharacterArt';
+import { WALK_CYCLE, charFrame, Dir, CHAR_W, CHAR_H, CHAR_FEET } from '../art/CharacterArt';
 import { Item } from './Item';
 import { PlayerId, PlayerState } from '../systems/InputManager';
 import { PLAYER_TINTS } from '../config';
@@ -38,6 +38,10 @@ export class Player {
   fainted = false;
   invuln = 0;
   actTimer = 0;
+  /** Mostra o quadro de golpe (espada / magia) por este tempo. */
+  abilityT = 0;
+  /** Flash de dano (s). */
+  hurtT = 0;
   abilityCd = 0;
   abilityMax = 0.5;
   hugRequest = -999;
@@ -67,9 +71,10 @@ export class Player {
     this.hp = maxHp;
     this.maxHp = maxHp;
     this.shadow = scene.add.image(x, y, 'shadow').setAlpha(0.25);
-    this.sprite = scene.physics.add.sprite(x, y - 8, `char_${id}`, 0);
+    this.sprite = scene.physics.add.sprite(x, y - CHAR_FEET, `char_${id}`, 0);
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-    body.setSize(10, 6).setOffset(3, 17);
+    // corpo físico nos pés: o sprite cresce para cima
+    body.setSize(10, 6).setOffset((CHAR_W - 10) / 2, CHAR_H / 2 + CHAR_FEET - 3);
     body.setCollideWorldBounds(true);
     this.selector = scene.add.image(0, 0, 'select').setTint(PLAYER_TINTS[id]).setVisible(false).setDepth(4000);
     this.marker = scene.add.triangle(x, y, 0, 0, 6, 0, 3, 4, PLAYER_TINTS[id]).setOrigin(0.5).setDepth(6000);
@@ -90,12 +95,14 @@ export class Player {
   }
 
   teleport(x: number, y: number): void {
-    this.body.reset(x, y - 8);
+    this.body.reset(x, y - CHAR_FEET);
   }
 
   update(dt: number, inp: PlayerState, canMove: (p: Player, vx: number, vy: number) => [number, number]): void {
     this.invuln = Math.max(0, this.invuln - dt);
     this.actTimer = Math.max(0, this.actTimer - dt);
+    this.abilityT = Math.max(0, this.abilityT - dt);
+    this.hurtT = Math.max(0, this.hurtT - dt);
     this.abilityCd = Math.max(0, this.abilityCd - dt);
     this.slowTimer = Math.max(0, this.slowTimer - dt);
 
@@ -128,14 +135,17 @@ export class Player {
     this.dir = this.face.y !== 0 ? (this.face.y > 0 ? 'down' : 'up') : 'side';
     this.sprite.setFlipX(this.face.x > 0);
     let col = 0;
-    if (this.actTimer > 0) col = 3;
+    if (this.abilityT > 0) col = 7;
+    else if (this.actTimer > 0) col = 3;
     else if (this.moving) {
       this.animT += dt * 8 * Math.min(1.4, this.speedMult);
-      col = [1, 0, 2, 0][Math.floor(this.animT) % 4];
+      col = WALK_CYCLE[Math.floor(this.animT) % 4];
       this.stepT += dt;
     } else if (this.working) {
       this.animT += dt * 10;
       col = Math.floor(this.animT) % 2 ? 3 : 0;
+    } else if (this.idleTime % 2.6 > 2.2) {
+      col = 6; // respira
     }
     if (!this.fainted) this.sprite.setFrame(charFrame(this.dir, col));
 
@@ -147,6 +157,11 @@ export class Player {
       if (this.invuln > 0) this.sprite.setAlpha(Math.floor(this.invuln * 12) % 2 ? 0.35 : 1);
       else this.sprite.setAlpha(1);
       this.sprite.clearTint();
+      // flash de dano: branco no primeiro instante, depois vermelho
+      if (this.hurtT > 0) {
+        if (this.hurtT > 0.14) this.sprite.setTintFill(0xffffff);
+        else this.sprite.setTint(0xff6a6a);
+      }
     }
   }
 
@@ -158,9 +173,9 @@ export class Player {
     this.sprite.setDepth(y);
     if (this.held) {
       const bob = this.moving ? Math.sin(time / 70) * 1 : 0;
-      this.held.setPosition(x, y - 26 + bob, y + 1);
+      this.held.setPosition(x, y - 34 + bob, y + 1);
     }
-    this.marker.setPosition(x, y - (this.held ? 38 : 30) + Math.sin(time / 200) * 1.5);
+    this.marker.setPosition(x, y - (this.held ? 46 : 38) + Math.sin(time / 200) * 1.5);
   }
 
   pushBack(fromX: number, fromY: number, force = 160, t = 0.18): void {

@@ -20,7 +20,7 @@ export function controlsPanel(scene: Phaser.Scene): Phaser.GameObjects.Container
   ];
   cols.forEach((col, i) => {
     const k = KEY_LABELS[i];
-    c.add(scene.add.image(col.x, y0 + 92, `char_${i}`, 0).setScale(3));
+    c.add(scene.add.image(col.x, y0 + 92, `char_${i}`, 0).setScale(2));
     c.add(txt(scene, col.x, y0 + 140, `${names[i]} · ${col.role}`, 18, { color: col.color }));
     c.add(txt(scene, col.x, y0 + 172, `Mover: ${k.move}`, 15, { bold: false }));
     c.add(txt(scene, col.x, y0 + 194, `Ação: ${k.action}  ·  Habilidade: ${k.ability}`, 15, { bold: false }));

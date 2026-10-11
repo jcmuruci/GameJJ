@@ -1,21 +1,13 @@
 import Phaser from 'phaser';
 import { PG } from './pixel';
+import { makeSheet } from './canvasTex';
 
 /** Hotel fazenda: avestruz, animais calmos, pedalinho e boias. */
 
 type Draw = (pg: PG) => void;
 
 function sheet(scene: Phaser.Scene, key: string, fw: number, fh: number, frames: Draw[]): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const tex = scene.textures.createCanvas(key, fw * frames.length, fh)!;
-  const pg = new PG(tex.getContext());
-  frames.forEach((f, i) => {
-    pg.at(i * fw, 0);
-    f(pg);
-    pg.outline(0, 0, fw, fh);
-    tex.add(i, 0, i * fw, 0, fw, fh);
-  });
-  tex.refresh();
+  makeSheet(scene, key, fw, fh, frames);
 }
 
 export function generateFarmTextures(scene: Phaser.Scene): void {

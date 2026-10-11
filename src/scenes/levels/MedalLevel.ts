@@ -4,7 +4,7 @@ import { LevelInfo, levelById } from '../../data/levels';
 import { Save } from '../../systems/SaveManager';
 import { Input, KEY_LABELS } from '../../systems/InputManager';
 import { Audio } from '../../systems/Audio';
-import { charFrame } from '../../art/CharacterArt';
+import { charFrame, WALK_CYCLE } from '../../art/CharacterArt';
 import { txt, panel, uiButton } from '../../ui/text';
 import { isTouchDevice } from '../../systems/TouchControls';
 import { TaskList } from '../../ui/TaskList';
@@ -12,6 +12,8 @@ import { attachPilot } from '../../systems/autopilot';
 import { Admin } from '../../systems/Admin';
 import { Shadows } from '../../systems/Shadows';
 import { applyGrade } from '../../systems/Grade';
+import { irisOut } from '../TransitionScene';
+import { RAMP, gradientTexture } from '../../art/palette';
 
 /**
  * Mar/2026 — A Medalha de São Bento. A Juliana, sozinha, atravessa a cidade para preparar o presente
@@ -137,6 +139,10 @@ export class MedalLevel extends Phaser.Scene {
   private shadows!: Shadows;
   private sidewalk!: Phaser.GameObjects.TileSprite;
   private dashes!: Phaser.GameObjects.TileSprite;
+  /** Camadas do fundo: morros e prédios ao longe rolam mais devagar; nuvens quase paradas. */
+  private farHills!: Phaser.GameObjects.TileSprite;
+  private farBldgs!: Phaser.GameObjects.TileSprite;
+  private clouds: { img: Phaser.GameObjects.Image; x0: number; v: number }[] = [];
   // interface
   private hearts: Phaser.GameObjects.Image[] = [];
   private courageText!: Phaser.GameObjects.Text;
@@ -216,6 +222,13 @@ export class MedalLevel extends Phaser.Scene {
 
   get herX(): number { return this.dist + JX; }
 
+  /** Onde a íris de transição fecha: na Juliana (coordenadas da tela). */
+  irisPoint(): { x: number; y: number } {
+    const cam = this.cameras.main;
+    const k = cam.zoom / RES;
+    return { x: (JX - cam.worldView.x) * k, y: (this.jy - 12 - cam.worldView.y) * k };
+  }
+
   private toast(s: string, color = '#fff4e0', ms = 1800): void {
     this.tweens.killTweensOf(this.toastT);
     this.toastT.setText(s).setColor(color).setAlpha(1).setScale(0.8);
@@ -233,10 +246,15 @@ export class MedalLevel extends Phaser.Scene {
 
   // ------------------------------------------------------------------ cenário
   private drawCity(): void {
-    const g = this.w(this.add.graphics().setDepth(-5));
-    // céu e morros de BH ao fundo
-    g.fillStyle(0xc8f0ff, 1).fillRect(0, 30, W, BLDG_BOT - 30);
-    g.fillStyle(0x8fbf7a, 1).fillEllipse(80, BLDG_BOT, 260, 70).fillEllipse(330, BLDG_BOT, 320, 60).fillEllipse(470, BLDG_BOT, 200, 80);
+    // céu em degradê, nuvens, morros de BH e prédios ao longe (cada camada numa velocidade)
+    this.w(this.add.image(0, 0, gradientTexture(this, 'sky_medal', W, BLDG_BOT, RAMP.skyDay)).setOrigin(0).setDepth(-5));
+    this.clouds = [0, 1, 2].map((i) => ({
+      img: this.w(this.add.image(0, 10 + i * 9, 'cloud_big').setDepth(-4.9).setAlpha(0.95).setScale(i === 1 ? 0.8 : 1)),
+      x0: i * 170 + Phaser.Math.Between(0, 60),
+      v: 3 + i * 1.5,
+    }));
+    this.farHills = this.w(this.add.tileSprite(W / 2, BLDG_BOT - 17, W, 34, 'far_hills').setDepth(-4.8));
+    this.farBldgs = this.w(this.add.tileSprite(W / 2, BLDG_BOT - 22, W, 44, 'far_bldgs').setDepth(-4.7));
     // calçada de pedra portuguesa e meio-fio
     this.sidewalk = this.w(this.add.tileSprite(W / 2, (SIDE_TOP + SIDE_BOT) / 2, W, SIDE_BOT - SIDE_TOP + 4, 'sidewalk').setDepth(-4));
     const r = this.w(this.add.graphics().setDepth(-4));
@@ -449,9 +467,13 @@ export class MedalLevel extends Phaser.Scene {
 
     // animação da Juliana
     const moving = Math.abs(vx) > 1 || Math.abs(p.y) > 0.2;
-    const col = moving ? [1, 0, 2, 0][Math.floor(this.time.now / 110) % 4] : 0;
+    const col = moving ? WALK_CYCLE[Math.floor(this.time.now / 110) % 4] : 0;
     this.juliana.setFrame(charFrame('side', col)).setFlipX(vx >= 0).setPosition(JX, this.jy).setDepth(this.jy);
     this.juliana.setAlpha(this.invuln > 0 && Math.floor(this.invuln * 12) % 2 ? 0.4 : 1);
+    // flash de dano logo depois do tropeço
+    if (this.invuln > 1.05) this.juliana.setTintFill(0xffffff);
+    else if (this.invuln > 0.95) this.juliana.setTint(0xff6a6a);
+    else this.juliana.clearTint();
     this.shadow.setPosition(JX, this.jy).setDepth(this.jy - 1);
 
     this.spawnAhead();
@@ -461,6 +483,10 @@ export class MedalLevel extends Phaser.Scene {
 
   private updateWorld(dt: number): void {
     this.sidewalk.tilePositionX = this.dist;
+    this.farHills.tilePositionX = this.dist * 0.2;
+    this.farBldgs.tilePositionX = this.dist * 0.5;
+    const span = W + 100;
+    for (const c of this.clouds) c.img.setX(((((c.x0 - this.dist * 0.1 - this.time.now / 1000 * c.v) % span) + span) % span) - 50);
     this.dashes.tilePositionX = this.dist;
     for (const d of this.decor) d.img.setX(d.wx - this.dist);
     this.decor = this.decor.filter((d) => { if (d.wx - this.dist < -60) { d.img.destroy(); return false; } return true; });
@@ -882,7 +908,7 @@ export class MedalLevel extends Phaser.Scene {
     const ju = this.overlayAdd(this.add.sprite(GAME_W / 2 + 170, 340, 'char_1', charFrame('down', 0)).setScale(4).setOrigin(0.5, 1));
     const gift = this.overlayAdd(this.add.image(GAME_W / 2 + 120, 300, 'gift').setScale(3).setTint(this.paperColor));
     const moto = this.overlayAdd(this.add.image(-80, 318, 'moto').setScale(4));
-    const rider = this.overlayAdd(this.add.sprite(-90, 290, 'npc_motoboy', charFrame('side', 0)).setScale(4).setOrigin(0.5, 1).setFlipX(true));
+    const rider = this.overlayAdd(this.add.sprite(-90, 290, 'npc_motoboy', charFrame('side', 0)).setScale(3).setOrigin(0.5, 1).setFlipX(true));
     this.tweens.add({ targets: [moto, rider], x: `+=${GAME_W / 2 - 40}`, duration: 1100, ease: 'Sine.Out' });
     void ju;
     const lines = [
@@ -937,8 +963,7 @@ export class MedalLevel extends Phaser.Scene {
     const stars = win ? 1 + (this.courage >= COURAGE_GOAL ? 1 : 0) + (clean ? 1 : 0) : 0;
     const score = win ? this.coins * 5 + this.courage * 20 + this.crossOk * 30 + this.hp * 30 : 0;
     this.time.delayedCall(1200, () => {
-      this.cameras.main.fadeOut(400, 27, 20, 36);
-      this.time.delayedCall(420, () => this.scene.start('Result', {
+      irisOut(this, () => this.scene.start('Result', {
         levelId: this.info.id, win, stars, score,
         title: win ? 'Presente entregue! ♥' : 'Tropeços demais... bora de novo?',
         lines: [

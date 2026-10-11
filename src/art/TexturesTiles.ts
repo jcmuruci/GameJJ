@@ -1,6 +1,11 @@
 import Phaser from 'phaser';
 import { PG, rng } from './pixel';
 import { T, TILE_COUNT } from './tiles';
+import { makeCanvas } from './canvasTex';
+import { RAMP } from './palette';
+
+/** Rampas da paleta (escuro → claro). */
+const { canyon: CY, dirt: D, grass: G, granite: GR, sand: S, stone: ST, water: W, wood: WD } = RAMP;
 
 /**
  * Tiles do chão. Cada tile tem uma função de desenho que recebe `v` (variação):
@@ -11,13 +16,13 @@ export const TILE_VARIANTS = 3;
 
 type TileDraw = (pg: PG, r: () => number, v: number) => void;
 
-const grass = (pg: PG, r: () => number, base = '#7ccf5a', dark = '#62b048', light = '#9be070') => {
+const grass = (pg: PG, r: () => number, base: string = G[4], dark: string = G[3], light: string = G[5]) => {
   pg.rect(0, 0, 16, 16, base);
   for (let i = 0; i < 14; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), r() > 0.5 ? dark : light);
 };
 const at = (r: () => number, n = 12) => Math.floor(r() * n);
 /** Pedrinha de 2 px com sombra. */
-const pebble = (pg: PG, r: () => number, light = '#b8b4b0', dark = '#8e8a88') => {
+const pebble = (pg: PG, r: () => number, light: string = GR[4], dark: string = GR[2]) => {
   const x = 2 + at(r, 11); const y = 2 + at(r, 11);
   pg.rect(x, y, 2, 1, light); pg.px(x, y + 1, dark); pg.px(x + 1, y + 1, dark);
 };
@@ -40,20 +45,20 @@ const TILE_DRAW: Record<number, TileDraw> = {
     [[4, 6], [10, 11], [12, 3]].forEach(([x, y]) => { pg.px(x, y, '#4a9a3a'); pg.px(x - 1, y + 1, '#4a9a3a'); pg.px(x + 1, y + 1, '#4a9a3a'); pg.px(x, y + 1, '#4a9a3a'); });
   },
   [T.PATH]: (pg, r, v) => {
-    pg.rect(0, 0, 16, 16, '#d8b07a');
-    for (let i = 0; i < 18; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), r() > 0.5 ? '#c49a64' : '#e8c890');
+    pg.rect(0, 0, 16, 16, D[4]);
+    for (let i = 0; i < 18; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), r() > 0.5 ? D[3] : D[5]);
     if (v >= 1) pebble(pg, r, '#e8dcc8', '#a88a64');
-    if (v === 2) { pebble(pg, r, '#c8c0b0', '#9a7c58'); pg.hline(3 + at(r, 6), 8 + at(r, 4), 4 + at(r, 9), '#c49a64'); }
+    if (v === 2) { pebble(pg, r, '#c8c0b0', '#9a7c58'); pg.hline(3 + at(r, 6), 8 + at(r, 4), 4 + at(r, 9), D[3]); }
   },
   [T.WATER]: (pg, r) => {
-    pg.rect(0, 0, 16, 16, '#4aa8e8');
-    pg.rect(0, 0, 16, 2, '#6cc4ff');
-    for (let i = 0; i < 4; i++) { const x = Math.floor(r() * 12); const y = 3 + Math.floor(r() * 12); pg.hline(x, x + 3, y, '#8fd8ff'); }
+    pg.rect(0, 0, 16, 16, W[3]);
+    pg.rect(0, 0, 16, 2, W[4]);
+    for (let i = 0; i < 4; i++) { const x = Math.floor(r() * 12); const y = 3 + Math.floor(r() * 12); pg.hline(x, x + 3, y, W[5]); }
   },
   [T.TREE]: (pg, r) => {
     grass(pg, r);
     pg.ellipse(8, 7, 7, 7, '#2f7a3a'); pg.ellipse(7, 6, 6, 5, '#3f9a48'); pg.ellipse(6, 5, 3, 2, '#5bbf4a');
-    pg.px(4, 4, '#9be070'); pg.px(10, 9, '#2a6a30');
+    pg.px(4, 4, G[5]); pg.px(10, 9, '#2a6a30');
     pg.rect(7, 14, 3, 2, '#5a3a24');
   },
   [T.HEDGE]: (pg, r) => {
@@ -62,42 +67,42 @@ const TILE_DRAW: Record<number, TileDraw> = {
     for (let i = 0; i < 6; i++) pg.px(2 + Math.floor(r() * 12), 2 + Math.floor(r() * 10), '#6cc85a');
   },
   [T.STONE_WALL]: (pg, r, v) => {
-    pg.rect(0, 0, 16, 16, '#8a8aa0');
+    pg.rect(0, 0, 16, 16, ST[2]);
     if (v >= 1) { const by = 5 * at(r, 3); pg.rect(at(r, 2) * 8 + 1, by + 1, 6, 3, '#7e7e94'); }
-    for (let y = 0; y < 16; y += 5) { pg.hline(0, 15, y, '#5a5a70'); const off = (y / 5) % 2 ? 4 : 0; for (let x = off; x < 16; x += 8) pg.vline(x, y, y + 4, '#5a5a70'); }
-    pg.hline(0, 15, 1, '#aaaac0');
-    if (v === 2) { crack(pg, r, '#5a5a70'); pg.px(1 + at(r, 13), 14, '#5bbf4a'); pg.px(2 + at(r, 12), 15, '#3f9a48'); }
+    for (let y = 0; y < 16; y += 5) { pg.hline(0, 15, y, ST[1]); const off = (y / 5) % 2 ? 4 : 0; for (let x = off; x < 16; x += 8) pg.vline(x, y, y + 4, ST[1]); }
+    pg.hline(0, 15, 1, ST[3]);
+    if (v === 2) { crack(pg, r, ST[1]); pg.px(1 + at(r, 13), 14, '#5bbf4a'); pg.px(2 + at(r, 12), 15, '#3f9a48'); }
   },
   [T.WOOD_FLOOR]: (pg, r, v) => {
-    pg.rect(0, 0, 16, 16, '#c8915a');
+    pg.rect(0, 0, 16, 16, WD[3]);
     if (v >= 1) { const row = at(r, 4) * 4; pg.rect(0, row, 16, 3, v === 1 ? '#c0884f' : '#d09a62'); }
-    for (let y = 0; y < 16; y += 4) pg.hline(0, 15, y + 3, '#a8703a');
-    pg.vline(5, 0, 3, '#a8703a'); pg.vline(12, 4, 7, '#a8703a'); pg.vline(3, 8, 11, '#a8703a'); pg.vline(10, 12, 15, '#a8703a');
+    for (let y = 0; y < 16; y += 4) pg.hline(0, 15, y + 3, WD[2]);
+    pg.vline(5, 0, 3, WD[2]); pg.vline(12, 4, 7, WD[2]); pg.vline(3, 8, 11, WD[2]); pg.vline(10, 12, 15, WD[2]);
     if (v === 2) { const x = 2 + at(r, 10); const y = 4 * at(r, 4) + 1; pg.rect(x, y, 2, 1, '#9a6434'); pg.px(x + 2, y, '#b07a44'); }
   },
-  [T.DARK_GRASS]: (pg, r) => grass(pg, r, '#4f9a4a', '#3f8a3e', '#62b048'),
+  [T.DARK_GRASS]: (pg, r) => grass(pg, r, G[2], G[1], G[3]),
   [T.CLIFF]: (pg, r) => {
     pg.rect(0, 0, 16, 16, '#7a6a5a');
-    pg.rect(0, 0, 16, 4, '#5bbf4a'); pg.rect(0, 4, 16, 1, '#3f8a3e');
+    pg.rect(0, 0, 16, 4, '#5bbf4a'); pg.rect(0, 4, 16, 1, G[1]);
     for (let i = 0; i < 5; i++) { const x = Math.floor(r() * 14); const y = 6 + Math.floor(r() * 9); pg.hline(x, x + 2, y, '#5a4a3a'); }
   },
   [T.BRIDGE]: (pg) => {
-    pg.rect(0, 0, 16, 16, '#4aa8e8');
+    pg.rect(0, 0, 16, 16, W[3]);
     pg.rect(1, 0, 14, 16, '#b07a4a');
     for (let y = 0; y < 16; y += 4) pg.hline(1, 14, y, '#7a4a2a');
     pg.vline(1, 0, 15, '#5a3a24'); pg.vline(14, 0, 15, '#5a3a24');
   },
   [T.SAND]: (pg, r, v) => {
-    pg.rect(0, 0, 16, 16, '#f0d8a0');
-    for (let i = 0; i < 12; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), '#d8bc80');
+    pg.rect(0, 0, 16, 16, S[4]);
+    for (let i = 0; i < 12; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), S[2]);
     if (v === 1) { const x = 3 + at(r, 9); const y = 3 + at(r, 9); pg.px(x, y, '#fff4e0'); pg.px(x + 1, y, '#f8c8b8'); }
-    if (v === 2) { const y = 3 + at(r, 10); pg.hline(2 + at(r, 4), 9 + at(r, 4), y, '#e4c88c'); }
+    if (v === 2) { const y = 3 + at(r, 10); pg.hline(2 + at(r, 4), 9 + at(r, 4), y, S[3]); }
   },
   [T.FENCE]: (pg, r) => {
     grass(pg, r);
-    pg.rect(0, 5, 16, 2, '#c8915a'); pg.rect(0, 10, 16, 2, '#c8915a');
+    pg.rect(0, 5, 16, 2, WD[3]); pg.rect(0, 10, 16, 2, WD[3]);
     pg.rect(2, 2, 3, 13, '#e0b07a'); pg.rect(11, 2, 3, 13, '#e0b07a');
-    pg.rect(4, 2, 1, 13, '#a8703a'); pg.rect(13, 2, 1, 13, '#a8703a');
+    pg.rect(4, 2, 1, 13, WD[2]); pg.rect(13, 2, 1, 13, WD[2]);
   },
   [T.FLOWERBED]: (pg, r) => {
     pg.rect(0, 0, 16, 16, '#8a5a34');
@@ -124,16 +129,16 @@ const TILE_DRAW: Record<number, TileDraw> = {
   },
   // granito do topo da pedrona: cinza claro, grãos e manchas de líquen
   [T.GRANITE]: (pg, r, v) => {
-    pg.rect(0, 0, 16, 16, '#b8b4b0');
-    for (let i = 0; i < 22; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), ['#a8a4a0', '#cac6c2', '#9a9690', '#d8d4cc'][i % 4]);
+    pg.rect(0, 0, 16, 16, GR[4]);
+    for (let i = 0; i < 22; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), ['#a8a4a0', GR[5], GR[3], '#d8d4cc'][i % 4]);
     if (r() > 0.4) { const x = Math.floor(r() * 11); const y = Math.floor(r() * 11); pg.rect(x, y, 3, 2, '#c8c890'); pg.px(x + 1, y + 2, '#b0b878'); }
-    if (v === 2) crack(pg, r, '#9a9690');
+    if (v === 2) crack(pg, r, GR[3]);
   },
   // face de rocha: granito em placas verticais, com sombra e borda de cima clara
   [T.ROCK_FACE]: (pg, r) => {
-    pg.rect(0, 0, 16, 16, '#8e8a88');
+    pg.rect(0, 0, 16, 16, GR[2]);
     pg.rect(0, 0, 16, 2, '#c4c0bc'); pg.hline(0, 15, 2, '#6e6a68');
-    for (let i = 0; i < 4; i++) { const x = 2 + Math.floor(r() * 12); pg.vline(x, 4 + Math.floor(r() * 3), 13 + Math.floor(r() * 3), '#76726f'); pg.vline(x + 1, 5, 12, '#a29e9a'); }
+    for (let i = 0; i < 4; i++) { const x = 2 + Math.floor(r() * 12); pg.vline(x, 4 + Math.floor(r() * 3), 13 + Math.floor(r() * 3), GR[1]); pg.vline(x + 1, 5, 12, '#a29e9a'); }
     pg.hline(0, 15, 15, '#6e6a68');
   },
   // piso de academia: colchonete azul com costuras
@@ -161,31 +166,31 @@ const TILE_DRAW: Record<number, TileDraw> = {
   },
   // paredão do cânion: blocos de rocha irregulares (ocre/cinza) com sombra e musgo
   [T.CANYON_WALL]: (pg, r) => {
-    pg.rect(0, 0, 16, 16, '#9a7c60');
-    ([[4, 4, 5, 4, '#b08e6c'], [12, 3, 4, 3, '#a8886a'], [3, 11, 4, 4, '#a4846a'], [11, 11, 5, 4, '#b4967a'], [8, 7, 3, 3, '#8e7058']] as [number, number, number, number, string][]).forEach(([x, y, rx, ry, c]) => {
+    pg.rect(0, 0, 16, 16, CY[3]);
+    ([[4, 4, 5, 4, CY[4]], [12, 3, 4, 3, '#a8886a'], [3, 11, 4, 4, '#a4846a'], [11, 11, 5, 4, '#b4967a'], [8, 7, 3, 3, '#8e7058']] as [number, number, number, number, string][]).forEach(([x, y, rx, ry, c]) => {
       pg.ellipse(x, y, rx, ry, c);
-      pg.hline(x - rx + 2, x + 1, y - ry + 1, '#c8aa88');
+      pg.hline(x - rx + 2, x + 1, y - ry + 1, CY[5]);
     });
-    pg.hline(0, 15, 7, '#6e5644'); pg.px(7, 6, '#6e5644'); pg.vline(8, 0, 2, '#6e5644'); pg.vline(6, 8, 15, '#6e5644');
-    for (let i = 0; i < 5; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), '#5e4838');
+    pg.hline(0, 15, 7, CY[2]); pg.px(7, 6, CY[2]); pg.vline(8, 0, 2, CY[2]); pg.vline(6, 8, 15, CY[2]);
+    for (let i = 0; i < 5; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), CY[1]);
     if (r() > 0.5) { pg.px(2, 0, '#5bbf4a'); pg.px(3, 0, '#3f9a48'); pg.px(13, 8, '#5bbf4a'); }
   },
   // campo rupestre: grama baixa com pedrinhas
   [T.ROCKY_GRASS]: (pg, r) => {
     grass(pg, r, '#8cbf5a', '#74a84a', '#a8d070');
-    for (let i = 0; i < 3; i++) { const x = 1 + Math.floor(r() * 13); const y = 1 + Math.floor(r() * 13); pg.rect(x, y, 2, 1, '#b8b4b0'); pg.px(x, y + 1, '#8e8a88'); }
+    for (let i = 0; i < 3; i++) { const x = 1 + Math.floor(r() * 13); const y = 1 + Math.floor(r() * 13); pg.rect(x, y, 2, 1, GR[4]); pg.px(x, y + 1, GR[2]); }
   },
   // afloramento de rocha com arbusto
   [T.SHRUB_ROCK]: (pg, r) => {
     grass(pg, r, '#8cbf5a', '#74a84a', '#a8d070');
-    pg.ellipse(8, 10, 7, 5, '#9a9690'); pg.ellipse(7, 9, 5, 3, '#b8b4b0'); pg.hline(3, 12, 14, '#6e6a68');
+    pg.ellipse(8, 10, 7, 5, GR[3]); pg.ellipse(7, 9, 5, 3, GR[4]); pg.hline(3, 12, 14, '#6e6a68');
     pg.ellipse(11, 5, 4, 3, '#4a8a3a'); pg.ellipse(10, 4, 2, 2, '#62a848'); pg.px(13, 3, '#ffd25e');
   },
   // passarela suspensa: tábuas de madeira atravessadas, com frestas
   [T.WALKWAY]: (pg, r, v) => {
     pg.rect(0, 0, 16, 16, '#b8844e');
     if (v >= 1) pg.rect(0, at(r, 4) * 4, 16, 3, v === 1 ? '#ae7a46' : '#c08c56');
-    for (let y = 0; y < 16; y += 4) { pg.hline(0, 15, y + 3, '#6a4424'); pg.hline(0, 15, y, '#d0a06a'); }
+    for (let y = 0; y < 16; y += 4) { pg.hline(0, 15, y + 3, WD[1]); pg.hline(0, 15, y, WD[4]); }
     for (let i = 0; i < 4; i++) pg.px(Math.floor(r() * 16), Math.floor(r() * 16), '#8a5a34');
     pg.px(2, 1, '#5a3a24'); pg.px(13, 1, '#5a3a24'); pg.px(2, 9, '#5a3a24'); pg.px(13, 9, '#5a3a24');
   },
@@ -205,12 +210,7 @@ const TILE_DRAW: Record<number, TileDraw> = {
 };
 
 function canvas(scene: Phaser.Scene, key: string, w: number, h: number, draw: (pg: PG) => void): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const tex = scene.textures.createCanvas(key, w, h)!;
-  const ctx = tex.getContext();
-  ctx.imageSmoothingEnabled = false;
-  draw(new PG(ctx));
-  tex.refresh();
+  makeCanvas(scene, key, w, h, draw);
 }
 
 /** Faixa `tiles` (usada pelo mapa lógico e por ícones) e grade `tiles_v` com as variações (linha = variação). */
@@ -222,8 +222,72 @@ export function drawTiles(scene: Phaser.Scene): void {
   canvas(scene, 'tiles_v', 16 * TILE_COUNT, 16 * TILE_VARIANTS, (pg) => {
     for (let v = 0; v < TILE_VARIANTS; v++) for (let i = 0; i < TILE_COUNT; i++) draw(pg.at(i * 16, v * 16), i, v);
   });
+  canvas(scene, 'tiles_wall', 16 * 4, 16 * WALL_TYPES.length, (pg) => {
+    WALL_TYPES.forEach((t, row) => {
+      for (let col = 0; col < 4; col++) {
+        const v = col % 2;
+        pg.at(col * 16, row * 16);
+        (col < 2 ? WALL_DRAW[t].top : WALL_DRAW[t].face)(pg, rng(503 + t * 7 + col), v);
+      }
+    });
+  });
   drawWater(scene);
 }
+
+/**
+ * Paredes vistas em 3/4: cada tipo tem o TOPO (o alto do muro visto de cima) e a FACE
+ * (a frente que dá para o chão). O chão desenhado escolhe um ou outro pelo vizinho de baixo.
+ * Linhas da textura `tiles_wall`: uma por tipo; colunas: topo v0, topo v1, face v0, face v1.
+ */
+export const WALL_TYPES = [T.STONE_WALL, T.INDOOR_WALL, T.CANYON_WALL] as const;
+const WALL_DRAW: Record<number, { top: TileDraw; face: TileDraw }> = {
+  [T.STONE_WALL]: {
+    top: (pg, r, v) => {
+      pg.rect(0, 0, 16, 16, ST[3]);
+      for (let i = 0; i < 10; i++) pg.px(at(r, 16), at(r, 16), r() > 0.5 ? ST[2] : ST[4]);
+      if (v) { pg.rect(at(r, 10) + 2, at(r, 10) + 2, 3, 2, ST[2]); }
+    },
+    face: (pg, r, v) => {
+      pg.rect(0, 0, 16, 16, ST[2]);
+      // tijolos com argamassa, mais escuros embaixo (sombra no pé do muro)
+      for (let y = 3; y < 16; y += 4) { pg.hline(0, 15, y, ST[1]); const off = ((y - 3) / 4) % 2 ? 4 : 0; for (let x = off; x < 16; x += 8) pg.vline(x, y + 1, y + 3, ST[1]); }
+      pg.rect(0, 0, 16, 3, ST[3]); pg.hline(0, 15, 0, ST[4]); pg.hline(0, 15, 2, ST[1]);
+      pg.rect(0, 14, 16, 2, ST[1]);
+      if (v) { const x = at(r, 12) + 1; pg.rect(x, 8, 3, 2, '#7e7e94'); pg.px(x + 1, 13, G[3]); }
+    },
+  },
+  [T.INDOOR_WALL]: {
+    top: (pg, r, v) => {
+      pg.rect(0, 0, 16, 16, '#7a6a8a');
+      pg.hline(0, 15, 3, '#8a7a9a'); pg.hline(0, 15, 11, '#6a5a7a');
+      if (v) pg.px(at(r, 14) + 1, at(r, 14) + 1, '#8a7a9a');
+    },
+    face: (pg, r, v) => {
+      pg.rect(0, 0, 16, 16, '#e8dcc8');
+      pg.rect(0, 0, 16, 2, '#7a6a8a'); pg.hline(0, 15, 2, '#c8bca8');
+      pg.rect(0, 12, 16, 4, '#6a5a7a'); pg.hline(0, 15, 11, '#c8bca8');
+      pg.vline(15, 3, 10, '#d8ccb8');
+      if (v) { const x = 2 + at(r, 10); pg.px(x, 6, '#d8ccb6'); }
+    },
+  },
+  [T.CANYON_WALL]: {
+    top: (pg, r, v) => {
+      pg.rect(0, 0, 16, 16, CY[4]);
+      for (let i = 0; i < 12; i++) pg.px(at(r, 16), at(r, 16), r() > 0.5 ? CY[3] : CY[5]);
+      // tufos de capim no alto do paredão
+      for (let i = 0; i < (v ? 3 : 2); i++) { const x = at(r, 13) + 1; const y = at(r, 13) + 1; pg.px(x, y, G[3]); pg.px(x + 1, y, G[2]); pg.px(x, y - 1, G[4]); }
+    },
+    face: (pg, r, v) => {
+      // camadas de rocha (estratos), rachaduras verticais, mais escuro embaixo
+      pg.rect(0, 0, 16, 16, CY[3]);
+      [[2, CY[4]], [6, CY[2]], [9, CY[4]], [13, CY[2]]].forEach(([y, c]) => pg.hline(0, 15, y as number, c as string));
+      for (let i = 0; i < 3; i++) { const x = at(r, 14) + 1; pg.vline(x, 3 + at(r, 4), 12 + at(r, 3), CY[1]); }
+      pg.rect(0, 0, 16, 1, G[3]); pg.px(at(r, 14), 1, G[2]);
+      pg.rect(0, 14, 16, 2, CY[1]);
+      if (v) pg.px(at(r, 14) + 1, 5 + at(r, 6), CY[5]);
+    },
+  },
+};
 
 /** Água animada: 4 quadros de 32x32 que emendam nas bordas (brilhos que acendem e apagam). */
 export const WATER_FRAMES = 4;
@@ -237,15 +301,15 @@ function drawWater(scene: Phaser.Scene): void {
           // manchas suaves (duas ondas cruzadas), não listras
           const a = (f * Math.PI) / 2;
           const wave = Math.sin((x / 32) * Math.PI * 2 + a) + 0.8 * Math.sin((y / 32) * Math.PI * 4 + (x / 32) * Math.PI * 2 - a);
-          pg.px(x, y, wave > 1.45 ? '#52aeec' : wave < -1.5 ? '#45a3e4' : '#4aa8e8');
+          pg.px(x, y, wave > 1.45 ? '#52aeec' : wave < -1.5 ? '#45a3e4' : W[3]);
         }
       }
       ripples.forEach((rp, k) => {
         const p = (k + f) % WATER_FRAMES;
         const line = (x0: number, len: number, y: number, c: string) => { for (let i = 0; i < len; i++) pg.px((x0 + i) % 32, y % 32, c); };
-        if (p === 0) line(rp.x, rp.len + 1, rp.y, '#8fd8ff');
-        else if (p === 1) line(rp.x + 1, rp.len, rp.y, '#6cc4ff');
-        if (p === 0 && k % 3 === 0) pg.px((rp.x + 1) % 32, (rp.y + 31) % 32, '#e6f6ff');
+        if (p === 0) line(rp.x, rp.len + 1, rp.y, W[5]);
+        else if (p === 1) line(rp.x + 1, rp.len, rp.y, W[4]);
+        if (p === 0 && k % 3 === 0) pg.px((rp.x + 1) % 32, (rp.y + 31) % 32, W[6]);
       });
     });
   }

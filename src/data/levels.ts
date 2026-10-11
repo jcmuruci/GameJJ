@@ -8,7 +8,7 @@ export interface LevelInfo {
   /** Nome curto para o mapa. */
   short: string;
   subtitle: string;
-  scene: 'TutorialLevel' | 'KitchenLevel' | 'TrailLevel' | 'BossLevel' | 'MotoLevel' | 'AmazonLevel' | 'FarmLevel' | 'FishingLevel' | 'MedalLevel';
+  scene: 'TutorialLevel' | 'KitchenLevel' | 'TrailLevel' | 'MotoLevel' | 'AmazonLevel' | 'FarmLevel' | 'FishingLevel' | 'MedalLevel';
   story: string;
   /** História exibida depois de vencer. */
   endStory?: string;
@@ -83,12 +83,8 @@ export const LEVELS: LevelInfo[] = [
     map: { x: 110, y: R3 }, icon: { key: 'ostrich', scale: 0.8 }, coinsPerStar: 25, goal: 'Carinho nos bichos, fuja da avestruz e mandem bem no pedalinho.',
   },
   {
-    id: 'storm', month: 'Em breve', name: 'Próximo capítulo', short: '???', subtitle: 'Ainda vai acontecer...', scene: 'BossLevel', story: 'storm', endStory: 'ending', music: 'boss',
-    map: { x: 255, y: R3 }, icon: { key: 'boss', scale: 0.4 }, coinsPerStar: 40, goal: 'Este capítulo ainda está sendo vivido.', soon: true,
-  },
-  {
     id: 'amazon', month: 'Em breve', name: 'Amazônia', short: 'Amazônia', subtitle: 'O sonho dos jacarés', scene: 'AmazonLevel', story: 'amazon', endStory: 'amazon_end', music: 'jungle',
-    map: { x: 400, y: R3 }, icon: { key: 'gator', scale: 1.4 }, coinsPerStar: 40, goal: 'A viagem dos sonhos da Juliana. Em breve!', soon: true,
+    map: { x: 255, y: R3 }, icon: { key: 'gator', scale: 1.4 }, coinsPerStar: 40, goal: 'A viagem dos sonhos da Juliana. Em breve!', soon: true,
   },
 ];
 

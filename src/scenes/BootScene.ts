@@ -37,6 +37,10 @@ export class BootScene extends Phaser.Scene {
     anim('duck-swim', 'duck', 3);
     anim('cow-walk', 'cow', 4);
     anim('pigeon-fly', 'pigeon', 10);
+    anim('butterfly-fly', 'butterfly', 9);
+    anim('bird-fly', 'bird', 7);
+    // a cena de transições (íris) fica sempre rodando por cima
+    this.scene.launch('Fx');
     this.scene.start('Menu');
   }
 }
@@ -68,14 +72,15 @@ function composeNpcProps(scene: Phaser.Scene): void {
     ctx.drawImage(f.img, f.sx, f.sy, CHAR_W, CHAR_H, 0, 0, CHAR_W, CHAR_H);
     ctx.restore();
   };
-  make('waiter_run', 24, (ctx) => {
+  make('waiter_run', CHAR_W + 8, (ctx) => {
     put(ctx, 'npc_garcom', 1, 0);
-    ctx.fillStyle = '#d8d8e4'; ctx.fillRect(12, 11, 10, 2);
-    ctx.fillStyle = '#e8424a'; ctx.fillRect(14, 8, 3, 3);
-    ctx.fillStyle = '#ffd25e'; ctx.fillRect(18, 9, 3, 2);
+    // bandeja na mão, com o prato e a bebida
+    ctx.fillStyle = '#d8d8e4'; ctx.fillRect(16, 15, 14, 2);
+    ctx.fillStyle = '#e8424a'; ctx.fillRect(19, 11, 4, 4);
+    ctx.fillStyle = '#ffd25e'; ctx.fillRect(25, 12, 3, 3);
   });
-  make('quadrilha', 30, (ctx) => {
+  make('quadrilha', CHAR_W * 2 - 6, (ctx) => {
     put(ctx, 'npc_caipira2', 1, 0);
-    put(ctx, 'npc_caipira', 2, 13);
+    put(ctx, 'npc_caipira', 2, CHAR_W - 6);
   });
 }

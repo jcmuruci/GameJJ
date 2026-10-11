@@ -7,8 +7,8 @@ type Obj = Phaser.GameObjects.Sprite | Phaser.GameObjects.Image;
  * Objetos chatos (tapetes, placas no chão, poças), na água ou voando ficam de fora.
  */
 const AUTO: [RegExp, number][] = [
-  [/^npc_/, 11],
-  [/^(waiter_run|quadrilha)$/, 18],
+  [/^npc_/, 14],
+  [/^(waiter_run|quadrilha)$/, 24],
   [/^slime/, 12],
   [/^(capybara|cow)$/, 17],
   [/^horse$/, 19],
@@ -25,9 +25,8 @@ const AUTO: [RegExp, number][] = [
   [/^(house|farmhouse)$/, 58],
   [/^(bakery|condo|stall|shop_rel|papelaria)$/, 44],
   [/^(cart|table|gym_bench)$/, 22],
-  [/^(pillar|scrystal)$/, 13],
+  [/^pillar$/, 13],
   [/^mirante$/, 36],
-  [/^boss$/, 50],
 ];
 
 interface Follower {

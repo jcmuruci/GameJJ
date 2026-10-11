@@ -242,7 +242,7 @@ export class TrailLevel extends PuzzleLevel {
     const look = Save.data.looks[id];
     const hex = (h: string) => Phaser.Display.Color.HexStringToColor(h).color;
     const dir = faceRight ? 1 : -1;
-    const torso = this.add.image(0, -17, `char_${id}`, charFrame('side', 0)).setOrigin(0.5, 0).setCrop(0, 0, 16, 18).setFlipX(faceRight);
+    const torso = this.add.image(0, -22, `char_${id}`, charFrame('side', 0)).setOrigin(0.5, 0).setCrop(0, 0, 24, 23).setFlipX(faceRight);
     const legs = this.add.graphics();
     // coxa na horizontal sobre a pedra, canela pendurada e o sapato
     legs.fillStyle(hex(look.pants), 1).fillRect(dir > 0 ? -2 : -5, -2, 7, 3);

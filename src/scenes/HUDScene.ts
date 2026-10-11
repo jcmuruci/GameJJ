@@ -51,7 +51,8 @@ export class HUDScene extends Phaser.Scene {
       g.fillRoundedRect(px, y - 54, w, 54, 10);
       g.lineStyle(2, Phaser.Display.Color.HexStringToColor(PLAYER_COLORS[i]).color, 0.9);
       g.strokeRoundedRect(px, y - 54, w, 54, 10);
-      const portrait = this.add.image(left ? px + 26 : px + w - 26, y - 26, `char_${i}`, 0).setScale(2);
+      // retrato: só cabeça e ombros, em escala inteira
+      const portrait = this.add.image(left ? px + 26 : px + w - 26, y - 20, `char_${i}`, 0).setScale(2).setCrop(0, 0, 24, 22);
       this.portraits.push(portrait);
       txt(this, left ? px + 50 : px + w - 50, y - 44, this.level.names[i], 15, { color: PLAYER_COLORS[i], origin: [left ? 0 : 1, 0.5] });
       const abName = i === 0 ? 'Espada' : 'Magia';

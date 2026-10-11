@@ -1,23 +1,27 @@
 import Phaser from 'phaser';
 import { TILE } from '../config';
 import { T, SOLID_TILES } from './tiles';
-import { TILE_VARIANTS, WATER_FRAMES } from './TexturesTiles';
+import { TILE_VARIANTS, WATER_FRAMES, WALL_TYPES } from './TexturesTiles';
 import type { BaseLevel } from '../scenes/levels/BaseLevel';
+import { RAMP } from './palette';
+
+/** Rampas da paleta (escuro → claro). */
+const { dirt: D, grass: G, sand: S, water: W } = RAMP;
 
 /** Grama de cada tipo: [cor da franja, sombra/barranco]. */
 const GRASSY: Record<number, [string, string]> = {
-  [T.GRASS]: ['#7ccf5a', '#4f9a3e'],
-  [T.GRASS_FLOWERS]: ['#7ccf5a', '#4f9a3e'],
-  [T.GRASS_TUFT]: ['#7ccf5a', '#4f9a3e'],
-  [T.TREE]: ['#7ccf5a', '#4f9a3e'],
-  [T.HEDGE]: ['#7ccf5a', '#4f9a3e'],
-  [T.FENCE]: ['#7ccf5a', '#4f9a3e'],
-  [T.DARK_GRASS]: ['#4f9a4a', '#3a7a36'],
+  [T.GRASS]: [G[4], '#4f9a3e'],
+  [T.GRASS_FLOWERS]: [G[4], '#4f9a3e'],
+  [T.GRASS_TUFT]: [G[4], '#4f9a3e'],
+  [T.TREE]: [G[4], '#4f9a3e'],
+  [T.HEDGE]: [G[4], '#4f9a3e'],
+  [T.FENCE]: [G[4], '#4f9a3e'],
+  [T.DARK_GRASS]: [G[2], '#3a7a36'],
   [T.ROCKY_GRASS]: ['#8cbf5a', '#6a9a44'],
   [T.SHRUB_ROCK]: ['#8cbf5a', '#6a9a44'],
 };
 /** Chão de terra/areia, onde a grama "invade" com uma franja. */
-const SOIL: Record<number, string> = { [T.PATH]: '#b88c58', [T.SAND]: '#d4b47a' };
+const SOIL: Record<number, string> = { [T.PATH]: D[2], [T.SAND]: S[1] };
 /** Água rasa animada (a ponte também deixa ver a água pelos lados). */
 const WATERY = new Set<number>([T.WATER, T.BRIDGE]);
 /** Tiles altos: projetam sombra no chão logo abaixo e à direita. */
@@ -40,6 +44,7 @@ export class Ground {
   private tex: Phaser.Textures.CanvasTexture;
   private ctx: CanvasRenderingContext2D;
   private src: HTMLCanvasElement;
+  private wall: HTMLCanvasElement;
   private seed: number;
   private water: Phaser.GameObjects.TileSprite | null = null;
 
@@ -50,6 +55,7 @@ export class Ground {
     this.ctx = this.tex.getContext();
     this.ctx.imageSmoothingEnabled = false;
     this.src = L.textures.get('tiles_v').getSourceImage() as HTMLCanvasElement;
+    this.wall = L.textures.get('tiles_wall').getSourceImage() as HTMLCanvasElement;
     this.seed = [...L.info.id].reduce((a, c) => Math.imul(a ^ c.charCodeAt(0), 16777619), 2166136261);
     for (let y = 0; y < L.rows; y++) for (let x = 0; x < L.cols; x++) this.drawCell(x, y);
     this.tex.refresh();
@@ -103,7 +109,25 @@ export class Ground {
     c.clearRect(px, py, TILE, TILE);
 
     // 1) o tile, numa das variações (a água fica transparente: a animada aparece por baixo)
-    if (t !== T.WATER) {
+    const wallRow = (WALL_TYPES as readonly number[]).indexOf(t);
+    if (wallRow >= 0) {
+      // parede em 3/4: a fileira de baixo mostra a face; as de trás, o topo
+      const face = n(0, 1) !== t;
+      const v = hash(this.seed, x, y, 3) < 0.6 ? 0 : 1;
+      c.drawImage(this.wall, (face ? 2 : 0) * 16 + v * 16, wallRow * 16, 16, 16, px, py, 16, 16);
+      const dark = 'rgba(30,20,40,0.45)';
+      const lite = 'rgba(255,255,255,0.18)';
+      if (!face) {
+        // bordas do alto do muro onde ele termina
+        if (n(-1, 0) !== t) { c.fillStyle = dark; c.fillRect(px, py, 1, 16); c.fillStyle = lite; c.fillRect(px + 1, py, 1, 16); }
+        if (n(1, 0) !== t) { c.fillStyle = dark; c.fillRect(px + 15, py, 1, 16); }
+        if (n(0, -1) !== t) { c.fillStyle = dark; c.fillRect(px, py, 16, 1); c.fillStyle = lite; c.fillRect(px, py + 1, 16, 1); }
+      } else {
+        // quina: a lateral da face escurece onde a parede acaba
+        if (n(-1, 0) !== t) { c.fillStyle = dark; c.fillRect(px, py, 1, 16); }
+        if (n(1, 0) !== t) { c.fillStyle = dark; c.fillRect(px + 15, py, 1, 16); }
+      }
+    } else if (t !== T.WATER) {
       const r = hash(this.seed, x, y, 1);
       const v = r < 0.58 ? 0 : r < 0.82 ? 1 : 2;
       c.drawImage(this.src, t * 16, Math.min(v, TILE_VARIANTS - 1) * 16, 16, 16, px, py, 16, 16);
@@ -147,13 +171,13 @@ export class Ground {
         const o = n(dx, dy);
         if (WATERY.has(o)) return;
         for (let i = 0; i < 16; i++) {
-          edge(s, i, 0, 1, '#2f78b0');
+          edge(s, i, 0, 1, W[1]);
           if (hash(this.seed, x, y, 40 + i + s * 16) > 0.3) edge(s, i, 1 + (hash(this.seed, y, x, i + s) > 0.7 ? 1 : 0), 1, 'rgba(230,246,255,0.85)');
         }
       });
       ([[-1, -1, 0, 0], [1, -1, 14, 0], [1, 1, 14, 14], [-1, 1, 0, 14]] as const).forEach(([dx, dy, cx, cy]) => {
         if (WATERY.has(n(dx, dy)) || !WATERY.has(n(dx, 0)) || !WATERY.has(n(0, dy))) return;
-        fill('#2f78b0', cx, cy, 2, 2);
+        fill(W[1], cx, cy, 2, 2);
         fill('rgba(230,246,255,0.85)', dx < 0 ? cx + 1 : cx, dy < 0 ? cy + 1 : cy, 1, 1);
       });
     } else if (!watery && t !== T.RIVER_DEEP && t !== T.CHASM) {

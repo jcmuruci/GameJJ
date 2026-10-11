@@ -8,6 +8,7 @@ import { txt, panel, fillNames, uiButton } from '../ui/text';
 import { MenuList } from '../ui/MenuList';
 import { charFrame } from '../art/CharacterArt';
 import { Admin } from '../systems/Admin';
+import { irisOut } from './TransitionScene';
 
 /** Mapa-mundi: escolha de fases e loja de melhorias. */
 export class MapScene extends Phaser.Scene {
@@ -76,14 +77,14 @@ export class MapScene extends Phaser.Scene {
       const node = this.add.image(x, y, open ? 'map_node' : 'map_node_locked').setScale(2);
       if (open) this.tweens.add({ targets: node, scale: 2.2, duration: 700, yoyo: true, repeat: -1, delay: i * 90 });
       txt(this, x, y + 26, l.month, 11, { color: l.soon ? '#9a8aaa' : '#ffd25e' });
-      txt(this, x, y + 41, l.soon && l.id === 'storm' ? '???' : l.short, 13, { color: open ? '#fff4e0' : '#9a8aaa' });
+      txt(this, x, y + 41, l.short, 13, { color: open ? '#fff4e0' : '#9a8aaa' });
       if (!l.soon) {
         const rec = Save.data.levels[l.id];
         for (let s = 0; s < 3; s++) this.add.image(x - 14 + s * 14, y - 26, rec && rec.stars > s ? 'ui_star' : 'ui_star_empty').setScale(1.25);
       }
     });
 
-    const riders = [1, 0].map((i) => this.add.sprite(i === 0 ? 5 : -5, i === 0 ? -11 : -13, `char_${i}`, charFrame('side', 0)).setFlipX(true));
+    const riders = [1, 0].map((i) => this.add.sprite(i === 0 ? 5 : -5, i === 0 ? -15 : -17, `char_${i}`, charFrame('side', 0)).setFlipX(true));
     this.moto = this.add.container(0, 0, [...riders, this.add.image(0, 0, 'moto')]).setScale(1.6).setDepth(10);
     this.placeCouple(false);
 
@@ -151,8 +152,12 @@ export class MapScene extends Phaser.Scene {
     this.add.tileSprite(0, 0, GAME_W / 3, GAME_H / 3, 'tiles', 0).setOrigin(0).setScale(3);
     const g = this.add.graphics();
     g.fillStyle(0x1b1424, 0.18).fillRect(0, 0, GAME_W, GAME_H);
-    // nuvenzinhas sobre os capítulos futuros
-    g.fillStyle(0xffffff, 0.35).fillEllipse(330, 345, 300, 80);
+    // nuvenzinha sobre os capítulos futuros
+    const soon = LEVELS.filter((l) => l.soon);
+    if (soon.length) {
+      const xs = soon.map((l) => l.map.x);
+      g.fillStyle(0xffffff, 0.35).fillEllipse((Math.min(...xs) + Math.max(...xs)) / 2, soon[0].map.y + 5, 150 + Math.max(...xs) - Math.min(...xs), 80);
+    }
     const r = new Phaser.Math.RandomDataGenerator(['timeline']);
     for (let i = 0; i < 26; i++) {
       const x = r.between(30, 930);
@@ -285,6 +290,11 @@ export class MapScene extends Phaser.Scene {
     this.scene.start('Menu');
   }
 
+  /** A íris fecha na motinho do mapa. */
+  irisPoint(): { x: number; y: number } {
+    return { x: this.moto.x, y: this.moto.y };
+  }
+
   private playSelected(): void {
     if (this.moving || this.leaving || this.shop) return;
     const l = LEVELS[this.sel];
@@ -293,7 +303,6 @@ export class MapScene extends Phaser.Scene {
     this.leaving = true;
     Audio.play('horn');
     this.tweens.add({ targets: this.moto, y: this.moto.y - 10, yoyo: true, duration: 150 });
-    this.cameras.main.fadeOut(350, 27, 20, 36);
-    this.time.delayedCall(370, () => this.scene.start('Story', { id: l.story, next: l.scene, nextData: { levelId: l.id } }));
+    irisOut(this, () => this.scene.start('Story', { id: l.story, next: l.scene, nextData: { levelId: l.id } }));
   }
 }

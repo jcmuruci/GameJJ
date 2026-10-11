@@ -405,10 +405,11 @@ export abstract class PuzzleLevel extends BaseLevel {
         this.rope?.clear();
         p.locked = false;
         p.body.checkCollision.none = false;
+        this.land(p);
         this.rappels++;
         this.onClimbDone(p);
         this.sfx('revive');
-        this.floatHeart(p.x, p.y - 26);
+        this.floatHeart(p.x, p.y - 34);
         this.say(p, Phaser.Utils.Array.GetRandom(['Cheguei!', 'Que braço!', 'Valeu pela segurança!', 'Uhuul!']), 1800);
       },
     });
@@ -461,10 +462,11 @@ export abstract class PuzzleLevel extends BaseLevel {
         this.rope?.clear();
         p.locked = false;
         p.body.checkCollision.none = false;
+        this.land(p);
         this.rappels++;
         this.onRappelDone(p);
         this.sfx('revive');
-        this.floatHeart(p.x, p.y - 26);
+        this.floatHeart(p.x, p.y - 34);
         this.say(p, Phaser.Utils.Array.GetRandom(['Uhuul!', 'Igualzinho ao dia em que a gente se conheceu!', 'Que vista!', 'Adrenalina!']), 2000);
       },
     });

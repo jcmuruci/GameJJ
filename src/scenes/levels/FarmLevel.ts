@@ -10,6 +10,7 @@ import { TaskList } from '../../ui/TaskList';
 import { plaque } from './Scenery';
 import { Input, KEY_LABELS } from '../../systems/InputManager';
 import { Audio } from '../../systems/Audio';
+import { CHAR_W } from '../../art/CharacterArt';
 
 const ANIMALS: Record<string, { tex: string; anim: string; name: string; line: string }> = {
   g: { tex: 'goat', anim: 'goat-walk', name: 'Cabra', line: 'Méééé! ♥' },
@@ -176,7 +177,7 @@ class Pedalinho {
   constructor(public L: FarmLevel, x: number, y: number) {
     this.x = x;
     this.y = y;
-    const heads = [0, 1].map((i) => L.add.sprite(i === 0 ? -5 : 5, -10, `char_${i}`, 0).setCrop(0, 0, 16, 13));
+    const heads = [0, 1].map((i) => L.add.sprite(i === 0 ? -7 : 7, -6, `char_${i}`, 0).setCrop(0, 0, CHAR_W, 16));
     this.c = L.add.container(x, y, [...heads, L.add.image(0, 0, 'pedalinho')]).setDepth(5000);
   }
   tap(id: number): void {
@@ -302,7 +303,7 @@ export class FarmLevel extends PuzzleLevel {
   onPet(p: Player, name: string): void {
     this.refreshHud();
     this.tasks?.progress('pet', this.animals.filter((a) => a.petted).length);
-    this.hud?.floatText(p.x, p.y - 30, `${name}: carinho!`, '#ff9cc2');
+    this.hud?.floatText(p.x, p.y - 38, `${name}: carinho!`, '#ff9cc2');
   }
 
   tick(dt: number): void {
