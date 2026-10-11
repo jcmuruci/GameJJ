@@ -19,7 +19,6 @@ import { CustomizeScene } from './scenes/CustomizeScene';
 import { HUDScene } from './scenes/HUDScene';
 import { KitchenLevel } from './scenes/levels/KitchenLevel';
 import { TrailLevel } from './scenes/levels/TrailLevel';
-import { BossLevel } from './scenes/levels/BossLevel';
 import { TutorialLevel } from './scenes/levels/TutorialLevel';
 import { MotoLevel } from './scenes/levels/MotoLevel';
 import { AmazonLevel } from './scenes/levels/AmazonLevel';
@@ -71,7 +70,7 @@ async function boot(): Promise<void> {
     fps: { target: 60 },
     scene: [
       BootScene, MenuScene, MapScene, StoryScene, CustomizeScene,
-      TutorialLevel, KitchenLevel, TrailLevel, BossLevel, MotoLevel, AmazonLevel, FarmLevel, FishingLevel, MedalLevel,
+      TutorialLevel, KitchenLevel, TrailLevel, MotoLevel, AmazonLevel, FarmLevel, FishingLevel, MedalLevel,
       HUDScene, PauseScene, ResultScene, TransitionScene,
     ],
   });

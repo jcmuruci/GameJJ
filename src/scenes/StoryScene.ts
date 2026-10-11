@@ -23,7 +23,6 @@ const NPC: Partial<Record<Speaker, { tex: string; frame?: number; name: string; 
   paiJ: { tex: 'portrait_pai', name: 'Pai do {p1}', color: '#8be07a', scale: 4, y: 256 },
   maeJ: { tex: 'portrait_mae', name: 'Mãe do {p1}', color: '#ffb08a', scale: 4, y: 256 },
   avestruz: { tex: 'ostrich', name: 'Avestruz', color: '#ff9c9c', scale: 7, y: 270 },
-  nimbo: { tex: 'boss', name: 'Nimbo', color: '#d8d8e8', scale: 3, y: 130 },
   mae: { tex: 'nest', name: 'Mamãe Jacaré', color: '#b8e8a0', scale: 5, y: 240 },
   vovo: { tex: 'portrait_mae', name: 'Vovó Rosa', color: '#d8c8e8', scale: 4, y: 256 },
   poema: { tex: 'item_poem', name: 'Poema do {p1}', color: '#ffd6e4', scale: 9, y: 200 },
@@ -98,7 +97,7 @@ export class StoryScene extends Phaser.Scene {
   create(): void {
     this.names = [Save.data.looks[0].name, Save.data.looks[1].name];
     const id = this.data_.id;
-    const night = id === 'storm' || id === 'ending' || id === 'bread' || id === 'bread_end';
+    const night = id === 'bread' || id === 'bread_end';
     cozyBackground(this, night ? 0x5a5a9a : id.startsWith('amazon') ? 0x9ac890 : 0xffffff);
     this.add.graphics().fillStyle(0x1b1424, night ? 0.45 : 0.28).fillRect(0, 0, GAME_W, GAME_H);
     if (night) {
@@ -147,8 +146,7 @@ export class StoryScene extends Phaser.Scene {
   }
 
   private musicFor(id: string): TrackName {
-    if (id === 'storm') return 'boss';
-    if (id === 'ending' || id.endsWith('_end')) return 'ending';
+    if (id.endsWith('_end')) return 'ending';
     if (id.startsWith('amazon')) return 'jungle';
     if (id === 'bread' || id === 'roca' || id === 'volta') return 'road';
     if (id === 'junina') return 'festival';
@@ -228,7 +226,6 @@ export class StoryScene extends Phaser.Scene {
       this.tweens.add({ targets: img, alpha: on ? 1 : 0, duration: 250 });
       if (on && img.texture.key.startsWith('portrait_')) img.setFrame(mood);
     }
-    if (l.who === 'nimbo') Audio.play('boss');
     if (l.who === 'avestruz') { Audio.play('crow'); this.cameras.main.shake(300, 0.01); }
     if (l.who === 'mae') Audio.play('gator');
     if (mood === 3) for (let i = 0; i < 6; i++) this.time.delayedCall(i * 90, () => this.heartPop(l));

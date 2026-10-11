@@ -1,7 +1,7 @@
 # Juntos — uma aventura a dois 💕
 
 RPG cooperativo 2D em pixel art para **duas pessoas no mesmo computador**. Cozinha caótica no estilo
-Overcooked, enigmas de exploração, chefe final e uma historinha romântica — tudo no navegador,
+Overcooked, enigmas de exploração e uma historinha romântica — tudo no navegador,
 sem instalar nada para jogar.
 
 ## Como jogar
@@ -22,7 +22,7 @@ esquerda e Juliana à direita, cada um com joystick + botões **Ação** e **Esp
 `Start` = pausa. Com um único controle, escolha em *Opções* qual jogador o usa.
 
 **Cada um é indispensável:**
-- **Guardião:** só ele corta ingredientes na tábua, empurra pedras grandes, quebra pedras rachadas e racha os cristais do chefe.
+- **Guardião:** só ele corta ingredientes na tábua, empurra pedras grandes, quebra pedras rachadas e espanta os bichos com a espada.
 - **Maga:** só ela acende fogueiras/fornos, queima espinhos, ativa runas mágicas, estilhaça cristais e chama os jacarés.
 - **Juntos:** placas de pressão, alavancas gêmeas (puxem ao mesmo tempo!), saída só com os dois.
 - **Abraço:** juntinhos e de mãos vazias, apertem AÇÃO quase ao mesmo tempo → +1 coração.
@@ -117,7 +117,7 @@ src/
   art/                    geração da pixel art (tiles, itens, personagens, retratos anime)
   entities/               jogador, itens, inimigos
   scenes/                 boot, menu, mapa, história, personalização, HUD, pausa, resultado
-  scenes/levels/          BaseLevel (núcleo), Kitchen, Puzzle, Trail, Moto, Farm, Tutorial, Chefe, Amazônia
+  scenes/levels/          BaseLevel (núcleo), Kitchen, Puzzle, Trail, Moto, Farm, Tutorial, Medalha, Pescaria, Amazônia
 tests/                    testes unitários (vitest)
 scripts/e2e.mjs           teste ponta-a-ponta no navegador
 ```

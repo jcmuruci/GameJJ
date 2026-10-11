@@ -38,7 +38,6 @@ export class Ambience {
   start(): void {
     const L = this.L;
     const id = L.info.id;
-    if (id === 'storm') this.wind = [22, 6]; // só as árvores (lá não tem sombra de nuvem)
     L.events.on(Phaser.Scenes.Events.UPDATE, this.update, this);
     if (!OUTDOOR.has(id)) return;
     const W = L.cols * TILE;

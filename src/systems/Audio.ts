@@ -6,10 +6,10 @@
 export type Sfx =
   | 'blip' | 'select' | 'confirm' | 'back' | 'pick' | 'drop' | 'chop' | 'sizzle' | 'fire' | 'magic'
   | 'slash' | 'hit' | 'hurt' | 'faint' | 'revive' | 'coin' | 'deliver' | 'wrong' | 'expire' | 'push'
-  | 'plate' | 'gate' | 'rune' | 'crystal' | 'hug' | 'thunder' | 'boss' | 'win' | 'lose' | 'step'
+  | 'plate' | 'gate' | 'rune' | 'crystal' | 'hug' | 'win' | 'lose' | 'step'
   | 'crow' | 'wind' | 'bell' | 'heart' | 'lever' | 'burn' | 'horn' | 'camera' | 'jump' | 'splash' | 'gator';
 
-type TrackName = 'menu' | 'kitchen' | 'forest' | 'festival' | 'boss' | 'ending' | 'map' | 'road' | 'jungle';
+type TrackName = 'menu' | 'kitchen' | 'forest' | 'festival' | 'ending' | 'map' | 'road' | 'jungle';
 
 interface Track {
   bpm: number;
@@ -62,12 +62,6 @@ const TRACKS: Record<TrackName, Track> = {
     lead: seq('A4 - C5 - E5 - - - D5 - C5 - B4 - - - G4 - B4 - D5 - - - C5 - B4 - A4 - - - A4 - C5 - E5 - A5 - G5 - E5 - D5 - - - E5 - D5 - C5 - B4 - A4 - - - - - - -'),
     bass: seq('A2 - - - E3 - - - F2 - - - C3 - - - G2 - - - D3 - - - A2 - - - E3 - - - F2 - - - C3 - - - G2 - - - E2 - - - A2 - - - - - - -'),
     drums: 'k.......h.......',
-  },
-  boss: {
-    bpm: 156, leadWave: 'sawtooth', bassWave: 'square', leadVol: 0.22,
-    lead: seq('A4 - A4 C5 E5 - D5 C5 B4 - B4 D5 E5 - - - A4 - A4 C5 F5 - E5 D5 E5 - G#4 - A4 - - - C5 - C5 E5 A5 - G5 F5 E5 - E5 F5 G5 - - - F5 - E5 D5 C5 - B4 C5 B4 - G#4 - A4 - - -'),
-    bass: seq('A2 A2 A3 A2 A2 A2 A3 A2 G2 G2 G3 G2 G2 G2 G3 G2 F2 F2 F3 F2 F2 F2 F3 F2 E2 E2 E3 E2 E2 E2 E3 E2 A2 A2 A3 A2 A2 A2 A3 A2 G2 G2 G3 G2 G2 G2 G3 G2 F2 F2 F3 F2 E2 E2 E3 E2'),
-    drums: 'k.hsk.hsk.hsk.ss',
   },
   road: {
     bpm: 144, leadWave: 'square', bassWave: 'triangle', leadVol: 0.3,
@@ -265,8 +259,6 @@ class AudioImpl {
       case 'crystal': [1047, 1319, 1568, 2093].forEach((f, i) => this.tone({ type: 'sine', f, dur: 0.25, vol: 0.18, delay: i * 0.06 })); break;
       case 'hug': [523, 659, 784].forEach((f, i) => this.tone({ type: 'sine', f, dur: 0.4, vol: 0.18, delay: i * 0.05 })); break;
       case 'heart': this.tone({ type: 'sine', f: 784, f2: 1047, dur: 0.15, vol: 0.18 }); break;
-      case 'thunder': this.noise({ dur: 0.9, vol: 0.55, filter: 900, f2: 80 }); break;
-      case 'boss': this.tone({ type: 'sawtooth', f: 90, f2: 60, dur: 0.6, vol: 0.3 }); this.tone({ type: 'square', f: 95, f2: 55, dur: 0.6, vol: 0.15 }); break;
       case 'win': [523, 659, 784, 1047, 784, 1047].forEach((f, i) => this.tone({ type: 'square', f, dur: 0.16, vol: 0.18, delay: i * 0.11 })); break;
       case 'lose': [392, 370, 349, 330].forEach((f, i) => this.tone({ type: 'triangle', f, dur: 0.3, vol: 0.25, delay: i * 0.25 })); break;
       case 'step': this.noise({ dur: 0.03, vol: 0.06, filter: 800 }); break;

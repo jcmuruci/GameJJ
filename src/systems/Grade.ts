@@ -20,7 +20,6 @@ const LOOKS: Record<string, Look> = {
   lapinha: { sat: 0.14, warm: 0.12, vignette: 0.22 },
   volta: { sat: 0.05, warm: 0.5, vignette: 0.3 }, // fim de tarde na estrada de terra
   farm: { sat: 0.14, warm: 0.12, vignette: 0.2 },
-  storm: { sat: -0.35, warm: -0.2, contrast: 0.08, vignette: 0.45 },
   amazon: { sat: 0.1, warm: -0.05, vignette: 0.35 },
 };
 

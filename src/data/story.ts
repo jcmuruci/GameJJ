@@ -4,7 +4,7 @@ import { POEM_FIRST } from './poem';
  * Diálogos da história. {p1} e {p2} viram os nomes dos personagens.
  * who: 0 = Jogador 1 (João), 1 = Jogador 2 (Juliana), 'n' = narração, e personagens secundários.
  */
-export type Speaker = 0 | 1 | 'n' | 'poema' | 'nimbo' | 'vovo' | 'mae' | 'paiJ' | 'maeJ' | 'garcom' | 'avestruz';
+export type Speaker = 0 | 1 | 'n' | 'poema' | 'vovo' | 'mae' | 'paiJ' | 'maeJ' | 'garcom' | 'avestruz';
 
 export interface Line {
   who: Speaker;
@@ -151,29 +151,6 @@ export const STORY: Record<string, Line[]> = {
     { who: 0, text: 'Ainda falta a Amazônia. E os seus jacarés.' },
     { who: 1, text: 'Os próximos capítulos a gente escreve juntos.' },
     { who: 'n', text: 'Continua... ♥  (novos capítulos em breve)' },
-  ],
-  storm: [
-    { who: 'n', text: 'Torre da Colina. O sol se pôs. As estrelas estão quase chegando.' },
-    { who: 'nimbo', text: 'Vocês chegaram até aqui?! Impossível!' },
-    { who: 0, text: 'Nimbo, por que você quer tanto estragar a nossa noite?' },
-    { who: 'nimbo', text: 'Porque... porque ninguém NUNCA olha para as nuvens! Só para as estrelas!' },
-    { who: 1, text: 'Os cristais de tempestade estão protegendo ele!' },
-    { who: 0, text: 'Eu racho os cristais, você estilhaça com magia. Juntos!' },
-  ],
-  ending: [
-    { who: 'nimbo', text: 'Ai... ai... vocês venceram...' },
-    { who: 'nimbo', text: 'Eu só... queria que alguém olhasse pra mim também. *snif*' },
-    { who: 1, text: 'Ei, Nimbo... quer assistir a chuva de estrelas com a gente?' },
-    { who: 'nimbo', text: 'S-sério? Comigo?' },
-    { who: 0, text: 'Claro. Ninguém merece ver as estrelas sozinho.' },
-    { who: 'n', text: 'O céu se abriu. E milhares de estrelas riscaram a noite.' },
-    { who: 1, text: 'Já fez seu pedido?' },
-    { who: 0, text: 'Não precisei. Ele já se realizou: você.' },
-    { who: 1, text: '...Bobo. Eu te amo.' },
-    { who: 0, text: 'Eu também te amo. Próxima aventura?' },
-    { who: 1, text: 'Amazônia! Ano que vem! Eu PRECISO ver um jacaré de pertinho!' },
-    { who: 0, text: 'Combinado. Sempre juntos.' },
-    { who: 'n', text: '(Um novo destino apareceu no mapa...)' },
   ],
   amazon: [
     { who: 'n', text: 'Um ano depois...' },

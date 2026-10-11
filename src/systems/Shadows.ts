@@ -25,9 +25,8 @@ const AUTO: [RegExp, number][] = [
   [/^(house|farmhouse)$/, 58],
   [/^(bakery|condo|stall|shop_rel|papelaria)$/, 44],
   [/^(cart|table|gym_bench)$/, 22],
-  [/^(pillar|scrystal)$/, 13],
+  [/^pillar$/, 13],
   [/^mirante$/, 36],
-  [/^boss$/, 50],
 ];
 
 interface Follower {

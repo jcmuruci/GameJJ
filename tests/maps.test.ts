@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { TUTORIAL_MAP, CANYON_MAP, BOSS_MAP, AMAZON_MAP, CLIMB_MAP, ITACOLOMI_MAP, TOPO_MAP, FARM_MAP, LAPINHA_MAP } from '../src/data/maps';
+import { TUTORIAL_MAP, CANYON_MAP, AMAZON_MAP, CLIMB_MAP, ITACOLOMI_MAP, TOPO_MAP, FARM_MAP, LAPINHA_MAP } from '../src/data/maps';
 import { KITCHENS } from '../src/data/kitchens';
 
-const all: Record<string, string[]> = { tutorial: TUTORIAL_MAP, canyon: CANYON_MAP, boss: BOSS_MAP, amazon: AMAZON_MAP, climb: CLIMB_MAP, itacolomi: ITACOLOMI_MAP, topo: TOPO_MAP, farm: FARM_MAP, lapinha: LAPINHA_MAP, ...Object.fromEntries(Object.entries(KITCHENS).map(([k, v]) => [k, v.map])) };
+const all: Record<string, string[]> = { tutorial: TUTORIAL_MAP, canyon: CANYON_MAP, amazon: AMAZON_MAP, climb: CLIMB_MAP, itacolomi: ITACOLOMI_MAP, topo: TOPO_MAP, farm: FARM_MAP, lapinha: LAPINHA_MAP, ...Object.fromEntries(Object.entries(KITCHENS).map(([k, v]) => [k, v.map])) };
 
 /** Busca em largura: paredes bloqueiam; obstáculos que os jogadores conseguem remover não. */
 function reachable(map: string[], walls: string, from: string): Set<string> {

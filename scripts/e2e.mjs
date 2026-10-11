@@ -698,43 +698,6 @@ try {
   check('Amazônia concluída leva ao resultado', (await activeScenes()).includes('Result'));
   await shot('26-amazon-result');
 
-  // ---------------------------------------------------------------- CHEFE
-  await startScene('BossLevel', { levelId: 'storm' });
-  await wait(3500);
-  await shot('15-boss');
-  // racha e estilhaça um cristal
-  const cr = await evalG(() => { const c = window.__game.scene.getScene('BossLevel').crystals[0]; return [Math.floor(c.x / 16), Math.floor(c.y / 16)]; });
-  await evalG(() => { window.__game.scene.getScene('BossLevel').players.forEach((p) => { p.invuln = 999; }); });
-  await place(0, cr[0] - 1, cr[1], 1, 0, 'BossLevel');
-  await place(1, cr[0], cr[1] + 1, 0, -1, 'BossLevel');
-  await wait(100);
-  await press('KeyG');
-  await wait(400);
-  await press('KeyG');
-  await wait(200);
-  await press('KeyL');
-  await wait(300);
-  const state = await evalG(() => window.__game.scene.getScene('BossLevel').crystals[0].state);
-  check('Cristal: espada racha + magia estilhaça', state === 'gone', state);
-  await evalG(() => { const s = window.__game.scene.getScene('BossLevel'); s.crystals.forEach((c) => { c.state = 'gone'; }); s.onCrystalShattered(); });
-  await wait(900);
-  await shot('16-boss-stunned');
-  const hp0 = await evalG(() => window.__game.scene.getScene('BossLevel').bossHp);
-  await evalG(() => { const s = window.__game.scene.getScene('BossLevel'); s.players[0].teleport(s.boss.x, s.boss.y + 26); s.players[0].face = { x: 0, y: -1 }; });
-  await wait(100);
-  await press('KeyG');
-  await wait(100);
-  const hp1 = await evalG(() => window.__game.scene.getScene('BossLevel').bossHp);
-  check('Chefe atordoado recebe dano', hp1 < hp0, `${hp0} -> ${hp1}`);
-  await evalG(() => { const s = window.__game.scene.getScene('BossLevel'); s.bossHp = 1; s.hitBoss(1); });
-  await wait(3500);
-  check('Vencer o chefe leva ao resultado', (await activeScenes()).includes('Result'));
-  await shot('17-boss-result');
-  await press('Enter');
-  await wait(1500);
-  await shot('18-ending');
-  check('Final da história', (await activeScenes()).includes('Story'));
-
   // ---------------------------------------------------------------- CELULAR (toque)
   const mob = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const mp = await mob.newPage();
