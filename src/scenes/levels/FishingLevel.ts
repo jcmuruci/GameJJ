@@ -8,6 +8,7 @@ import { charFrame } from '../../art/CharacterArt';
 import { txt, panel, uiButton, fillNames } from '../../ui/text';
 import { isTouchDevice } from '../../systems/TouchControls';
 import { TaskList } from '../../ui/TaskList';
+import { attachPilot } from '../../systems/autopilot';
 
 /**
  * Jun/2026 — Juiz de Fora: a Juliana aprende a pescar no lago, com os pais do João olhando.
@@ -34,7 +35,7 @@ const PIER_END = 340;
 const FISH_TIME = 150;
 
 /** Comandos da quadrilha: o que os dois precisam apertar. */
-const CALLS: { call: string; need: 'action' | 'ability' | 'up' | 'right' | 'none'; hint: string }[] = [
+export const CALLS: { call: string; need: 'action' | 'ability' | 'up' | 'right' | 'none'; hint: string }[] = [
   { call: 'BALANCÊ!', need: 'action', hint: 'os dois: AÇÃO' },
   { call: 'ANARRIÊ!', need: 'ability', hint: 'os dois: HABILIDADE' },
   { call: 'OLHA A COBRA!', need: 'up', hint: 'os dois: pulem (CIMA)' },
@@ -130,6 +131,7 @@ export class FishingLevel extends Phaser.Scene {
     this.showIntro();
     Audio.music('festival');
     this.cameras.main.fadeIn(400, 27, 20, 36);
+    attachPilot(this);
   }
 
   // ------------------------------------------------------------------ cenário

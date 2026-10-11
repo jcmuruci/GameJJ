@@ -50,6 +50,20 @@ O mapa é uma linha do tempo, mês a mês. Cada capítulo abre com uma cena de h
 Estrelas e moedas ficam salvas no navegador (localStorage); moedas compram melhorias na
 **Loja da Vovó Rosa** (no mapa, aperte `G`/`L`).
 
+## Modo admin (para testar)
+
+Digite **admin** no teclado em qualquer tela (ou abra o link com `?admin` no final, útil no celular).
+Aparece o selo **ADMIN** no canto e:
+
+- todos os capítulos ficam liberados no mapa;
+- o **piloto automático** joga pelos dois: andam, resolvem os enigmas, escalam, pilotam a moto,
+  pescam, cozinham e pedalam sozinhos; as histórias e o resultado também avançam sozinhos;
+- no mapa, o próximo capítulo ainda não assistido começa sozinho (setas escolhem outro);
+- nada do que acontece no modo admin é salvo no progresso do casal.
+
+Digite **admin** de novo para desligar. Para conferir tudo de uma vez: `node scripts/autopilot.mjs`
+(abre cada fase no Chromium e espera os personagens terminarem sozinhos).
+
 ## Rodar localmente
 
 Requer [Node.js](https://nodejs.org) 18+.

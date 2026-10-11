@@ -66,7 +66,7 @@ export class TutorialLevel extends PuzzleLevel {
         const img = this.add.image(c.x, c.y, 'log_big').setDepth(c.y);
         const zone = this.addSolid(tx, ty);
         const it = {
-          x: c.x, y: c.y,
+          x: c.x, y: c.y, tag: 'log',
           selectable: () => false,
           onStrike: (p: Player) => {
             if (p.id !== 0) return false;
@@ -90,7 +90,7 @@ export class TutorialLevel extends PuzzleLevel {
         ring.fillStyle(0x7a7a8a).fillEllipse(c.x, c.y + 3, 16, 8).fillStyle(0x3a2a2a).fillEllipse(c.x, c.y + 3, 10, 4);
         this.addSolid(tx, ty);
         this.interactables.push({
-          x: c.x, y: c.y, priority: 2,
+          x: c.x, y: c.y, priority: 2, tag: 'campfire',
           interact: (p: Player) => {
             if (p.held?.kind === 'firewood' && !this.fuel) {
               p.held.destroy();

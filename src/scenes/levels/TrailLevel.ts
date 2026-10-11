@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { PuzzleLevel } from './PuzzleLevel';
 import { TRAILS, TrailConfig } from '../../data/trails';
-import { POEM_REST } from '../../data/poem';
+import { POEM_LAST } from '../../data/poem';
 import type { HUDScene } from '../HUDScene';
 import { GAME_W, GAME_H, TILE, ZOOM, RES } from '../../config';
 import { txt, fillNames } from '../../ui/text';
@@ -575,7 +575,7 @@ export class TrailLevel extends PuzzleLevel {
     } else cam.zoomTo(2.6 * RES, 1200);
     const hud = this.hud;
     this.time.delayedCall(1200, () => {
-      this.say(joao, 'Lembra do poema incompleto? Trouxe o resto.', 2400);
+      this.say(joao, 'Lembra do poema de ontem? Faltava a nona estrofe.', 2400);
       // a folha passa das mãos dele para as dela
       const paper = this.add.image(joao.x + joao.face.x * 7, joao.y + 3, 'item_poem').setScale(0.75).setDepth(9000);
       this.tweens.add({ targets: paper, x: ju.x + ju.face.x * 7, y: ju.y + 3, duration: 900, delay: 900, ease: 'Sine.InOut' });
@@ -640,7 +640,7 @@ export class TrailLevel extends PuzzleLevel {
   /** Folha com o resto do poema, desenhada na interface. */
   private poemCard(hud: HUDScene): { all: Phaser.GameObjects.GameObject[]; verses: Phaser.GameObjects.Text[]; question: Phaser.GameObjects.Text; reading: Phaser.GameObjects.Text | null } {
     const w = this.seated.length ? 520 : 600;
-    const lines = Math.max(POEM_REST.length, 3);
+    const lines = Math.max(POEM_LAST.length, 3);
     const h = 64 + lines * 26 + 50 + (this.seated.length ? 26 : 0);
     const x = GAME_W / 2 - w / 2;
     const y = this.seated.length ? GAME_H - h - 28 : 24;
@@ -649,9 +649,9 @@ export class TrailLevel extends PuzzleLevel {
     g.fillStyle(0xfff7e6, 1).fillRoundedRect(x, y, w, h, 10);
     g.lineStyle(3, 0xc9a87a, 1).strokeRoundedRect(x, y, w, h, 10);
     for (let k = 0; k < lines + 1; k++) g.lineStyle(1, 0xe8d8c0, 1).lineBetween(x + 24, y + 70 + k * 26, x + w - 24, y + 70 + k * 26);
-    const title = txt(hud, GAME_W / 2, y + 26, 'O resto do poema', 20, { color: '#c94a7a', stroke: '#fff7e6', strokeW: 0 });
-    const verses = POEM_REST.map((v, k) => txt(hud, GAME_W / 2, y + 58 + k * 26, v, 16, { color: '#3a2a3e', stroke: '#fff7e6', strokeW: 0, bold: false }).setAlpha(0));
-    const reading = POEM_REST.length ? null : txt(hud, GAME_W / 2, y + 58 + 26, `(${this.names[1]} lê o resto do poema...)`, 15, { color: '#a08aa8', stroke: '#fff7e6', strokeW: 0, bold: false }).setFontStyle('italic');
+    const title = txt(hud, GAME_W / 2, y + 26, 'A nona estrofe', 20, { color: '#c94a7a', stroke: '#fff7e6', strokeW: 0 });
+    const verses = POEM_LAST.map((v, k) => txt(hud, GAME_W / 2, y + 58 + k * 26, v, 16, { color: '#3a2a3e', stroke: '#fff7e6', strokeW: 0, bold: false }).setAlpha(0));
+    const reading = POEM_LAST.length ? null : txt(hud, GAME_W / 2, y + 58 + 26, `(${this.names[1]} lê a última estrofe...)`, 15, { color: '#a08aa8', stroke: '#fff7e6', strokeW: 0, bold: false }).setFontStyle('italic');
     if (reading) hud.tweens.add({ targets: reading, alpha: 0.4, yoyo: true, repeat: -1, duration: 700 });
     const question = txt(hud, GAME_W / 2, y + 58 + lines * 26 + 16, `${this.names[1]}, quer namorar comigo? ♥`, 22, { color: '#c94a7a', stroke: '#fff7e6', strokeW: 0 }).setAlpha(0);
     const all: Phaser.GameObjects.GameObject[] = [g, title, ...verses, question, ...(reading ? [reading] : [])];

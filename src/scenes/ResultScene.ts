@@ -8,6 +8,7 @@ import { LEVELS, levelById, levelIndex } from '../data/levels';
 import { cozyBackground } from './MenuScene';
 import { charFrame } from '../art/CharacterArt';
 import { refreshCharacters } from './BootScene';
+import { Admin } from '../systems/Admin';
 
 interface ResultData {
   levelId: string;
@@ -61,7 +62,7 @@ export class ResultScene extends Phaser.Scene {
     let coins = 0;
     let newBest = false;
     let relic = '';
-    if (d.win) {
+    if (d.win && !Admin.on) {
       const prev = Save.data.levels[d.levelId]?.stars ?? 0;
       // moedas: por estrela (dobro para estrelas novas) + moedas coletadas
       coins = d.stars * info.coinsPerStar + Math.max(0, d.stars - prev) * info.coinsPerStar + d.stats.coins;
@@ -79,7 +80,8 @@ export class ResultScene extends Phaser.Scene {
     }
     const lines = [...d.lines];
     if (relic) lines.push(`Lembrança desbloqueada: ${relic}`);
-    if (d.win) lines.push(`Moedas ganhas: +${coins}${newBest && d.score ? '  (novo recorde!)' : ''}`);
+    if (Admin.on) lines.push('Modo admin: nada foi salvo no progresso');
+    else if (d.win) lines.push(`Moedas ganhas: +${coins}${newBest && d.score ? '  (novo recorde!)' : ''}`);
     lines.forEach((l, i) => txt(this, GAME_W / 2, 268 + i * 26, l, 16, { bold: false, color: i === lines.length - 1 && d.win ? '#ffd25e' : '#fff4e0' }));
 
     const idx = levelIndex(d.levelId);
@@ -93,6 +95,8 @@ export class ResultScene extends Phaser.Scene {
     this.list = new MenuList(this, GAME_W / 2, 380, items, 30, 19);
     this.list.setVisible(false);
     this.time.delayedCall(900, () => { this.list.setVisible(true); this.ready = true; });
+    // modo admin: segue sozinho para a próxima parte da história
+    if (Admin.on) this.time.delayedCall(4500, () => { if (this.ready) this.list.choose(); });
     Audio.music(d.win ? 'map' : null);
   }
 

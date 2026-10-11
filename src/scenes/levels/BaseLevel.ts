@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { TILE, ZOOM, GAME_W, GAME_H, RES } from '../../config';
 import { T, SOLID_TILES } from '../../art/Textures';
 import { Input, PlayerId } from '../../systems/InputManager';
+import { Admin } from '../../systems/Admin';
 import { Audio, Sfx } from '../../systems/Audio';
 import { Save } from '../../systems/SaveManager';
 import { Player, Interactable } from '../../entities/Player';
@@ -10,6 +11,7 @@ import { Slime } from '../../entities/Enemy';
 import { LevelInfo, levelById } from '../../data/levels';
 import type { HUDScene } from '../HUDScene';
 import { ItemKind } from '../../data/recipes';
+import { attachPilot } from '../../systems/autopilot';
 
 export interface LevelResult {
   win: boolean;
@@ -215,6 +217,7 @@ export abstract class BaseLevel extends Phaser.Scene {
     });
     Audio.music(this.info.music);
     cam.fadeIn(400, 27, 20, 36);
+    attachPilot(this);
   }
 
   // ------------------------------------------------------------------ utilidades de mapa
@@ -373,6 +376,8 @@ export abstract class BaseLevel extends Phaser.Scene {
   // ------------------------------------------------------------------ dano, desmaio, reviver, abraço
   damagePlayer(p: Player, n: number, fromX: number, fromY: number): void {
     if (this.ended || p.fainted || p.invuln > 0) return;
+    // modo admin: o piloto automático não se machuca
+    if (Admin.on) { p.invuln = 0.6; p.pushBack(fromX, fromY, 60, 0.08); return; }
     if (p.id === 0 && Save.data.relics.medalha && !this.medalUsed) {
       // a medalha de São Bento protege o João do primeiro golpe da fase
       this.medalUsed = true;
