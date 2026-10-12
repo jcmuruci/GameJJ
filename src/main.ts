@@ -18,6 +18,7 @@ import { PauseScene } from './scenes/PauseScene';
 import { CustomizeScene } from './scenes/CustomizeScene';
 import { HUDScene } from './scenes/HUDScene';
 import { KitchenLevel } from './scenes/levels/KitchenLevel';
+import { PhotoScene } from './scenes/PhotoScene';
 import { TrailLevel } from './scenes/levels/TrailLevel';
 import { TutorialLevel } from './scenes/levels/TutorialLevel';
 import { MotoLevel } from './scenes/levels/MotoLevel';
@@ -71,7 +72,7 @@ async function boot(): Promise<void> {
     scene: [
       BootScene, MenuScene, MapScene, StoryScene, CustomizeScene,
       TutorialLevel, KitchenLevel, TrailLevel, MotoLevel, AmazonLevel, FarmLevel, FishingLevel, MedalLevel,
-      HUDScene, PauseScene, ResultScene, TransitionScene,
+      HUDScene, PauseScene, ResultScene, PhotoScene, TransitionScene,
     ],
   });
   game.events.on(Phaser.Core.Events.PRE_STEP, () => Input.update());

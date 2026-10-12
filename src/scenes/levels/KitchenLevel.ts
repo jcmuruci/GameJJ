@@ -26,6 +26,17 @@ interface Order {
 }
 
 // ------------------------------------------------------------------ estações
+/** Segundos até um prato pronto queimar no fogo. */
+const BURN_TIME = 16;
+
+/** Barra do topo (cronômetro, moedas e estrelas), sobre a parede de cima da cozinha. */
+const BAR = { x: 8, y: 4, w: 440, h: 28 };
+/** Cartões de pedido: em cima do salão, um ao lado do outro. */
+const ORDERS = { x: 480, y: 8, w: 112, h: 80, gap: 4 };
+
+/** Nome das estações nas plaquinhas do chão. */
+const STATION_NAMES: Record<string, string> = { b: 'Tábua', f: 'Panela', o: 'Forno', t: 'Lixo', p: 'Pratos', D: 'Entrega' };
+
 class Surface implements Interactable {
   item: Item | null = null;
   img: Phaser.GameObjects.Image;
@@ -110,6 +121,7 @@ class Board extends Surface {
       this.progress = 0;
       this.item.setKind(CHOP[this.item.kind]!);
       this.L.burst(this.x, this.y - 6, 'fx_spark', 5, { speed: 30, lifespan: 300 });
+      this.L.say(this, ITEM_NAME[this.item.kind], 1000);
     }
   }
 }
@@ -128,11 +140,13 @@ class Source implements Interactable {
     L.addSolid(tx, ty, this);
     const label = L.add.image(c.x + 5, c.y - 9, `item_${kind}`).setScale(0.6).setDepth(c.y + 1);
     L.tweens.add({ targets: label, y: label.y - 1.5, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    L.stationLabel(c.x, c.y + 9, ITEM_NAME[kind]);
   }
 
   interact(p: Player): boolean {
     if (!p.held) {
       this.L.give(p, this.kind);
+      this.L.say(p, ITEM_NAME[this.kind], 1000);
       return true;
     }
     if (p.held.kind === this.kind) {
@@ -329,7 +343,7 @@ class Cooker implements Interactable {
     }
     if (this.done && this.fire > 0) {
       this.burnT += dt;
-      if (this.burnT > 10) {
+      if (this.burnT > BURN_TIME) {
         this.burnt = true;
         this.done = null;
         L.sfx('burn');
@@ -340,13 +354,13 @@ class Cooker implements Interactable {
     }
     // barras
     if (rec && !this.done && this.progress > 0) L.drawBar(this.x, this.y + 10, this.progress, 0x8be07a);
-    if (this.done && this.burnT > 4) L.drawBar(this.x, this.y + 10, Math.min(1, (this.burnT - 4) / 6), 0xff5c5c);
+    if (this.done && this.burnT > BURN_TIME - 8) L.drawBar(this.x, this.y + 10, Math.min(1, (this.burnT - BURN_TIME + 8) / 8), 0xff5c5c);
     if (this.fire > 0) {
       const max = L.cfg.fireTime + 15 * Save.data.upgrades.spark;
       L.drawBar(this.x, this.y - 18, this.fire / max, 0xffa64a);
     }
     const needFire = this.fire <= 0 && !!rec;
-    const burning = !!this.done && this.burnT > 6;
+    const burning = !!this.done && this.burnT > BURN_TIME - 5;
     this.warn.setVisible((needFire || burning) && Math.floor(L.time.now / 250) % 2 === 0);
     this.warn.setText(needFire ? 'fogo?' : '!');
   }
@@ -544,6 +558,9 @@ export class KitchenLevel extends BaseLevel {
   dance: { t: number; pressed: number[]; next: number } = { t: 0, pressed: [-1, -1], next: 30 };
   private guests: { s: Phaser.GameObjects.Sprite; lines: string[] }[] = [];
   private guestT = 8;
+  /** Final das alianças (depois do jantar): tempo decorrido e espera depois do abraço. */
+  private finaleT = 0;
+  private finaleWait = 2.5;
 
   constructor() {
     super('KitchenLevel');
@@ -628,14 +645,49 @@ export class KitchenLevel extends BaseLevel {
     this.dance = { t: 0, pressed: [-1, -1], next: 30 };
     this.guestT = 8;
     this.recipeBook = [];
-    this.bookEv = null;
-    this.bookSeen = new Set();
+    this.finaleT = 0;
+    this.finaleWait = 2.5;
     for (const pq of this.cfg.plaques ?? []) plaque(this, pq.tx, pq.ty, pq.text);
+    this.labelStations();
     this.guests = (this.cfg.guests ?? []).map((g) => {
       const c = this.tileCenter(g.tx, g.ty);
       this.addSolid(g.tx, g.ty);
       return { s: this.add.sprite(c.x, c.y - 12, `npc_${g.npc}`, charFrame('down', 0)).setDepth(c.y), lines: g.lines };
     });
+  }
+
+  /** Plaquinha com o nome de uma cesta ou estação (no chão, por baixo dos jogadores). */
+  stationLabel(x: number, y: number, text: string): void {
+    // nomes compridos quebram em duas linhas ("Massa de / pizza")
+    const s = text.length > 8 ? text.replace(/ (\S+)$/, '\n$1') : text;
+    this.add.text(x, y, s, {
+      fontFamily: 'monospace', fontSize: '6px', color: '#fff4e0', stroke: '#2a1d2e', strokeThickness: 2, fontStyle: 'bold', align: 'center', lineSpacing: -1,
+    }).setOrigin(0.5, 0).setDepth(y - 12).setResolution(ZOOM * RES + 1);
+  }
+
+  /** Nomes das estações do mapa; estações iguais coladas (tábua dupla, balcão) ganham uma plaquinha só. */
+  private labelStations(): void {
+    const rows = this.cfg.map;
+    const seen = new Set<string>();
+    rows.forEach((row, ty) => [...row].forEach((ch, tx) => {
+      const name = STATION_NAMES[ch];
+      if (!name || seen.has(`${tx},${ty}`)) return;
+      const cells: [number, number][] = [];
+      const stack: [number, number][] = [[tx, ty]];
+      while (stack.length) {
+        const [x, y] = stack.pop()!;
+        if (rows[y]?.[x] !== ch || seen.has(`${x},${y}`)) continue;
+        seen.add(`${x},${y}`);
+        cells.push([x, y]);
+        stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+      }
+      const xs = cells.map((c) => c[0]);
+      const ys = cells.map((c) => c[1]);
+      const cx = ((Math.min(...xs) + Math.max(...xs)) / 2) * TILE + TILE / 2;
+      // fileira deitada: plaquinha embaixo; em pé (balcão de entrega): em cima
+      const tall = Math.max(...ys) > Math.min(...ys);
+      this.stationLabel(cx, tall ? Math.min(...ys) * TILE - 9 : Math.max(...ys) * TILE + TILE + 2, name);
+    }));
   }
 
   // ------------------------------------------------------------------ tarefas do capítulo
@@ -652,7 +704,6 @@ export class KitchenLevel extends BaseLevel {
   /** Momentos especiais: alianças (Italiano), quadrilha (festa junina) e comentários dos convidados. */
   private specials(dt: number): void {
     const elapsed = this.cfg.duration - this.timeLeft;
-    if (this.cfg.special === 'rings') this.updateRings(elapsed);
     if (this.cfg.special === 'quadrilha') this.updateDance(dt, elapsed);
     if (this.guests.length) {
       this.guestT -= dt;
@@ -665,34 +716,58 @@ export class KitchenLevel extends BaseLevel {
     }
   }
 
-  private updateRings(elapsed: number): void {
+  /** Fim do jantar: os pedidos param e a caixinha das alianças aparece na mesa. */
+  private startRings(): void {
     const R = this.rings;
-    if (R.state === 'wait' && elapsed >= 70 && this.tables.length) {
-      const t = this.tables[0];
-      R.state = 'table';
-      R.img = this.add.image(t.x, t.y - 10, 'item_rings').setDepth(t.y + 2);
-      this.tweens.add({ targets: R.img, y: t.y - 13, yoyo: true, repeat: -1, duration: 400, ease: 'Sine.InOut' });
-      this.hud?.banner('Hora das alianças! ♥', `${this.names[0]}: pegue a caixinha na mesa e dê um abraço na ${this.names[1]}`, 3000);
-      Audio.play('bell');
-      const box: Interactable = {
-        x: t.x, y: t.y, priority: 4, reach: 2, tag: 'rings',
-        selectable: () => R.state === 'table',
-        interact: (p: Player) => {
-          if (R.state !== 'table') return false;
-          if (p.id !== 0) { this.say(p, `Hmm... isso parece surpresa do ${this.names[0]}!`, 1800, '#ffd6e4'); return true; }
-          R.state = 'carried';
-          this.tweens.killTweensOf(R.img!);
-          this.sfx('pick');
-          this.say(p, `Agora... um abraço na ${this.names[1]}!`, 2000);
-          return true;
-        },
-      };
-      this.interactables.push(box);
-    }
+    const t = this.tables[0];
+    R.state = 'table';
+    [...this.orders].forEach((o) => this.removeOrder(o, true));
+    // mãos livres para o abraço
+    this.players.forEach((p) => { p.held?.destroy(); p.held = null; });
+    this.recipeBook.forEach((o) => o.destroy());
+    this.recipeBook = [];
+    this.cart?.destroy();
+    this.cart = null;
+    this.cartWarn?.destroy();
+    this.cartWarn = null;
+    R.img = this.add.image(t.x, t.y - 10, 'item_rings').setDepth(t.y + 2);
+    this.tweens.add({ targets: R.img, y: t.y - 13, yoyo: true, repeat: -1, duration: 400, ease: 'Sine.InOut' });
+    this.hud?.banner('O jantar acabou... hora das alianças ♥', `${this.names[0]}: pegue a caixinha na mesa e dê um abraço na ${this.names[1]}`, 3200);
+    Audio.play('bell');
+    const box: Interactable = {
+      x: t.x, y: t.y, priority: 4, reach: 2, tag: 'rings',
+      selectable: () => R.state === 'table',
+      interact: (p: Player) => {
+        if (R.state !== 'table') return false;
+        if (p.id !== 0) { this.say(p, `Hmm... isso parece surpresa do ${this.names[0]}!`, 1800, '#ffd6e4'); return true; }
+        R.state = 'carried';
+        this.tweens.killTweensOf(R.img!);
+        this.sfx('pick');
+        this.say(p, `Agora... um abraço na ${this.names[1]}!`, 2000);
+        return true;
+      },
+    };
+    this.interactables.push(box);
+  }
+
+  /**
+   * Depois que o tempo acaba no Italiano: true enquanto a fase espera as alianças
+   * (termina ~2,5 s depois do abraço, ou em 45 s se ninguém entregar).
+   */
+  private ringsFinale(dt: number): boolean {
+    const R = this.rings;
+    if (this.cfg.special !== 'rings' || !this.tables.length) return false;
+    if (R.state === 'wait') this.startRings();
+    this.finaleT += dt;
     if (R.state === 'carried' && R.img) {
       const j = this.players[0];
       R.img.setPosition(j.x + 8, j.y - 38 + Math.sin(this.time.now / 150) * 1.5).setDepth(j.y + 20);
     }
+    if (R.state === 'done') {
+      this.finaleWait -= dt;
+      return this.finaleWait > 0;
+    }
+    return this.finaleT < 45;
   }
 
   onHug(): void {
@@ -758,17 +833,23 @@ export class KitchenLevel extends BaseLevel {
   }
 
   onHudReady(hud: HUDScene): void {
-    this.ui.scoreText = txt(hud, GAME_W - 24, 24, '0', 26, { color: '#ffd25e', origin: [1, 0.5] });
-    hud.add.image(GAME_W - 24 - 70, 24, 'ui_coin').setScale(3);
+    // barra do topo, em cima da parede da cozinha: as cestas ficam livres e os pedidos vão para o salão
+    hud.add.graphics().setDepth(-1)
+      .fillStyle(0x1b1424, 0.75).fillRoundedRect(BAR.x, BAR.y, BAR.w, BAR.h, 8)
+      .lineStyle(2, 0xffd6e4, 0.45).strokeRoundedRect(BAR.x, BAR.y, BAR.w, BAR.h, 8);
+    hud.info.setPosition(BAR.x + 44, BAR.y + BAR.h / 2);
+    hud.add.image(BAR.x + 100, BAR.y + BAR.h / 2, 'ui_coin').setScale(2.5);
+    this.ui.scoreText = txt(hud, BAR.x + 116, BAR.y + BAR.h / 2, '0', 20, { color: '#ffd25e', origin: [0, 0.5] });
     this.ui.starBar = hud.add.graphics();
+    hud.toastY = 150;
     this.showIntro(hud);
   }
 
   /** Painel inicial com as receitas; os dois apertam AÇÃO para começar. */
   private showIntro(hud: HUDScene): void {
     const objs: Phaser.GameObjects.GameObject[] = [];
-    const w = 640;
-    const h = 380;
+    const w = 660;
+    const h = 420;
     const x0 = (GAME_W - w) / 2;
     const y0 = (GAME_H - h) / 2 - 10;
     objs.push(panel(hud, x0, y0, w, h));
@@ -782,8 +863,19 @@ export class KitchenLevel extends BaseLevel {
       objs.push(txt(hud, x0 + 120, y - 9, rec.name + (this.cfg.recipes.includes(r) ? '' : ' (desbloqueia depois)'), 16, { origin: [0, 0.5], color: '#ffd25e' }));
       objs.push(txt(hud, x0 + 120, y + 10, fillNames(rec.how, this.names), 13, { origin: [0, 0.5], bold: false }));
     });
-    const ty = y0 + 116 + all.length * 42;
-    this.cfg.tips.forEach((t, i) => objs.push(txt(hud, GAME_W / 2, ty + i * 20, '• ' + fillNames(t, this.names), 13, { color: '#d8c8e8', bold: false })));
+    // como jogar, com as teclas de cada um
+    const [k1, k2] = KEY_LABELS;
+    const how = [
+      `Pegar e soltar: AÇÃO (${this.names[0]}: ${k1.action} · ${this.names[1]}: ${k2.action})`,
+      `Tábua: só ${this.names[0]} corta, segurando ${k1.action}`,
+      `Panela e Forno precisam de fogo: ${this.names[1]} acende com MAGIA (${k2.ability})`,
+      'Monte o prato e leve à Entrega, no salão',
+    ];
+    const hy = y0 + 100 + all.length * 42;
+    objs.push(txt(hud, x0 + 40, hy, 'Como jogar', 15, { origin: [0, 0.5], color: '#bfe6ff' }));
+    how.forEach((line, i) => objs.push(txt(hud, x0 + 40, hy + 22 + i * 19, `${i + 1}. ${line}`, 13, { origin: [0, 0.5], bold: false })));
+    const ty = hy + 34 + how.length * 19;
+    this.cfg.tips.forEach((t, i) => objs.push(txt(hud, GAME_W / 2, ty + i * 19, '• ' + fillNames(t, this.names), 13, { color: '#d8c8e8', bold: false })));
     const ready = [false, false];
     const readyTxt = [0, 1].map((i) => txt(hud, GAME_W / 2 + (i === 0 ? -150 : 150), y0 + h - 30, `${this.names[i]}: aperte ${KEY_LABELS[i].action}`, 16, { color: i === 0 ? '#bfe6ff' : '#ffd6e4' }));
     objs.push(...readyTxt);
@@ -814,53 +906,48 @@ export class KitchenLevel extends BaseLevel {
         hud.tweens.add({ targets: t, scale: { from: 1.6, to: 1 }, alpha: { from: 1, to: 0 }, duration: 580, onComplete: () => t.destroy() });
         if (i === 3) {
           this.started = true;
-          this.peekRecipeBook(9000);
-          // painel de tarefas aparece quando a cozinha abre (sem cobrir o cardápio inicial)
-          if (!this.tasks) this.tasks = new TaskList(hud, 12, 92, this.cfg.tasks.map((t) => ({ ...t, text: fillNames(t.text, this.names) })));
+          this.buildRecipeBook();
+          // painel de tarefas: embaixo, no salão (a cozinha fica livre)
+          if (!this.tasks) this.tasks = new TaskList(hud, 552, 378, this.cfg.tasks.map((t) => ({ ...t, text: fillNames(t.text, this.names) })));
         }
       });
     });
   }
 
   /**
-   * Painel "Receitas" no canto. Recolhido, mostra só os pratos; abre com o passo a passo
-   * por alguns segundos no começo, quando um prato é desbloqueado e no primeiro pedido de cada prato.
+   * Painel "Receitas" à direita, abaixo dos pedidos, sempre com o passo a passo.
+   * Esmaece quando alguém vai ao salão (para não cobrir as mesas).
    */
   private recipeBook: Phaser.GameObjects.GameObject[] = [];
-  private bookEv: Phaser.Time.TimerEvent | null = null;
-  private bookSeen = new Set<RecipeId>();
 
-  private peekRecipeBook(ms = 8000): void {
-    this.bookEv?.remove();
-    this.buildRecipeBook(true);
-    this.bookEv = this.time.delayedCall(ms, () => { this.bookEv = null; this.buildRecipeBook(false); });
-  }
-
-  private buildRecipeBook(open: boolean): void {
+  private buildRecipeBook(): void {
     const hud = this.hud;
     if (!hud?.ready) return;
     this.recipeBook.forEach((o) => o.destroy());
     this.recipeBook = [];
-    const w = 250;
+    const w = 280;
     const x0 = GAME_W - w - 10;
-    const y0 = 66;
-    let y = y0 + 32;
+    const y0 = ORDERS.y + ORDERS.h + 8;
+    let y = y0 + 30;
     for (const r of this.active) {
       const rec = RECIPES[r];
       y += 4;
       this.recipeBook.push(txt(hud, x0 + 12, y, rec.name, 13, { origin: [0, 0.5], color: '#ffd6e4' }).setDepth(21));
       rec.icons?.forEach((k, i) => this.recipeBook.push(hud.add.image(x0 + w - 20 - i * 22, y, `item_${k}`).setScale(1.5).setDepth(21)));
-      y += 16;
-      if (!open) continue;
+      y += 12;
       (rec.steps ?? [rec.how]).forEach((st, i) => {
-        const t = txt(hud, x0 + 18, y, `${i + 1}. ${fillNames(st, this.names)}`, 11, { origin: [0, 0], bold: false, wrap: w - 30 }).setDepth(21);
+        const t = txt(hud, x0 + 14, y, `${i + 1}. ${fillNames(st, this.names)}`, 11, { origin: [0, 0], bold: false, wrap: w - 26 }).setDepth(21);
         this.recipeBook.push(t);
-        y += t.height + 1;
+        y += t.height;
       });
     }
+    y += 4;
+    const fire = txt(hud, x0 + 12, y, `Fogo apagou? ${this.names[1]} acende com MAGIA (${KEY_LABELS[1].ability})`, 11, { origin: [0, 0], color: '#ffb86a', bold: false, wrap: w - 24 }).setDepth(21);
+    this.recipeBook.push(fire);
+    y += fire.height;
     const h = y - y0 + 8;
     const g = hud.add.graphics().setDepth(20);
-    g.fillStyle(0x1b1424, 0.78).fillRoundedRect(x0, y0, w, h, 10).lineStyle(2, 0xffd6e4, 0.5).strokeRoundedRect(x0, y0, w, h, 10);
+    g.fillStyle(0x1b1424, 0.8).fillRoundedRect(x0, y0, w, h, 10).lineStyle(2, 0xffd6e4, 0.5).strokeRoundedRect(x0, y0, w, h, 10);
     this.recipeBook.push(g, txt(hud, x0 + 12, y0 + 14, 'Receitas', 14, { origin: [0, 0.5], color: '#ffd25e' }).setDepth(21));
   }
 
@@ -928,22 +1015,23 @@ export class KitchenLevel extends BaseLevel {
     this.buildOrderCard(o);
     this.layoutOrders();
     Audio.play('bell');
-    // primeiro pedido de um prato: abre o passo a passo dele
-    if (!this.bookSeen.has(recipe)) { this.bookSeen.add(recipe); if (this.started) this.peekRecipeBook(); }
   }
 
   private buildOrderCard(o: Order): void {
     const hud = this.hud;
     if (!hud?.ready) return;
     const rec = RECIPES[o.recipe];
+    const { w, h } = ORDERS;
     const g = hud.add.graphics();
-    g.fillStyle(0x000000, 0.25).fillRoundedRect(3, 4, 112, 70, 8);
-    g.fillStyle(0xfff4e0, 1).fillRoundedRect(0, 0, 112, 70, 8);
-    g.lineStyle(3, 0x2a1d2e, 1).strokeRoundedRect(0, 0, 112, 70, 8);
-    const icons = rec.icons.map((k, i) => hud.add.image(56 + (i - (rec.icons.length - 1) / 2) * 34, 26, `item_${k}`).setScale(2.4));
-    const name = txt(hud, 56, 52, rec.name, 11, { color: '#2a1d2e', stroke: '#fff4e0', strokeW: 0 });
+    g.fillStyle(0x000000, 0.25).fillRoundedRect(3, 4, w, h, 8);
+    g.fillStyle(0xfff4e0, 1).fillRoundedRect(0, 0, w, h, 8);
+    g.lineStyle(3, 0x2a1d2e, 1).strokeRoundedRect(0, 0, w, h, 8);
+    const icons = rec.icons.map((k, i) => hud.add.image(w / 2 + (i - (rec.icons.length - 1) / 2) * 34, 24, `item_${k}`).setScale(2.4));
+    const name = txt(hud, w / 2, 49, rec.name, 11, { color: '#2a1d2e', stroke: '#fff4e0', strokeW: 0 });
+    // ingredientes crus, com os mesmos nomes das cestas
+    const parts = txt(hud, w / 2, 62, rec.ingredients ?? '', 9, { color: '#6a4a5e', stroke: '#fff4e0', strokeW: 0, bold: false });
     const bar = hud.add.graphics();
-    const c = hud.add.container(-130, 12, [g, ...icons, name, bar]);
+    const c = hud.add.container(GAME_W + 20, ORDERS.y, [g, ...icons, name, parts, bar]);
     o.card = c;
     o.bar = bar;
   }
@@ -951,7 +1039,7 @@ export class KitchenLevel extends BaseLevel {
   private layoutOrders(): void {
     this.orders.forEach((o, i) => {
       if (!o.card) this.buildOrderCard(o);
-      if (o.card) this.hud.tweens.add({ targets: o.card, x: 12 + i * 120, duration: 250, ease: 'Back.Out' });
+      if (o.card) this.hud.tweens.add({ targets: o.card, x: ORDERS.x + i * (ORDERS.w + ORDERS.gap), duration: 250, ease: 'Back.Out' });
     });
   }
 
@@ -978,7 +1066,8 @@ export class KitchenLevel extends BaseLevel {
       const g = o as unknown as Phaser.GameObjects.Components.Alpha;
       g.setAlpha?.(Phaser.Math.Linear(g.alpha ?? 1, a, Math.min(1, dt * 6)));
     }
-    for (const c of this.cookers) c.update(dt, this.raining > 0 ? 2.5 : 1);
+    // no final das alianças a cozinha descansa (nada queima)
+    if (!this.started || this.timeLeft > 0) for (const c of this.cookers) c.update(dt, this.raining > 0 ? 2.5 : 1);
     for (const b of this.surfaces) {
       if (b instanceof Board && b.progress > 0 && b.choppable()) this.drawBar(b.x, b.y + 9, b.progress, 0x8be07a);
     }
@@ -990,15 +1079,19 @@ export class KitchenLevel extends BaseLevel {
     this.timeLeft -= dt;
     const sec = Math.ceil(this.timeLeft);
     if (sec <= 10 && sec !== this.lastTick && sec > 0) { this.lastTick = sec; Audio.play('blip'); }
-    if (this.timeLeft <= 0) { this.timeLeft = 0; this.endLevel(); return; }
+    if (this.timeLeft <= 0) {
+      this.timeLeft = 0;
+      if (!this.ringsFinale(dt)) this.endLevel();
+      return;
+    }
     this.specials(dt);
 
     const elapsed = this.cfg.duration - this.timeLeft;
     while (this.unlockIdx < this.cfg.unlocks.length && elapsed >= this.cfg.unlocks[this.unlockIdx].at) {
       const r = this.cfg.unlocks[this.unlockIdx++].recipe;
       this.active.push(r);
-      this.hud.banner('Novo prato!', `${RECIPES[r].name}: ${RECIPES[r].how}`, 2600);
-      this.peekRecipeBook();
+      this.hud.banner('Novo prato!', `${RECIPES[r].name}: ${RECIPES[r].how}`, 3000);
+      this.buildRecipeBook();
       this.nextOrder = 1;
     }
 
@@ -1013,15 +1106,17 @@ export class KitchenLevel extends BaseLevel {
       o.timeLeft -= dt;
       if (o.bar) {
         const t = Math.max(0, o.timeLeft / o.total);
-        o.bar.clear().fillStyle(0x2a1d2e, 0.25).fillRect(8, 62, 96, 4)
-          .fillStyle(t > 0.5 ? 0x5bbf4a : t > 0.25 ? 0xffb84a : 0xe8424a, 1).fillRect(8, 62, 96 * t, 4);
+        const bw = ORDERS.w - 16;
+        o.bar.clear().fillStyle(0x2a1d2e, 0.25).fillRect(8, ORDERS.h - 9, bw, 4)
+          .fillStyle(t > 0.5 ? 0x5bbf4a : t > 0.25 ? 0xffb84a : 0xe8424a, 1).fillRect(8, ORDERS.h - 9, bw * t, 4);
         if (t < 0.25 && o.card) o.card.angle = Math.sin(this.time.now / 60) * 2;
       }
       if (o.timeLeft <= 0) {
+        const pen = this.cfg.expirePenalty ?? 10;
         this.expired++;
-        this.score = Math.max(0, this.score - 10);
+        this.score = Math.max(0, this.score - pen);
         this.sfx('expire');
-        this.hud.toast(`Pedido perdido: ${RECIPES[o.recipe].name} (-10)`, '#ff9c9c');
+        this.hud.toast(`Pedido perdido: ${RECIPES[o.recipe].name}${pen ? ` (-${pen})` : ''}`, '#ff9c9c');
         this.removeOrder(o, false);
       }
     }
@@ -1034,21 +1129,24 @@ export class KitchenLevel extends BaseLevel {
     const t = Math.max(0, Math.ceil(this.timeLeft));
     const mm = Math.floor(t / 60);
     const ss = String(t % 60).padStart(2, '0');
-    this.hud.info.setText(`${mm}:${ss}`).setColor(t <= 20 ? '#ff7a7a' : '#fff4e0');
-    if (t <= 10 && this.started) this.hud.info.setScale(1 + (Math.sin(this.time.now / 80) + 1) * 0.06);
+    if (this.started && t === 0 && this.rings.state !== 'wait') this.hud.info.setText('♥').setColor('#ffd6e4').setScale(1.2);
+    else {
+      this.hud.info.setText(`${mm}:${ss}`).setColor(t <= 20 ? '#ff7a7a' : '#fff4e0');
+      if (t <= 10 && this.started) this.hud.info.setScale(1 + (Math.sin(this.time.now / 80) + 1) * 0.06);
+    }
     this.ui.scoreText.setText(String(this.score));
     const g = this.ui.starBar!;
     g.clear();
-    const x0 = GAME_W - 210;
-    const y0 = 50;
+    const bw = 240;
+    const x0 = BAR.x + BAR.w - bw - 14;
+    const y0 = BAR.y + BAR.h / 2 - 3;
     const max = this.cfg.stars[2] * 1.1;
-    g.fillStyle(0x1b1424, 0.7).fillRoundedRect(x0 - 4, y0 - 4, 198, 14, 5);
-    g.fillStyle(0xffd25e, 1).fillRect(x0, y0, Math.min(190, (this.score / max) * 190), 6);
-    this.cfg.stars.forEach((s, i) => {
-      const sx = x0 + (s / max) * 190;
-      g.fillStyle(this.score >= s ? 0xffffff : 0x8a7a9a, 1).fillRect(sx - 1, y0 - 3, 3, 12);
-      void i;
-    });
+    g.fillStyle(0x000000, 0.35).fillRect(x0, y0, bw, 6);
+    g.fillStyle(0xffd25e, 1).fillRect(x0, y0, Math.min(bw, (this.score / max) * bw), 6);
+    for (const st of this.cfg.stars) {
+      const sx = x0 + (st / max) * bw;
+      g.fillStyle(this.score >= st ? 0xffffff : 0x8a7a9a, 1).fillRect(sx - 1, y0 - 4, 3, 14);
+    }
   }
 
   /** Acontecimentos inesperados: vento, corvos, chuva, carroças. */

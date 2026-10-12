@@ -33,13 +33,13 @@ O mapa é uma linha do tempo, mês a mês. Cada capítulo abre com uma cena de h
 
 | Mês | Capítulo | Jogo |
 |---|---|---|
-| Jul 2025 | **O Rapel** | tutorial ao pé da **Pedra Grande, em Caeté**; o rapel desce do topo da pedrona |
+| Jul 2025 | **O Rapel** | tutorial ao pé da **Pedra Grande, em Caeté**; o rapel desce do topo da pedrona e, logo depois da descida, aparece a **foto real** daquele dia |
 | Jan 2026 | **Escalada e Mirante** | academia de escalada **indoor** (segurança em dupla, agarras soltas caindo) e depois o mirante |
 | Fev 2026 | **Cânion e Lavras Novas** | **passarela suspensa** com o desfiladeiro e o rio de um lado e o córrego com pedras do outro; quedas d'água, **borrachudos** (a magia dela é o repelente) e as casinhas coloridas |
 | Mar 2026 | **A Medalha de São Bento** | **só a Juliana joga**: atravessa a cidade (sinal verde, pombos, poças), escolhe a medalha e o papel de presente; em casa, **escreve uma carta**, embrulha tudo junto e um **motoboy** leva até a casa dele; o João só torce do sofá. Ganha a **medalha de São Bento** |
 | Mar 2026 | **O Pão de Moto** | **só o João joga**, **à noite**: pão na padaria, **carne de lata da família** e direto pro condomínio dela, onde ela **espera na portaria**; o pão esfria e pula da sacola. Depois dessa noite, voltam a ficar juntos |
 | Abr 2026 | **Pico do Itacolomi** | as 8 estrofes do poema na véspera; rajadas de vento e gralhas; sentados no **arco de pedra**, a nona estrofe e o **pedido de namoro** |
-| Mai 2026 | **O Italiano** | cozinha do restaurante com **painel de receitas** (passo a passo de cada prato); no meio do jantar, **as alianças entregues com um abraço** |
+| Mai 2026 | **O Italiano** | cozinha do restaurante com o nome de cada cesta e estação no chão, **painel de receitas** sempre à vista e pedidos atrasados sem perder moedas; no **fim do jantar**, **as alianças entregues com um abraço** |
 | Jun 2026 | **Juiz de Fora e Festa Junina** | **pescaria**: ela lança, fisga e recolhe; ele afrouxa a linha e pega com a **rede**; os pais (68 anos) comentam. À noite, **quadrilha** no arraiá de BH, com **setas** para cada passo |
 | Jul 2026 | **Pneu Furado e Roça** | de moto rumo à Lapinha, o **pneu fura** e os dois consertam juntos; mudança de planos para São José da Serra: **porteiras** (ela abre e fecha), **curvas** (ela se inclina junto), vacas e lama, até o restaurante de roça |
 | Ago 2026 | **Topo do Mundo** | ela **fotografa os parapentes**, quero-queros e uma decolagem de pertinho |
@@ -92,11 +92,29 @@ A pasta `dist/` é um site estático — funciona em qualquer hospedagem.
 - **itch.io:** `npm run build`, compacte o *conteúdo* de `dist/` num .zip e envie como projeto HTML.
 - **Netlify / Vercel:** comando de build `npm run build`, pasta de saída `dist`.
 
+## Fotos reais
+
+Cada capítulo pode ter fotos de verdade do casal. Elas aparecem em dois lugares:
+
+- **Na fase**, no momento marcante, numa polaroid por cima do jogo (a fase pausa; AÇÃO, Esc ou clique fecham).
+  No Rapel, ela abre logo depois da primeira descida.
+- **No mapa**, numa polaroid pequena em cima do capítulo (clique para abrir) e no botão **Ver nossa foto (B/P)**.
+
+Para acrescentar uma foto:
+
+1. Salve o JPG em `src/assets/photos/`, com o lado maior em ~1400 px e sem dados de localização (EXIF).
+2. Importe o arquivo em [`src/data/photos.ts`](src/data/photos.ts) e coloque-o na lista do capítulo (`PHOTOS`),
+   com uma legenda.
+3. Para abrir no momento marcante da fase, chame no gancho da fase:
+   `openPhotoOverLevel(this, photosOf(this.info.id), 'Lembrança real ♥')`.
+
+As fotos são publicadas junto com o site (qualquer pessoa com o link pode ver).
+
 ## Deixar os personagens parecidos com vocês
 
 Os personagens padrão já foram desenhados a partir da foto e da descrição do casal (ele: careca, barba
 loira, olhos azuis, corpo médio, tatuagem tribal fechando o braço direito; ela: magra e elegante, cabelos longos
-e escuros, delineado, blusa preta e colar de sol). Os sprites são gerados por código — nenhuma foto vai para o jogo. Para ajustar:
+e escuros, delineado, blusa preta e colar de sol). Os sprites são gerados por código — nenhuma foto é usada para desenhá-los. Para ajustar:
 
 1. **No jogo:** menu → *Personagens*. Cada um ajusta nome, pele, cabelo, penteado, olhos, roupas,
    barba, óculos e acessório. Fica salvo no navegador.

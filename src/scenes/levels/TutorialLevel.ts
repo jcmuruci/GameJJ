@@ -10,6 +10,8 @@ import { Audio } from '../../systems/Audio';
 import { DEFAULT_TERRAIN } from './BaseLevel';
 import { T } from '../../art/tiles';
 import { rockTop, plaque } from './Scenery';
+import { openPhotoOverLevel } from '../PhotoScene';
+import { photosOf } from '../../data/photos';
 
 /**
  * Tutorial interativo ao pé da Pedra Grande; o rapel desce do topo da pedra.
@@ -30,6 +32,7 @@ export class TutorialLevel extends PuzzleLevel {
   private hugged = false;
   private flags: { x: number; y: number; id: number }[] = [];
   private logCut = false;
+  private photoShown = false;
 
   constructor() {
     super('TutorialLevel');
@@ -43,6 +46,7 @@ export class TutorialLevel extends PuzzleLevel {
     this.hugged = false;
     this.flags = [];
     this.logCut = false;
+    this.photoShown = false;
     // a sala da direita é o topo da Pedra Grande: granito, com a face de rocha para o rapel
     this.terrain = { ...DEFAULT_TERRAIN, '"': T.GRANITE, '|': T.ROCK_FACE, '^': T.ROCK_FACE };
     this.cliffTile = T.ROCK_FACE;
@@ -159,6 +163,13 @@ export class TutorialLevel extends PuzzleLevel {
 
   onHug(): void {
     this.hugged = true;
+  }
+
+  /** O momento marcante: logo depois da primeira descida, a foto real daquele dia. */
+  onRappelDone(_p: Player): void {
+    if (this.photoShown) return;
+    this.photoShown = true;
+    this.time.delayedCall(1400, () => { if (!this.ended) openPhotoOverLevel(this, photosOf(this.info.id), 'Lembrança real ♥'); });
   }
 
   tick(dt: number): void {
