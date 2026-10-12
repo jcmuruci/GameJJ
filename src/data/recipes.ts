@@ -23,6 +23,8 @@ export interface Recipe {
   /** Ícones exibidos no pedido. */
   icons: ItemKind[];
   how: string;
+  /** Ingredientes crus, em poucas palavras (2ª linha do cartão de pedido). */
+  ingredients?: string;
   /** Passo a passo mostrado no painel de receitas durante a fase. */
   steps?: string[];
 }
@@ -32,12 +34,15 @@ export const RECIPES: Record<RecipeId, Recipe> = {
   fruit_salad: { id: 'fruit_salad', name: 'Salada de Frutas', needs: ['apple_cut', 'berry'], base: 32, icons: ['apple_cut', 'berry'], how: 'Maçã cortada + amoras no prato' },
   soup: { id: 'soup', name: 'Sopa de Cogumelo', needs: ['soup'], base: 38, icons: ['soup'], how: 'Cogumelo → corte → panela no fogo → prato' },
   pie: { id: 'pie', name: 'Torta de Amora', needs: ['pie'], base: 48, icons: ['pie'], how: 'Farinha + amoras → forno aceso → prato' },
-  sugo: { id: 'sugo', name: 'Macarrão ao Sugo', needs: ['pasta_cooked', 'tomato_cut'], base: 40, icons: ['pasta_cooked', 'tomato_cut'], how: 'Massa na panela + tomate picado no prato',
-    steps: ['Macarrão na panela com fogo aceso (apagou? {p2} acende com MAGIA)', 'Tomate na tábua: {p1} corta (segura AÇÃO)', 'Prato: macarrão cozido + tomate picado → balcão'] },
-  pizza: { id: 'pizza', name: 'Pizza Margherita', needs: ['pizza'], base: 52, icons: ['pizza'], how: 'Massa + tomate picado + queijo ralado → forno',
-    steps: ['Tomate e queijo na tábua: {p1} corta e rala', 'No forno aceso: massa + tomate picado + queijo ralado', 'Pizza pronta no prato → balcão'] },
-  bruschetta: { id: 'bruschetta', name: 'Bruschetta', needs: ['bread_cut', 'tomato_cut'], base: 28, icons: ['bread_cut', 'tomato_cut'], how: 'Pão fatiado + tomate picado no prato',
-    steps: ['Pão e tomate na tábua: {p1} corta (segura AÇÃO)', 'Pegue um prato e junte pão fatiado + tomate picado', 'Leve o prato ao balcão do salão'] },
+  sugo: { id: 'sugo', name: 'Macarrão ao Sugo', needs: ['pasta_cooked', 'tomato_cut'], base: 40, icons: ['pasta_cooked', 'tomato_cut'], ingredients: 'Macarrão + Tomate',
+    how: 'Macarrão cru na Panela · Tomate na Tábua · os dois no Prato',
+    steps: ['Macarrão cru na Panela acesa', 'Tomate na Tábua ({p1} corta)', 'Prato: Macarrão cozido + Tomate picado → Entrega'] },
+  pizza: { id: 'pizza', name: 'Pizza Margherita', needs: ['pizza'], base: 52, icons: ['pizza'], ingredients: 'Massa + Tomate + Queijo',
+    how: 'Tomate e Queijo na Tábua · Forno: Massa de pizza + os dois',
+    steps: ['Tomate e Queijo na Tábua ({p1} corta e rala)', 'Forno aceso: Massa de pizza + Tomate picado + Queijo ralado', 'Pizza no Prato → Entrega'] },
+  bruschetta: { id: 'bruschetta', name: 'Bruschetta', needs: ['bread_cut', 'tomato_cut'], base: 28, icons: ['bread_cut', 'tomato_cut'], ingredients: 'Pão + Tomate',
+    how: 'Pão e Tomate na Tábua · os dois no Prato',
+    steps: ['Pão e Tomate na Tábua ({p1} corta)', 'Prato: Pão fatiado + Tomate picado', 'Leve à Entrega, no salão'] },
   milho: { id: 'milho', name: 'Milho Cozido', needs: ['corn_cooked'], base: 24, icons: ['corn_cooked'], how: 'Milho → panela no fogo → prato' },
   canjica: { id: 'canjica', name: 'Canjica', needs: ['canjica'], base: 40, icons: ['canjica'], how: 'Leite + milho na panela (o leite primeiro!)' },
   peixe_brasa: { id: 'peixe_brasa', name: 'Peixe na Brasa', needs: ['fish_grilled'], base: 48, icons: ['fish_grilled'], how: '{p2} pesca → {p1} limpa na tábua → brasa' },
@@ -49,7 +54,7 @@ export const RECIPES: Record<RecipeId, Recipe> = {
 export const ITEM_NAME: Record<ItemKind, string> = {
   apple: 'Maçã', apple_cut: 'Maçã cortada', berry: 'Amoras', mushroom: 'Cogumelo', mushroom_cut: 'Cogumelo picado',
   flour: 'Farinha', plate: 'Prato', soup: 'Sopa', pie: 'Torta', charcoal: 'Carvão', log: 'Tronco', firewood: 'Lenha', baby: 'Filhote de jacaré',
-  tomato: 'Tomate', tomato_cut: 'Tomate picado', pasta: 'Massa', pasta_cooked: 'Macarrão', cheese: 'Queijo', cheese_cut: 'Queijo ralado',
+  tomato: 'Tomate', tomato_cut: 'Tomate picado', pasta: 'Macarrão cru', pasta_cooked: 'Macarrão cozido', cheese: 'Queijo', cheese_cut: 'Queijo ralado',
   dough: 'Massa de pizza', pizza: 'Pizza', bread: 'Pão', bread_cut: 'Pão fatiado', corn: 'Milho', corn_cooked: 'Milho cozido', milk: 'Leite',
   canjica: 'Canjica', fish: 'Peixe', fish_cut: 'Peixe limpo', fish_grilled: 'Peixe na brasa', fish_fried: 'Peixe frito', beans: 'Feijão',
   tropeiro: 'Tropeiro', lettuce: 'Alface', lettuce_cut: 'Alface picada',

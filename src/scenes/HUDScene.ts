@@ -22,6 +22,8 @@ export class HUDScene extends Phaser.Scene {
   private toastText!: Phaser.GameObjects.Text;
   private toastTween: Phaser.Tweens.Tween | null = null;
   info!: Phaser.GameObjects.Text;
+  /** Altura dos avisos rápidos (a cozinha muda para não cobrir as cestas). */
+  toastY = 92;
   private portraits: Phaser.GameObjects.Image[] = [];
 
   constructor() {
@@ -36,6 +38,7 @@ export class HUDScene extends Phaser.Scene {
     this.hearts = [[], []];
     this.cdBars = [];
     this.portraits = [];
+    this.toastY = 92;
   }
 
   create(): void {
@@ -149,7 +152,7 @@ export class HUDScene extends Phaser.Scene {
   toast(text: string, color = '#fff4e0', ms = 2400): void {
     if (!this.ready) return;
     this.toastTween?.stop();
-    this.toastText.setText(text).setColor(color).setAlpha(1).setScale(0.8).setY(92);
+    this.toastText.setText(text).setColor(color).setAlpha(1).setScale(0.8).setY(this.toastY);
     this.tweens.add({ targets: this.toastText, scale: 1, duration: 180, ease: 'Back.Out' });
     this.toastTween = this.tweens.add({ targets: this.toastText, alpha: 0, delay: ms, duration: 400 });
   }

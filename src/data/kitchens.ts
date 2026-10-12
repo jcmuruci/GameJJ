@@ -12,6 +12,8 @@ export interface KitchenConfig {
   maxOrders: number;
   stars: [number, number, number];
   fireTime: number;
+  /** Moedas perdidas quando um pedido expira (padrão 10). */
+  expirePenalty?: number;
   /** Conjunto de receitas de panela/forno (ver COOKERS em recipes.ts). */
   cookers: string;
   /** Caracteres do mapa que viram cestas de ingredientes. */
@@ -69,21 +71,21 @@ export const KITCHENS: Record<string, KitchenConfig> = {
     ],
     duration: 200,
     recipes: ['bruschetta', 'sugo'],
-    unlocks: [{ at: 35, recipe: 'pizza' }],
-    orderEvery: [13, 18],
-    orderTime: 75,
-    maxOrders: 4,
-    stars: [80, 210, 350],
-    fireTime: 40,
+    unlocks: [{ at: 60, recipe: 'pizza' }],
+    orderEvery: [18, 24],
+    orderTime: 110,
+    maxOrders: 3,
+    stars: [50, 130, 220],
+    fireTime: 70,
+    expirePenalty: 0,
     cookers: 'italiano',
     sources: { '1': 'tomato', '2': 'pasta', '3': 'cheese', '4': 'bread', '5': 'dough' },
-    cart: { row: 10, first: 30, every: 22, tex: 'waiter_run', warn: 'GARÇOM!', fromX: 17, lines: ['Licença, licença!', 'Olha a bandeja!', 'Quase!'] },
+    cart: { row: 10, first: 50, every: 35, tex: 'waiter_run', warn: 'GARÇOM!', fromX: 17, lines: ['Licença, licença!', 'Olha a bandeja!', 'Quase!'] },
     floor: T.WOOD_FLOOR,
     objectFloor: T.WOOD_FLOOR,
     tips: [
-      'Cozinha à esquerda, salão à direita: passem os pratos pelo balcão da parede!',
-      'Pizza: massa + tomate picado + queijo ralado no forno aceso.',
-      'Cuidado com o garçom apressado! E no meio do jantar... hora das alianças ♥',
+      'Sem pressa: pedido atrasado não tira moedas.',
+      'Cuidado com o garçom apressado! E no fim do jantar... hora das alianças ♥',
     ],
     tasks: [
       { id: 'orders', text: 'Servir pedidos', goal: 6 },
@@ -91,6 +93,6 @@ export const KITCHENS: Record<string, KitchenConfig> = {
       { id: 'rings', text: 'Entregar as alianças (abraço!)' },
     ],
     special: 'rings',
-    plaques: [{ tx: 22, ty: 1, text: 'RISTORANTE O ITALIANO' }],
+    plaques: [{ tx: 20, ty: 15, text: 'O ITALIANO' }],
   },
 };

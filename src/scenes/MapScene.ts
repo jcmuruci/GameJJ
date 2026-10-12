@@ -9,6 +9,8 @@ import { MenuList } from '../ui/MenuList';
 import { charFrame } from '../art/CharacterArt';
 import { Admin } from '../systems/Admin';
 import { irisOut } from './TransitionScene';
+import { photosOf } from '../data/photos';
+import { loadPhotos, photoThumb } from '../systems/Photos';
 
 /** Mapa-mundi: escolha de fases e loja de melhorias. */
 export class MapScene extends Phaser.Scene {
@@ -21,6 +23,7 @@ export class MapScene extends Phaser.Scene {
   private coinsText!: Phaser.GameObjects.Text;
   private moving = false;
   private leaving = false;
+  private photoBtn: Phaser.GameObjects.Container | null = null;
 
   constructor() {
     super('Map');
@@ -114,6 +117,8 @@ export class MapScene extends Phaser.Scene {
     uiButton(this, 770, GAME_H - 104, `Jogar capítulo (${k[0].action}/${k[1].action})`, () => this.playSelected(), { minW: 300, color: 0xffd25e });
     uiButton(this, 770, GAME_H - 72, `Loja (${k[0].ability}/${k[1].ability})`, () => { if (!this.shop) { Audio.play('confirm'); this.openShop(); } }, { minW: 300 });
     uiButton(this, 770, GAME_H - 40, 'Menu principal (Esc)', () => this.toMenu(), { minW: 300 });
+    this.photoBtn = uiButton(this, 488, GAME_H - 32, 'Ver nossa foto (B/P)', () => this.openPhoto(), { size: 12, color: 0xff9cc2 }).setVisible(false);
+    this.drawPhotoThumbs(unlocked);
     // tocar/clicar numa fase: seleciona; tocar de novo: joga
     LEVELS.forEach((l, i) => {
       const hit = this.add.zone(l.map.x, l.map.y, 64, 64).setInteractive({ useHandCursor: true });
@@ -146,6 +151,41 @@ export class MapScene extends Phaser.Scene {
     this.infoTexts[1].setText(l.soon ? 'Capítulo futuro' : 'Bloqueado');
     this.infoTexts[2].setText(l.soon ? 'Este capítulo ainda vai ser vivido por vocês. Em breve!' : 'Completem o capítulo anterior para liberar.');
     this.infoTexts[3].setText('');
+    this.photoBtn?.setVisible(false);
+  }
+
+  /** Fotos reais: uma polaroid pequena em cima de cada capítulo liberado que tem foto. */
+  private drawPhotoThumbs(unlocked: number): void {
+    const list = LEVELS.filter((l, i) => i < unlocked && photosOf(l.id).length);
+    if (!list.length) return;
+    loadPhotos(this, list.map((l) => photosOf(l.id)[0]), () => {
+      for (const l of list) {
+        const key = photoThumb(this, photosOf(l.id)[0], 72, 96);
+        const g = this.add.graphics();
+        g.fillStyle(0x000000, 0.3).fillRect(-13, -19, 30, 43);
+        g.fillStyle(0xfbf6ec, 1).fillRect(-15, -21, 30, 43);
+        const img = this.add.image(0, -3, key).setDisplaySize(24, 32);
+        const heart = txt(this, 0, 16, '♥', 8, { color: '#e8424a', strokeW: 0 });
+        // à direita do nó, fora do caminho da motinho
+        const c = this.add.container(l.map.x + 54, l.map.y - 26, [g, img, heart]).setAngle(8).setDepth(11).setSize(30, 43).setScale(1.2);
+        c.setInteractive({ useHandCursor: true });
+        c.on('pointerdown', () => { if (!this.moving) this.openPhoto(l.id); });
+        c.on('pointerover', () => c.setScale(1.35));
+        c.on('pointerout', () => c.setScale(1.2));
+        this.tweens.add({ targets: c, angle: 4, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      }
+    });
+  }
+
+  /** Abre as fotos de um capítulo por cima do mapa (o mapa pausa enquanto isso). */
+  private openPhoto(id = LEVELS[this.sel].id): void {
+    const photos = photosOf(id);
+    const i = LEVELS.findIndex((l) => l.id === id);
+    if (!photos.length || i >= this.unlockedCount() || this.leaving || this.shop || this.scene.isActive('Photo')) return;
+    this.autoT = -1;
+    const l = LEVELS[i];
+    this.scene.launch('Photo', { photos, title: `${l.month} · ${l.name}`, pauseKey: 'Map' });
+    this.scene.pause();
   }
 
   private drawWorld(): void {
@@ -189,6 +229,7 @@ export class MapScene extends Phaser.Scene {
     this.infoTexts[3].setText(rec?.done ? `Melhor: ${rec.stars} estrela(s)${rec.best ? ` · ${rec.best} pts` : ''}` : l.reward ? `Lembrança ao vencer: ${l.reward === 'medalha' ? 'Medalha de São Bento' : 'Alianças'}` : 'Ainda não concluído');
     this.coinsText.setText(String(Save.data.coins));
     this.starImgs.forEach((s) => s.destroy());
+    this.photoBtn?.setVisible(photosOf(l.id).length > 0);
   }
 
   private openShop(): void {
@@ -278,6 +319,7 @@ export class MapScene extends Phaser.Scene {
         if (this.sel > 0) { this.sel--; Audio.play('select'); this.placeCouple(true); this.refreshInfo(); } else Audio.play('wrong');
       }
     }
+    if (Input.players.some((p) => p.secretPressed) && photosOf(LEVELS[this.sel].id).length) { this.openPhoto(); return; }
     if (Input.players.some((p) => p.abilityPressed)) { Audio.play('confirm'); this.openShop(); return; }
     if (Input.backPressed()) { this.toMenu(); return; }
     if (Input.confirmPressed()) this.playSelected();

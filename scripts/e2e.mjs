@@ -79,6 +79,22 @@ try {
   await wait(900);
   await shot('03b-map-buttons');
 
+  // fotos reais no mapa: a polaroid em cima do Rapel abre a foto; B/P também
+  await clickGame(110 + 54, 112 - 26);
+  await page.waitForFunction(() => window.__game.scene.isActive('Photo'), null, { timeout: 4000 }).catch(() => undefined);
+  check('Mapa: polaroid do Rapel abre a foto real', (await activeScenes()).includes('Photo'));
+  await wait(700);
+  await shot('03c-map-foto');
+  await press('Escape');
+  await wait(600);
+  check('Mapa: foto fecha e o mapa continua', await evalG(() => !window.__game.scene.isActive('Photo') && window.__game.scene.isActive('Map')));
+  await press('KeyB');
+  await wait(300);
+  check('Mapa: tecla B abre a foto do capítulo', (await activeScenes()).includes('Photo'));
+  await wait(600);
+  await press('Escape');
+  await wait(600);
+
   // loja no mapa
   await press('KeyG');
   await wait(400);
@@ -177,6 +193,15 @@ try {
   await page.keyboard.up('KeyK');
   const y1 = await evalG(() => window.__game.scene.getScene('TutorialLevel').players[0].y);
   check('Rapel: desce com o parceiro na segurança', y1 > 10 * 16, `y=${y1.toFixed(0)}`);
+  // momento marcante: a foto real do rapel abre por cima da fase (que pausa)
+  await page.waitForFunction(() => window.__game.scene.isActive('Photo'), null, { timeout: 5000 }).catch(() => undefined);
+  check('Rapel: foto real aparece depois da descida', (await activeScenes()).includes('Photo'));
+  check('Rapel: a fase pausa durante a foto', await evalG(() => window.__game.scene.isPaused('TutorialLevel')));
+  await wait(900);
+  await shot('07c-foto-rapel');
+  await press('Escape');
+  await wait(600);
+  check('Foto fecha e a fase continua', await evalG(() => !window.__game.scene.isActive('Photo') && window.__game.scene.isActive('TutorialLevel')));
   // sem segurança não desce
   await place(1, 38, 8, 0, 1, 'TutorialLevel');
   await place(0, 30, 12, 0, 1, 'TutorialLevel');
@@ -276,10 +301,12 @@ try {
   await evalG(() => { const s = window.__game.scene.getScene('KitchenLevel'); s.cartT = 0.1; });
   await wait(900);
   await shot('10-kitchen-play');
-  // alianças: aparecem na mesa, o João pega e entrega com um abraço
-  await evalG(() => { const s = window.__game.scene.getScene('KitchenLevel'); s.timeLeft = s.cfg.duration - 71; });
+  // fim do jantar: os pedidos somem e as alianças aparecem na mesa; o João pega e entrega com um abraço
+  await evalG(() => { window.__game.scene.getScene('KitchenLevel').timeLeft = 0.05; });
   await wait(300);
-  check('Alianças aparecem na mesa', (await evalG(() => window.__game.scene.getScene('KitchenLevel').rings.state)) === 'table');
+  check('Fim do jantar: alianças aparecem na mesa', (await evalG(() => window.__game.scene.getScene('KitchenLevel').rings.state)) === 'table');
+  check('Fim do jantar: pedidos somem e a fase espera', (await evalG(() => { const s = window.__game.scene.getScene('KitchenLevel'); return s.orders.length === 0 && !s.ended; })));
+  await shot('10a-fim-do-jantar');
   await evalG(() => {
     const s = window.__game.scene.getScene('KitchenLevel');
     const t = s.tables[0];
@@ -304,10 +331,8 @@ try {
   await wait(400);
   await shot('10b-aliancas');
   check('Abraço entrega as alianças', (await evalG(() => window.__game.scene.getScene('KitchenLevel').rings.state)) === 'done');
-  // simula o fim do tempo
-  await evalG(() => { window.__game.scene.getScene('KitchenLevel').timeLeft = 0.05; });
-  await wait(3600);
-  check('Fim de tempo leva à tela de resultado', (await activeScenes()).includes('Result'));
+  await page.waitForFunction(() => window.__game.scene.isActive('Result'), null, { timeout: 8000 }).catch(() => undefined);
+  check('Depois das alianças vem a tela de resultado', (await activeScenes()).includes('Result'));
   await shot('11-result');
   await wait(800);
   await press('ArrowUp'); // última opção
