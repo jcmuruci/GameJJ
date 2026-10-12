@@ -91,6 +91,7 @@ try {
   await press('KeyB');
   await wait(300);
   check('Mapa: tecla B abre a foto do capítulo', (await activeScenes()).includes('Photo'));
+  check('Mapa: Rapel tem 1 foto', (await evalG(() => window.__game.scene.getScene('Photo').d.photos.length)) === 1);
   await wait(600);
   await press('Escape');
   await wait(600);
@@ -391,12 +392,30 @@ try {
   await shot('15-climb');
   check('Escalada abre sem erros', (await activeScenes()).includes('TrailLevel'));
   check('Escalada tem tarefas do capítulo', (await evalG(() => window.__game.scene.getScene('TrailLevel').tasks?.total)) === 4);
+  // fotos reais ganhas na fase: a da escalada na primeira subida
+  await evalG(() => window.__game.scene.getScene('TrailLevel').onClimbDone());
+  await page.waitForFunction(() => window.__game.scene.isActive('Photo'), null, { timeout: 5000 }).catch(() => undefined);
+  check('Escalada: foto real da escalada na primeira subida', await evalG(() => window.__game.scene.isActive('Photo') && window.__game.scene.getScene('Photo').d.photos[0].moment === 'escalada'));
+  await wait(900);
+  await shot('15a-foto-escalada');
+  await press('Escape');
+  await wait(600);
+  check('Escalada: foto fecha e a fase continua', await evalG(() => !window.__game.scene.isActive('Photo') && window.__game.scene.isActive('TrailLevel')));
   await evalG(() => window.__game.scene.getScene('TrailLevel').rockfall());
   await wait(500);
   await shot('15b-pedra-solta');
   await wait(900);
   const rock = await evalG(() => { const s = window.__game.scene.getScene('TrailLevel'); return { d: s.dodges, hp: s.players.map((p) => p.hp).join(',') }; });
   check('Pedra solta cai perto do casal', rock.d === 1 || rock.hp !== '3,3', JSON.stringify(rock));
+  // no mirante: a foto do pôr do sol abre antes do resultado
+  await evalG(() => window.__game.scene.getScene('TrailLevel').onExit());
+  await page.waitForFunction(() => window.__game.scene.isActive('Photo'), null, { timeout: 6000 }).catch(() => undefined);
+  check('Mirante: foto real do pôr do sol', await evalG(() => window.__game.scene.isActive('Photo') && window.__game.scene.getScene('Photo').d.photos[0].moment === 'mirante'));
+  await wait(900);
+  await shot('15c-foto-mirante');
+  await press('Escape');
+  await page.waitForFunction(() => window.__game.scene.isActive('Result'), null, { timeout: 6000 }).catch(() => undefined);
+  check('Mirante: depois da foto vem o resultado', (await activeScenes()).includes('Result'));
   await startScene(TL, { levelId: 'topo' });
   await wait(400);
   await shot('16-topo');
@@ -414,9 +433,11 @@ try {
   await page.keyboard.down('KeyF'); await page.keyboard.down('KeyK');
   await wait(2500);
   await shot('17b-rajada');
-  await wait(2000);
+  // segura até a rajada passar (o tempo do jogo depende do fps do navegador de teste)
+  await page.waitForFunction(() => !window.__game.scene.getScene('TrailLevel').gust, null, { timeout: 15000 }).catch(() => undefined);
   await page.keyboard.up('KeyF'); await page.keyboard.up('KeyK');
-  check('Seguram firme na rajada de vento', (await evalG(() => window.__game.scene.getScene('TrailLevel').gustsOk)) === 1);
+  const gust = await evalG(() => { const s = window.__game.scene.getScene('TrailLevel'); return { ok: s.gustsOk, t: s.gust?.t, fps: Math.round(window.__game.loop.actualFps) }; });
+  check('Seguram firme na rajada de vento', gust.ok === 1, JSON.stringify(gust));
   await evalG(() => { const s = window.__game.scene.getScene('TrailLevel'); s.players[1].teleport(s.players[0].x + 20, s.players[0].y); s.onExit(); });
   await wait(4200);
   await shot('18-poem');
@@ -771,6 +792,14 @@ try {
   await startScene('Map', {});
   check('Admin: todos os capítulos liberados', (await evalG(() => window.__game.scene.getScene('Map').unlockedCount())) >= 12);
   await shot('28-admin-mapa');
+  // Escalada liberada: a polaroid do mapa abre as duas fotos (o admin fecha sozinho)
+  await evalG(() => window.__game.scene.getScene('Map').openPhoto('climb'));
+  await wait(500);
+  check('Mapa: Escalada mostra as 2 fotos', await evalG(() => window.__game.scene.isActive('Photo') && window.__game.scene.getScene('Photo').d.photos.length === 2));
+  await shot('28b-admin-fotos-escalada');
+  await page.waitForFunction(() => !window.__game.scene.isActive('Photo'), null, { timeout: 5000 }).catch(() => undefined);
+  await wait(300);
+  await evalG(() => { window.__game.scene.getScene('Map').autoT = 1; });
   // o mapa começa o primeiro capítulo sozinho e a história passa sozinha
   await page.waitForFunction(() => window.__game.scene.isActive('Story'), null, { timeout: 15000 }).catch(() => undefined);
   check('Admin: o capítulo começa sozinho', (await activeScenes()).includes('Story'));

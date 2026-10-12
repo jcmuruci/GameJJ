@@ -162,6 +162,8 @@ export class MapScene extends Phaser.Scene {
       for (const l of list) {
         const key = photoThumb(this, photosOf(l.id)[0], 72, 96);
         const g = this.add.graphics();
+        // mais de uma foto: uma pilha de polaroids
+        if (photosOf(l.id).length > 1) g.fillStyle(0x000000, 0.25).fillRect(-8, -24, 30, 43).fillStyle(0xe8e0d0, 1).fillRect(-10, -26, 30, 43);
         g.fillStyle(0x000000, 0.3).fillRect(-13, -19, 30, 43);
         g.fillStyle(0xfbf6ec, 1).fillRect(-15, -21, 30, 43);
         const img = this.add.image(0, -3, key).setDisplaySize(24, 32);

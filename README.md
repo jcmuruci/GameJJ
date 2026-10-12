@@ -96,17 +96,18 @@ A pasta `dist/` é um site estático — funciona em qualquer hospedagem.
 
 Cada capítulo pode ter fotos de verdade do casal. Elas aparecem em dois lugares:
 
-- **Na fase**, no momento marcante, numa polaroid por cima do jogo (a fase pausa; AÇÃO, Esc ou clique fecham).
-  No Rapel, ela abre logo depois da primeira descida.
-- **No mapa**, numa polaroid pequena em cima do capítulo (clique para abrir) e no botão **Ver nossa foto (B/P)**.
+- **Na fase**, no momento marcante, numa polaroid por cima do jogo (a fase pausa; AÇÃO, Esc ou clique fecham):
+  no Rapel, logo depois da primeira descida; na Escalada, na primeira subida; no Mirante, depois da foto do casal.
+- **No mapa**, numa polaroid pequena em cima do capítulo (uma pilha quando há mais de uma; clique para abrir)
+  e no botão **Ver nossa foto (B/P)**. Com várias fotos, ◀ ▶ trocam.
 
 Para acrescentar uma foto:
 
 1. Salve o JPG em `src/assets/photos/`, com o lado maior em ~1400 px e sem dados de localização (EXIF).
 2. Importe o arquivo em [`src/data/photos.ts`](src/data/photos.ts) e coloque-o na lista do capítulo (`PHOTOS`),
-   com uma legenda.
-3. Para abrir no momento marcante da fase, chame no gancho da fase:
-   `openPhotoOverLevel(this, photosOf(this.info.id), 'Lembrança real ♥')`.
+   com uma legenda e o `moment` em que ela é ganha (`rapel`, `escalada`, `mirante`, `cachoeira`, `decolagem`...).
+3. A fase chama `this.showPhoto(moment)` nesse momento. Os finais de trilha (`mirante`, `cachoeira`, `decolagem`)
+   já chamam; para um momento novo, acrescente a chamada no gancho da fase.
 
 As fotos são publicadas junto com o site (qualquer pessoa com o link pode ver).
 

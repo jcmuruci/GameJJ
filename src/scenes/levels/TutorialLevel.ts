@@ -10,8 +10,6 @@ import { Audio } from '../../systems/Audio';
 import { DEFAULT_TERRAIN } from './BaseLevel';
 import { T } from '../../art/tiles';
 import { rockTop, plaque } from './Scenery';
-import { openPhotoOverLevel } from '../PhotoScene';
-import { photosOf } from '../../data/photos';
 
 /**
  * Tutorial interativo ao pé da Pedra Grande; o rapel desce do topo da pedra.
@@ -169,7 +167,7 @@ export class TutorialLevel extends PuzzleLevel {
   onRappelDone(_p: Player): void {
     if (this.photoShown) return;
     this.photoShown = true;
-    this.time.delayedCall(1400, () => { if (!this.ended) openPhotoOverLevel(this, photosOf(this.info.id), 'Lembrança real ♥'); });
+    this.showPhoto('rapel', 1400);
   }
 
   tick(dt: number): void {

@@ -17,6 +17,8 @@ import { Ground } from '../../art/Ground';
 import { applyGrade } from '../../systems/Grade';
 import { Ambience } from '../../systems/Ambience';
 import { irisOut, HEART_LEVELS } from '../TransitionScene';
+import { openPhotoOverLevel } from '../PhotoScene';
+import { photosOf } from '../../data/photos';
 
 /** Chão que levanta poeira ao andar. */
 const DUSTY = new Set<number>([T.GRASS, T.GRASS_FLOWERS, T.GRASS_TUFT, T.PATH, T.SAND, T.DARK_GRASS, T.ROCKY_GRASS, T.GRANITE]);
@@ -373,6 +375,13 @@ export abstract class BaseLevel extends Phaser.Scene {
 
   sfx(s: Sfx): void {
     Audio.play(s);
+  }
+
+  /** Foto real ganha num momento da fase (se houver): abre por cima, com a fase pausada. */
+  showPhoto(moment: string, delay = 0): void {
+    const photos = photosOf(this.info.id).filter((p) => p.moment === moment);
+    if (!photos.length) return;
+    this.time.delayedCall(delay, () => { if (!this.ended) openPhotoOverLevel(this, photos, 'Lembrança real ♥'); });
   }
 
   say(p: Player | { x: number; y: number }, text: string, ms = 1800, color?: string): void {

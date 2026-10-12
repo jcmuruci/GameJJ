@@ -306,6 +306,8 @@ export class TrailLevel extends PuzzleLevel {
   onClimbDone(): void {
     this.climbs++;
     this.tasks?.progress('climb', this.climbs);
+    // a primeira subida rende a foto real da escalada
+    if (this.climbs === 1) this.showPhoto('escalada', 1200);
   }
 
   onRappelDone(): void {
@@ -547,6 +549,8 @@ export class TrailLevel extends PuzzleLevel {
       this.time.delayedCall(900, () => this.say(a, l2, 1800));
     });
     if (end === 'decolagem') this.tasks?.done('finish');
+    // a foto real do lugar (se houver) abre antes do resultado; a fase espera ela fechar
+    this.showPhoto(end ?? 'mirante', 2200);
     this.time.delayedCall(2600, () => this.complete([extra]));
   }
 
